@@ -16,8 +16,8 @@ class InstanceExtractor(object):
         self.disjunctive_left_window = int(kwargs.get('disjunctive_left_window', 0))
         self.disjunctive_right_window = int(kwargs.get('disjunctive_right_window', 0))
         self.tag_sequence_window = int(kwargs.get('tag_sequence_window', 0))
-        self.clean_gazettes = kwargs.get('clean_gazette', {})
-        self.sloppy_gazettes = kwargs.get('sloppy_gazette', {})
+        self.clean_gazetteer = kwargs.get('clean_gazette', {})
+        self.sloppy_gazetteer = kwargs.get('sloppy_gazette', {})
 
     def get_instances_for_sentence(self, sentence):
         """
@@ -68,12 +68,12 @@ class InstanceExtractor(object):
                         sentence.get_right_window(widx, self.tag_sequence_window)
                     ])
 
-                if entity_gazette in self.clean_gazettes:
-                    for feature in self.clean_gazettes[entity_gazette]:
+                if entity_gazette in self.clean_gazetteer:
+                    for feature in self.clean_gazetteer[entity_gazette]:
                         features[feature] = 1
 
-                if word.token in self.sloppy_gazettes:
-                    for feature in self.sloppy_gazettes[word.token]:
+                if word.token in self.sloppy_gazetteer:
+                    for feature in self.sloppy_gazetteer[word.token]:
                         features[feature] = 1
 
                 instances.append(features)

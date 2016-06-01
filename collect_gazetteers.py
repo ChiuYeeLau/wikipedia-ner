@@ -16,8 +16,8 @@ if __name__ == "__main__":
     clean_gazettes = {}
     sloppy_gazettes = {}
 
-    for corpus_file in os.listdir(input_dir):
-        print('Getting gazettes for corpus {}'.format(corpus_file))
+    for corpus_file in sorted(os.listdir(input_dir)):
+        print('Getting gazettes for corpus {}'.format(corpus_file), file=sys.stderr)
 
         parser = WikipediaCorpusColumnParser(os.path.join(input_dir, corpus_file))
 
@@ -37,7 +37,7 @@ if __name__ == "__main__":
                 else:
                     sloppy_gazettes[sloppy_gazette] = sentence_sloppy_gazettes[sloppy_gazette]
 
-    print('Saving gazetteer pickles')
+    print('Saving gazetteer pickles', file=sys.stderr)
 
     with open(os.path.join(output_dir, 'clean_gazettes.pickle'), 'wb') as f:
         cPickle.dump(clean_gazettes, f)

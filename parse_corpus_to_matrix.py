@@ -18,10 +18,10 @@ FILES_SENTENCES = {
     "doc_04.conll": 1762920,
     "doc_05.conll": 1605431,
     "doc_06.conll": 1688569,
-    "doc_07.conll": 1000,
-    "doc_08.conll": 1000,
-    "doc_09.conll": 1000,
-    "doc_10.conll": 1000
+    "doc_07.conll": 1813089,
+    "doc_08.conll": 1841952,
+    "doc_09.conll": 1495951,
+    "doc_10.conll": 514936
 }
 
 if __name__ == "__main__":

@@ -43,7 +43,7 @@ if __name__ == "__main__":
             clean_gazetteer = cPickle.load(f)
 
         print('Loading sloppy gazetteer file', file=sys.stderr)
-        with open(os.path.join(args.gazetteer_dir, args.sloppy_gazetteer), "rb") as f:
+        with open(os.path.join(args.gazetteer_dir, 'sloppy_gazettes_{}.pickle'.format(corpus_doc)), "rb") as f:
             sloppy_gazetteer = cPickle.load(f)
 
         instance_extractor = InstanceExtractor(

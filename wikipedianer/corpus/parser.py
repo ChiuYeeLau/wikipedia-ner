@@ -77,7 +77,7 @@ class InstanceExtractor(object):
                         features[feature] = 1
 
                 instances.append(features)
-                labels.append(word.label)
+                labels.append(word.short_label)
 
         return instances, labels
 

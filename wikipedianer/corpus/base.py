@@ -59,6 +59,10 @@ class Word(object):
                                        '|'.join(self.yago_relations))
 
     @property
+    def short_label(self):
+        return '{}-{}'.format(self.ner_tag, self.yago_uri)
+
+    @property
     def is_ner(self):
         return self.ner_tag != 'O'
 

@@ -34,7 +34,7 @@ if __name__ == "__main__":
     instances = []
     labels = []
 
-    for conll_file in os.listdir(args.input_dir):
+    for conll_file in sorted(os.listdir(args.input_dir)):
         corpus_doc, _ = conll_file.split(".", 1)
 
         print('Loading clean gazetteer file', file=sys.stderr)
@@ -79,7 +79,7 @@ if __name__ == "__main__":
     print('Saving matrix of features and labels', file=sys.stderr)
     mmwrite(os.path.join(args.output_dir, 'ner_feature_matrix.mtx'), X)
 
-    with open(os.path.join(args.output_dir, 'ner_labels.pickle'), 'rb') as f:
+    with open(os.path.join(args.output_dir, 'ner_labels.pickle'), 'wb') as f:
         cPickle.dump(labels, f)
 
     print('All operations finished', file=sys.stderr)

@@ -65,19 +65,31 @@ if __name__ == "__main__":
         parser = WikipediaCorpusColumnParser(os.path.join(args.input_dir, conll_file))
 
         for sentence in tqdm(parser, total=FILES_SENTENCES[conll_file]):
-            sentence_instances, sentence_labels = instance_extractor.get_instances_for_sentence(sentence)
+            if sentence.has_named_entity:
+                sentence_instances, sentence_labels = instance_extractor.get_instances_for_sentence(sentence)
 
-            instances.extend(sentence_instances)
-            labels.extend(sentence_labels)
+                instances.extend(sentence_instances)
+                labels.extend(sentence_labels)
+
+        print('Backup vectorization', file=sys.stderr)
+
+        vectorizer = DictVectorizer()
+        X = vectorizer.fit_transform(instances)
+        del vectorizer
+        mmwrite(os.path.join(args.output_dir, 'ner_feature_matrix_{}.mtx'.format(corpus_doc)), X)
+        del X
+
+        with open(os.path.join(args.output_dir, 'ner_labels_{}.pickle'.format(corpus_doc)), 'wb') as f:
+            cPickle.dump(labels, f)
 
     print('Transforming features to vector', file=sys.stderr)
 
     vectorizer = DictVectorizer()
-
     X = vectorizer.fit_transform(instances)
-
+    del vectorizer
     print('Saving matrix of features and labels', file=sys.stderr)
     mmwrite(os.path.join(args.output_dir, 'ner_feature_matrix.mtx'), X)
+    del X
 
     with open(os.path.join(args.output_dir, 'ner_labels.pickle'), 'wb') as f:
         cPickle.dump(labels, f)

@@ -71,16 +71,20 @@ if __name__ == "__main__":
                 instances.extend(sentence_instances)
                 labels.extend(sentence_labels)
 
-        print('Backup vectorization', file=sys.stderr)
+        del clean_gazetteer
+        del sloppy_gazetter
 
-        vectorizer = DictVectorizer()
-        X = vectorizer.fit_transform(instances)
-        del vectorizer
-        mmwrite(os.path.join(args.output_dir, 'ner_feature_matrix_{}.mtx'.format(corpus_doc)), X)
-        del X
+        if corpus_doc != "conll_10":
+            print('Backup vectorization', file=sys.stderr)
 
-        with open(os.path.join(args.output_dir, 'ner_labels_{}.pickle'.format(corpus_doc)), 'wb') as f:
-            cPickle.dump(labels, f)
+            vectorizer = DictVectorizer()
+            X = vectorizer.fit_transform(instances)
+            del vectorizer
+            mmwrite(os.path.join(args.output_dir, 'ner_feature_matrix_{}.mtx'.format(corpus_doc)), X)
+            del X
+
+            with open(os.path.join(args.output_dir, 'ner_labels_{}.pickle'.format(corpus_doc)), 'wb') as f:
+                cPickle.dump(labels, f)
 
     print('Transforming features to vector', file=sys.stderr)
 

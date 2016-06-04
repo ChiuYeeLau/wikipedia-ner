@@ -62,7 +62,7 @@ if __name__ == "__main__":
         clean_gazette=True
     )
 
-    features = {k: v for k, v in features if k.startswith("gazetteer") or v >= args.features}
+    features = {k: v for k, v in features.iteritems() if k.startswith("gazetteer") or v >= args.features}
     features_length = len(features)
     dataset_matrix = sparse.csr_matrix((0, features_length), dtype=np.int32)
     labels = []

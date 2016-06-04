@@ -82,6 +82,13 @@ if __name__ == "__main__":
 
                 labels.extend(sentence_labels)
 
+        if corpus_doc == "doc_04" or corpus_doc == "doc_07":
+            print('Saving partial matrix', file=sys.stderr)
+            mmwrite(os.path.join(args.output_dir, 'ner_feature_matrix_partial.mtx'), dataset_matrix)
+
+            with open(os.path.join(args.output_dir, 'ner_labels_partial.pickle'), 'wb') as f:
+                cPickle.dump(labels, f)
+    
     print('Saving matrix of features and labels', file=sys.stderr)
     mmwrite(os.path.join(args.output_dir, 'ner_feature_matrix.mtx'), dataset_matrix)
 

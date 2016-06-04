@@ -9,6 +9,7 @@ import os
 import sys
 from scipy.io import mmwrite
 from scipy import sparse
+from sklearn.feature_extraction import DictVectorizer
 from tqdm import tqdm
 from wikipedianer.corpus.parser import InstanceExtractor, WikipediaCorpusColumnParser
 
@@ -61,9 +62,13 @@ if __name__ == "__main__":
     )
 
     features_length = len(sorted_features)
-
-    dataset_matrix = sparse.lil_matrix((0, features_length), dtype=np.int32)
+    dataset_matrix = sparse.csr_matrix((0, features_length), dtype=np.int32)
     labels = []
+
+    print('Creating vectorizer', file=sys.stderr)
+    vectorizer = DictVectorizer(dtype=np.int32)
+    vectorizer.feature_names_ = sorted(sorted_features.keys())
+    vectorizer.vocabulary_ = sorted_features
 
     for conll_file in sorted(os.listdir(args.input_dir)):
         corpus_doc, _ = conll_file.split(".", 1)
@@ -76,11 +81,7 @@ if __name__ == "__main__":
             if sentence.has_named_entity:
                 sentence_instances, sentence_labels = instance_extractor.get_instances_for_sentence(sentence)
 
-                instances = sparse.lil_matrix((len(sentence_instances), features_length), dtype=np.int32)
-
-                for idx, instance in enumerate(sentence_instances):
-                    for feature, value in instance.iteritems():
-                        instances[idx, sorted_features[feature]] = value
+                instances = vectorizer.transform(sentence_instances)
 
                 if dataset_matrix.shape[0] == 0:
                     dataset_matrix = instances

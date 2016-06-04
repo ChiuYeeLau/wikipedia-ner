@@ -146,33 +146,13 @@ class Sentence(object):
     def __len__(self):
         return len(self._words)
 
-    def get_clean_gazettes(self):
-        clean_gazettes = {}
+    def get_gazettes(self):
+        gazettes = set()
 
         for entity in self.get_named_entities():
-            entity_gazette = ' '.join([word.token for widx, word in entity])
-            entity_feature = '{}:gazette:{}'.format(entity[0][1].yago_uri, len(entity))
+            gazettes.add('_'.join([word.token for widx, word in entity]))
 
-            if entity_gazette not in clean_gazettes:
-                clean_gazettes[entity_gazette] = set()
-
-            clean_gazettes[entity_gazette].add(entity_feature)
-
-        return clean_gazettes
-
-    def get_sloppy_gazettes(self):
-        sloppy_gazettes = {}
-
-        for entity in self.get_named_entities():
-            entity_feature = '{}:gazette:{}'.format(entity[0][1].yago_uri, len(entity))
-
-            for widx, word in entity:
-                if word not in sloppy_gazettes:
-                    sloppy_gazettes[word] = set()
-
-                sloppy_gazettes[word].add(entity_feature)
-
-        return sloppy_gazettes
+        return gazettes
 
     def get_named_entities(self):
         named_entities = []

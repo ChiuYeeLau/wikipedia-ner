@@ -180,9 +180,6 @@ class WikipediaCorpusColumnParser(object):
                 else:
                     _, token, tag, class_string, head, dep = line.split()
 
-                    if self.remove_stop_words and token in STOPWORDS_SET:
-                        continue
-
                     widx = len(words)
 
                     if class_string.strip() != 'O':
@@ -197,5 +194,7 @@ class WikipediaCorpusColumnParser(object):
 
                         words.append(Word(widx, token, tag, dep, head, ner_tag, yago_uri, wiki_uri,
                                           wordnet_categories, yago_relations))
+                    elif self.remove_stop_words and token in STOPWORDS_SET:
+                        continue
                     else:
                         words.append(Word(widx, token, tag, dep, head, class_string))

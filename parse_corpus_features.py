@@ -58,7 +58,7 @@ if __name__ == "__main__":
     feature_extractor.save_sorted_features(os.path.join(args.output_dir, 'sorted_features.pickle'))
 
     print('Saving gazetteer', file=sys.stderr)
-    with open(os.path.join(args.output_dir, 'gazetteer.pickle', 'wb')) as f:
+    with open(os.path.join(args.output_dir, 'gazetteer.pickle'), 'wb') as f:
         cPickle.dump(gazetteer, f)
 
     print('All operations finished', file=sys.stderr)

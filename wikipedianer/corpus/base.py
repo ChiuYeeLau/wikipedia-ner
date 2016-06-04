@@ -150,7 +150,7 @@ class Sentence(object):
         gazettes = set()
 
         for entity in self.get_named_entities():
-            gazettes.add(' '.join([word.token for widx, word in entity]))
+            gazettes.add(' '.join([word.token for word in entity]))
 
         return gazettes
 

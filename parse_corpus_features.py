@@ -57,7 +57,7 @@ if __name__ == "__main__":
     feature_extractor.update_features({'gazette:{}'.format(gazette): value for gazette, value in gazetteer})
 
     print('Saving sorted features', file=sys.stderr)
-    feature_extractor.save_sorted_features(os.path.join(args.output_dir, 'sorted_features.pickle'))
+    feature_extractor.save_features(os.path.join(args.output_dir, 'sorted_features.pickle'))
 
     del feature_extractor
 

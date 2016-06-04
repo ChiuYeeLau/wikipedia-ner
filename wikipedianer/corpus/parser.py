@@ -161,6 +161,10 @@ class FeatureExtractor(object):
         with open(file_name, 'wb') as f:
             cPickle.dump(self.sorted_features, f)
 
+    def save_features(self, file_name):
+        with open(file_name, 'wb') as f:
+            cPickle.dump(self.features, f)
+
 
 class WikipediaCorpusColumnParser(object):
     def __init__(self, file_path, remove_stop_words=False):

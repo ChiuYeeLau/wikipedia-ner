@@ -70,7 +70,7 @@ if __name__ == "__main__":
     print('Creating vectorizer', file=sys.stderr)
     vectorizer = DictVectorizer(dtype=np.int32)
     vectorizer.feature_names_ = sorted(features.keys())
-    vectorizer.vocabulary_ = {feature: idx for feature in enumerate(sorted(features))}
+    vectorizer.vocabulary_ = {feature: idx for idx, feature in enumerate(sorted(features))}
 
     for conll_file in sorted(os.listdir(args.input_dir)):
         corpus_doc, _ = conll_file.split(".", 1)

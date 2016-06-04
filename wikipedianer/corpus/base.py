@@ -116,7 +116,7 @@ class NamedEntity(object):
         
     @property
     def entity_gazette(self):
-        return '_'.join([word.token for word in self._words])
+        return ' '.join([word.token for word in self._words])
 
 
 class Sentence(object):

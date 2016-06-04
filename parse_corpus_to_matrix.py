@@ -4,10 +4,11 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 import argparse
 import cPickle
+import numpy as np
 import os
 import sys
 from scipy.io import mmwrite
-from sklearn.feature_extraction import DictVectorizer
+from scipy import sparse
 from tqdm import tqdm
 from wikipedianer.corpus.parser import InstanceExtractor, WikipediaCorpusColumnParser
 
@@ -27,19 +28,25 @@ FILES_SENTENCES = {
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("input_dir", type=unicode)
+    parser.add_argument("resources_dir", type=unicode)
     parser.add_argument("output_dir", type=unicode)
-    parser.add_argument("gazetteer_dir", type=unicode)
+    parser.add_argument("--stopwords", action="store_true")
 
     args = parser.parse_args()
-    instances = []
-    labels = []
 
-    print('Loading clean gazetteer file', file=sys.stderr)
+    print('Loading resources', file=sys.stderr)
 
-    with open(os.path.join(args.gazetteer_dir, 'clean_gazetteers.pickle'), "rb") as f:
-        clean_gazetteer = cPickle.load(f)
+    with open(os.path.join(args.resources_dir, "sorted_features.pickle"), "rb") as f:
+        sorted_features = cPickle.load(f)
+
+    with open(os.path.join(args.resources_dir, "gazetteer.pickle"), "rb") as f:
+        gazetteer = cPickle.load(f)
+
+    with open(os.path.join(args.resources_dir, "sloppy_gazetteer.pickle"), "rb") as f:
+        sloppy_gazetteer = cPickle.load(f)
 
     instance_extractor = InstanceExtractor(
+        sorted_features,
         token=True,
         current_tag=True,
         affixes=True,
@@ -49,31 +56,34 @@ if __name__ == "__main__":
         disjunctive_left_window=4,
         disjunctive_right_window=4,
         tag_sequence_window=2,
-        clean_gazetteer=clean_gazetteer
+        gazetteer=gazetteer,
+        sloppy_gazetteer=sloppy_gazetteer,
+        clean_gazette=True
     )
 
-    for conll_file in sorted(os.listdir(args.input_dir))[:5]:
+    dataset_matrix = sparse.lil_matrix((0, len(sorted_features)), dtype=np.int32)
+    labels = []
+
+    for conll_file in sorted(os.listdir(args.input_dir)):
         corpus_doc, _ = conll_file.split(".", 1)
 
         print('Getting instances from corpus {}'.format(conll_file), file=sys.stderr)
 
-        parser = WikipediaCorpusColumnParser(os.path.join(args.input_dir, conll_file))
+        parser = WikipediaCorpusColumnParser(os.path.join(args.input_dir, conll_file), args.stopwords)
 
         for sentence in tqdm(parser, total=FILES_SENTENCES[conll_file]):
             if sentence.has_named_entity:
                 sentence_instances, sentence_labels = instance_extractor.get_instances_for_sentence(sentence)
 
-                instances.extend(sentence_instances)
+                if dataset_matrix.shape[0] == 0:
+                    dataset_matrix = sentence_instances
+                else:
+                    dataset_matrix = sparse.vstack((dataset_matrix, sentence_instances))
+
                 labels.extend(sentence_labels)
 
-    print('Transforming features to vector', file=sys.stderr)
-
-    vectorizer = DictVectorizer()
-    X = vectorizer.fit_transform(instances)
-    del vectorizer
     print('Saving matrix of features and labels', file=sys.stderr)
-    mmwrite(os.path.join(args.output_dir, 'ner_feature_matrix.mtx'), X)
-    del X
+    mmwrite(os.path.join(args.output_dir, 'ner_feature_matrix.mtx'), dataset_matrix)
 
     with open(os.path.join(args.output_dir, 'ner_labels.pickle'), 'wb') as f:
         cPickle.dump(labels, f)

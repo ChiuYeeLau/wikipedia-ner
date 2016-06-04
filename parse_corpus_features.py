@@ -54,7 +54,7 @@ if __name__ == "__main__":
                     gazetteer[gazette] += value
 
     print('Updating features with gazette features', file=sys.stderr)
-    feature_extractor.update_features({'gazette:{}'.format(gazette): value for gazette, value in gazetteer})
+    feature_extractor.update_features({'gazette:{}'.format(gazette): value for gazette, value in gazetteer.iteritems()})
 
     print('Saving sorted features', file=sys.stderr)
     feature_extractor.save_sorted_features(os.path.join(args.output_dir, 'sorted_features.pickle'))

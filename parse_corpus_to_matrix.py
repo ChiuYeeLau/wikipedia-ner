@@ -9,7 +9,7 @@ import os
 import sys
 from scipy.io import mmwrite
 from scipy import sparse
-from sklearn.feature_extraction import FeatureHasher
+from sklearn.feature_extraction import DictVectorizer
 from tqdm import tqdm
 from wikipedianer.corpus.parser import InstanceExtractor, WikipediaCorpusColumnParser
 
@@ -32,13 +32,14 @@ if __name__ == "__main__":
     parser.add_argument("resources_dir", type=unicode)
     parser.add_argument("output_dir", type=unicode)
     parser.add_argument("--stopwords", action="store_true")
+    parser.add_argument("--features", type=int, default=0)
 
     args = parser.parse_args()
 
     print('Loading resources', file=sys.stderr)
 
     with open(os.path.join(args.resources_dir, "sorted_features.pickle"), "rb") as f:
-        sorted_features = cPickle.load(f)
+        features = cPickle.load(f)
 
     with open(os.path.join(args.resources_dir, "gazetteer.pickle"), "rb") as f:
         gazetteer = cPickle.load(f)
@@ -61,12 +62,15 @@ if __name__ == "__main__":
         clean_gazette=True
     )
 
-    features_length = len(sorted_features)
+    features = {k: v for k, v in features if k.startswith("gazetteer") or v >= args.features}
+    features_length = len(features)
     dataset_matrix = sparse.csr_matrix((0, features_length), dtype=np.int32)
     labels = []
 
     print('Creating vectorizer', file=sys.stderr)
-    feature_hasher = FeatureHasher(n_features=features_length, dtype=np.int32)
+    vectorizer = DictVectorizer(dtype=np.int32)
+    vectorizer.feature_names_ = sorted(features.keys())
+    vectorizer.vocabulary_ = {feature: idx for feature in enumerate(sorted(features))}
 
     for conll_file in sorted(os.listdir(args.input_dir)):
         corpus_doc, _ = conll_file.split(".", 1)
@@ -79,7 +83,7 @@ if __name__ == "__main__":
             if sentence.has_named_entity:
                 sentence_instances, sentence_labels = instance_extractor.get_instances_for_sentence(sentence)
 
-                instances = feature_hasher.transform(sentence_instances)
+                instances = vectorizer.transform(sentence_instances)
 
                 if dataset_matrix.shape[0] == 0:
                     dataset_matrix = instances

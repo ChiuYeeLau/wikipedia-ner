@@ -46,7 +46,6 @@ if __name__ == "__main__":
         sloppy_gazetteer = cPickle.load(f)
 
     instance_extractor = InstanceExtractor(
-        sorted_features,
         token=True,
         current_tag=True,
         affixes=True,
@@ -61,7 +60,9 @@ if __name__ == "__main__":
         clean_gazette=True
     )
 
-    dataset_matrix = sparse.lil_matrix((0, len(sorted_features)), dtype=np.int32)
+    features_length = len(sorted_features)
+
+    dataset_matrix = sparse.lil_matrix((0, features_length), dtype=np.int32)
     labels = []
 
     for conll_file in sorted(os.listdir(args.input_dir)):
@@ -75,10 +76,16 @@ if __name__ == "__main__":
             if sentence.has_named_entity:
                 sentence_instances, sentence_labels = instance_extractor.get_instances_for_sentence(sentence)
 
+                instances = sparse.lil_matrix((len(sentence_instances), features_length), dtype=np.int32)
+
+                for idx, instance in enumerate(sentence_instances):
+                    for feature, value in instance.iteritems():
+                        instances[idx, sorted_features[feature]] = value
+
                 if dataset_matrix.shape[0] == 0:
-                    dataset_matrix = sentence_instances
+                    dataset_matrix = instances
                 else:
-                    dataset_matrix = sparse.vstack((dataset_matrix, sentence_instances))
+                    dataset_matrix = sparse.vstack((dataset_matrix, instances))
 
                 labels.extend(sentence_labels)
 

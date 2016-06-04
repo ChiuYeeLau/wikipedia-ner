@@ -3,7 +3,7 @@
 from __future__ import absolute_import, unicode_literals
 
 import cPickle
-from scipy import sparse
+from collections import defaultdict
 from nltk.corpus import stopwords
 from .base import Sentence, Word, WORDNET_CATEGORIES, YAGO_RELATIONS
 
@@ -12,9 +12,7 @@ STOPWORDS_SET = set(stopwords.words())
 
 
 class InstanceExtractor(object):
-    def __init__(self, sorted_features, **kwargs):
-        self.sorted_features = sorted_features
-        self.features_length = len(sorted_features)
+    def __init__(self, **kwargs):
         self.token = bool(kwargs.get('token', False))
         self.current_tag = bool(kwargs.get('current_tag', False))
         self.affixes = bool(kwargs.get('affixes', False))
@@ -34,50 +32,50 @@ class InstanceExtractor(object):
         :param sentence: wikipedianer.corpus.base.Sentence
         :param named_entity: wikipedianer.corpus.base.NamedEntity
         """
-        features = sparse.lil_matrix((1, self.features_length))
+        features = defaultdict(int)
 
         if self.token:
-            features[0, self.sorted_features['token:current={}'.format(word.token)]] = 1
+            features['token:current={}'.format(word.token)] += 1
 
         if self.current_tag:
-            features[0, self.sorted_features['tag:current={}'.format(word.tag)]] = 1
+            features['tag:current={}'.format(word.tag)] += 1
 
         if self.affixes:
             prefixes, suffixes = word.get_affixes(self.max_ngram_length)
 
             for i in range(len(prefixes)):
                 prefix = prefixes[i]
-                features[0, self.sorted_features['prefix:{}-gram={}'.format(len(prefix), prefix)]] += 1
+                features['prefix:{}-gram={}'.format(len(prefix), prefix)] += 1
 
             for i in range(len(suffixes)):
                 suffix = suffixes[i]
-                features[0, self.sorted_features['suffix:{}-gram={}'.format(len(suffix), suffix)]] += 1
+                features['suffix:{}-gram={}'.format(len(suffix), suffix)] += 1
 
         if self.prev_token and word.idx > 0:
-            features[0, self.sorted_features['token:prev={}'.format(sentence[word.idx-1].token)]] = 1
+            features['token:prev={}'.format(sentence[word.idx-1].token)] += 1
 
         if self.next_token and word.idx < len(sentence) - 1:
-            features[0, self.sorted_features['token:next={}'.format(sentence[word.idx+1].token)]] = 1
+            features['token:next={}'.format(sentence[word.idx+1].token)] += 1
 
         for wrd in sentence.get_left_window(word.idx, self.disjunctive_left_window):
-            features[0, self.sorted_features['left:token={}'.format(wrd.token)]] += 1
+            features['left:token={}'.format(wrd.token)] += 1
 
         for wrd in sentence.get_right_window(word.idx, self.disjunctive_right_window):
-            features[0, self.sorted_features['right:token={}'.format(wrd.token)]] += 1
+            features['right:token={}'.format(wrd.token)] += 1
 
         if self.tag_sequence_window > 0:
-            features[0, self.sorted_features['tag:surrounding:sequence={}'.format('|'.join([
+            features['tag:surrounding:sequence={}'.format('|'.join([
                 wrd.tag for wrd in
                 sentence.get_left_window(word.idx, self.tag_sequence_window) + [word] +
                 sentence.get_right_window(word.idx, self.tag_sequence_window)
-            ]))]] = 1
+            ]))] += 1
 
         if self.clean_gazette and named_entity is not None and named_entity.entity_gazette in self.gazetteer:
-            features[0, self.sorted_features['gazette:{}'.format(named_entity.entity_gazette)]] = 1
+            features['gazette:{}'.format(named_entity.entity_gazette)] += 1
 
         if word.token in self.sloppy_gazetteer:
             for feature in self.sloppy_gazetteer[word.token]:
-                features[0, self.sorted_features['gazette:{}'.format(feature)]] += 1
+                features['gazette:{}'.format(feature)] += 1
 
         return features
 
@@ -97,7 +95,7 @@ class InstanceExtractor(object):
                     instances.append(self._features_for_word(word, sentence, unit))
                     labels.append(word.short_label)
 
-        return sparse.vstack(instances), labels
+        return instances, labels
 
 
 class FeatureExtractor(object):

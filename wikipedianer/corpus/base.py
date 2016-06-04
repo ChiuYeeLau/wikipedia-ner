@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import absolute_import, unicode_literals
+from collections import defaultdict
 
 WORDNET_CATEGORIES = {
     'wordnet_actor_109765278',
@@ -147,10 +148,10 @@ class Sentence(object):
         return len(self._words)
 
     def get_gazettes(self):
-        gazettes = set()
+        gazettes = defaultdict(int)
 
         for entity in self.get_named_entities():
-            gazettes.add(' '.join([word.token for word in entity]))
+            gazettes[' '.join([word.token for word in entity])] += 1
 
         return gazettes
 

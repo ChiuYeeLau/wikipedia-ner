@@ -38,7 +38,7 @@ if __name__ == "__main__":
         disjunctive_right_window=4,
         tag_sequence_window=2
     )
-    gazetteer = set()
+    gazetteer = defaultdict(int)
 
     for conll_file in sorted(os.listdir(args.input_dir)):
         corpus_doc, _ = conll_file.split(".", 1)
@@ -50,10 +50,11 @@ if __name__ == "__main__":
         for sentence in tqdm(parser, total=FILES_SENTENCES[corpus_doc]):
             if sentence.has_named_entity:
                 feature_extractor.features_from_sentence(sentence)
-                gazetteer.update(sentence.get_gazettes())
+                for gazette, value in sentence.get_gazettes().iteritems():
+                    gazetteer[gazette] += value
 
     print('Updating features with gazette features', file=sys.stderr)
-    feature_extractor.update_features({'gazette:{}'.format(gazette) for gazette in gazetteer})
+    feature_extractor.update_features({'gazette:{}'.format(gazette): value for gazette, value in gazetteer})
 
     print('Saving sorted features', file=sys.stderr)
     feature_extractor.save_sorted_features(os.path.join(args.output_dir, 'sorted_features.pickle'))

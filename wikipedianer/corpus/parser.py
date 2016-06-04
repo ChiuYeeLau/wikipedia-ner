@@ -100,44 +100,47 @@ class InstanceExtractor(object):
 
 class FeatureExtractor(object):
     def __init__(self, **kwargs):
-        self.features_set = {'in:clean:gazetteer', 'in:sloppy:gazetteer'}
+        self.features = defaultdict(int)
         self.max_ngram_length = kwargs.get('max_ngram_length', 0)
         self.disjunctive_left_window = int(kwargs.get('disjunctive_left_window', 0))
         self.disjunctive_right_window = int(kwargs.get('disjunctive_right_window', 0))
         self.tag_sequence_window = int(kwargs.get('tag_sequence_window', 0))
 
     def _features_from_word(self, word, sentence):
-        self.features_set.add('token:current={}'.format(word.token))
-        self.features_set.add('tag:current={}'.format(word.tag))
+        self.features['in:clean:gazetteer'] += 1
+        self.features['in:sloppy:gazetteer'] += 1
+
+        self.features['token:current={}'.format(word.token)] += 1
+        self.features['tag:current={}'.format(word.tag)] += 1
 
         prefixes, suffixes = word.get_affixes(self.max_ngram_length)
 
         for i in range(len(prefixes)):
             prefix = prefixes[i]
-            self.features_set.add('prefix:{}-gram={}'.format(len(prefix), prefix))
+            self.features['prefix:{}-gram={}'.format(len(prefix), prefix)] += 1
 
         for i in range(len(suffixes)):
             suffix = suffixes[i]
-            self.features_set.add('suffix:{}-gram={}'.format(len(suffix), suffix))
+            self.features['suffix:{}-gram={}'.format(len(suffix), suffix)] += 1
 
         if word.idx > 0:
-            self.features_set.add('token:prev={}'.format(sentence[word.idx-1].token))
+            self.features['token:prev={}'.format(sentence[word.idx - 1].token)] += 1
 
         if word.idx < len(sentence) - 1:
-            self.features_set.add('token:next={}'.format(sentence[word.idx+1].token))
+            self.features['token:next={}'.format(sentence[word.idx + 1].token)] += 1
 
         for wrd in sentence.get_left_window(word.idx, self.disjunctive_left_window):
-            self.features_set.add('left:token={}'.format(wrd.token))
+            self.features['left:token={}'.format(wrd.token)] += 1
 
         for wrd in sentence.get_right_window(word.idx, self.disjunctive_right_window):
-            self.features_set.add('right:token={}'.format(wrd.token))
+            self.features['right:token={}'.format(wrd.token)] += 1
 
         if self.tag_sequence_window > 0:
-            self.features_set.add('tag:surrounding:sequence={}'.format('|'.join([
+            self.features['tag:surrounding:sequence={}'.format('|'.join([
                 wrd.tag for wrd in
                 sentence.get_left_window(word.idx, self.tag_sequence_window) + [word] +
                 sentence.get_right_window(word.idx, self.tag_sequence_window)
-            ])))
+            ]))] += 1
 
     def features_from_sentence(self, sentence):
         for unit in sentence.get_words_and_entities():
@@ -148,11 +151,11 @@ class FeatureExtractor(object):
                     self._features_from_word(word, sentence)
 
     def update_features(self, features):
-        self.features_set.update(features)
+        self.features.update(features)
 
     @property
     def sorted_features(self):
-        return {feature: idx for idx, feature in enumerate(sorted(self.features_set))}
+        return {feature: idx for idx, feature in enumerate(sorted(self.features))}
 
     def save_sorted_features(self, file_name):
         with open(file_name, 'wb') as f:

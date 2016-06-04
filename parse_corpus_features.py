@@ -7,6 +7,7 @@ import argparse
 import cPickle
 import os
 import sys
+from collections import defaultdict
 from tqdm import tqdm
 from wikipedianer.corpus.parser import FeatureExtractor, WikipediaCorpusColumnParser
 
@@ -57,8 +58,22 @@ if __name__ == "__main__":
     print('Saving sorted features', file=sys.stderr)
     feature_extractor.save_sorted_features(os.path.join(args.output_dir, 'sorted_features.pickle'))
 
+    del feature_extractor
+
     print('Saving gazetteer', file=sys.stderr)
     with open(os.path.join(args.output_dir, 'gazetteer.pickle'), 'wb') as f:
         cPickle.dump(gazetteer, f)
+
+    print('Saving sloppy gazetteer dictionary', file=sys.stderr)
+    sloppy_gazetteer = defaultdict(set)
+
+    for gazette in gazetteer:
+        for word in gazette.split():
+            sloppy_gazetteer[word].add(gazette)
+
+    del gazetteer
+
+    with open(os.path.join(args.output_dir, 'sloppy_gazetteer.pickle'), 'wb') as f:
+        cPickle.dump(sloppy_gazetteer, f)
 
     print('All operations finished', file=sys.stderr)

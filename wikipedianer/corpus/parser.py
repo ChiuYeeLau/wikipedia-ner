@@ -15,14 +15,15 @@ STOPWORDS_SET = set(stopwords.words())
 #         self.token = bool(kwargs.get('token', False))
 #         self.current_tag = bool(kwargs.get('current_tag', False))
 #         self.affixes = bool(kwargs.get('affixes', False))
-#         self.max_ngram_lenght = int(kwargs.get('max_ngram_length', 6))
+#         self.max_ngram_length = int(kwargs.get('max_ngram_length', 6))
 #         self.prev_token = bool(kwargs.get('prev_token', False))
 #         self.next_token = bool(kwargs.get('next_token', False))
 #         self.disjunctive_left_window = int(kwargs.get('disjunctive_left_window', 0))
 #         self.disjunctive_right_window = int(kwargs.get('disjunctive_right_window', 0))
 #         self.tag_sequence_window = int(kwargs.get('tag_sequence_window', 0))
-#         self.clean_gazetteer = kwargs.get('clean_gazette', {})
-#         self.sloppy_gazetteer = kwargs.get('sloppy_gazette', {})
+#         self.gazetteer = kwargs.get('gazetteer', set())
+#         self.clean_gazette = bool(kwargs.get('clean_gazette', False))
+#         self.sloppy_gazette = bool(kwargs.get('sloppy_gazette', False))
 #
 #     def _features_for_word(self, word, sentence, named_entity=None):
 #         """
@@ -30,43 +31,43 @@ STOPWORDS_SET = set(stopwords.words())
 #         :param sentence: wikipedianer.corpus.base.Sentence
 #         :param named_entity: wikipedianer.corpus.base.NamedEntity
 #         """
-#         features = {}
+#         features = set()
 #
 #         if self.token:
-#             features['token:current'] = word.token
+#             features.add('token:current={}'.format(word.token))
 #
 #         if self.current_tag:
-#             features['tag:current'] = word.tag
+#             features.add('tag:current={}'.format(word.tag))
 #
 #         if self.affixes:
-#             prefixes, suffixes = word.get_affixes(self.max_ngram_lenght)
+#             prefixes, suffixes = word.get_affixes(self.max_ngram_length)
 #
 #             for i in range(len(prefixes)):
 #                 prefix = prefixes[i]
-#                 features['prefix:{}-gram'.format(len(prefix))] = prefix
+#                 features.add('prefix:{}-gram={}'.format(len(prefix), prefix))
 #
 #             for i in range(len(suffixes)):
 #                 suffix = suffixes[i]
-#                 features['suffix:{}-gram'.format(len(suffix))] = suffix
+#                 features.add('suffix:{}-gram={}'.format(len(suffix), suffix))
 #
 #         if self.prev_token and word.idx > 0:
-#             features['token:prev'] = sentence[word.idx-1].token
+#             features.add('token:prev={}'.format(sentence[word.idx-1].token))
 #
 #         if self.next_token and word.idx < len(sentence) - 1:
-#             features['token:next'] = sentence[word.idx+1].token
+#             features.add('token:next={}'.format(sentence[word.idx+1].token))
 #
 #         for wrd in sentence.get_left_window(word.idx, self.disjunctive_left_window):
-#             features['left:{}'.format(wrd.token)] = 1
+#             features.add('left:token={}'.format(wrd.token))
 #
 #         for wrd in sentence.get_right_window(word.idx, self.disjunctive_right_window):
-#             features['right:{}'.format(wrd.token)] = 1
+#             features.add('right:token={}'.format(wrd.token))
 #
 #         if self.tag_sequence_window > 0:
-#             features['tag:surrounding:sequence'] = ' '.join([
+#             features.add('tag:surrounding:sequence={}'.format('|'.join([
 #                 wrd.tag for wrd in
-#                 sentence.get_left_window(word.idx, self.tag_sequence_window) +
+#                 sentence.get_left_window(word.idx, self.tag_sequence_window) + [word] +
 #                 sentence.get_right_window(word.idx, self.tag_sequence_window)
-#             ])
+#             ])))
 #
 #         if named_entity is not None and named_entity.entity_gazette in self.clean_gazetteer:
 #             for feature in self.clean_gazetteer[named_entity.entity_gazette]:
@@ -99,7 +100,7 @@ STOPWORDS_SET = set(stopwords.words())
 
 class FeatureExtractor(object):
     def __init__(self, **kwargs):
-        self.features_set = {'in:clean:gazetteer', 'in_sloppy_gazetteer'}
+        self.features_set = {'in:clean:gazetteer', 'in:sloppy:gazetteer'}
         self.max_ngram_length = kwargs.get('max_ngram_length', 0)
         self.disjunctive_left_window = int(kwargs.get('disjunctive_left_window', 0))
         self.disjunctive_right_window = int(kwargs.get('disjunctive_right_window', 0))

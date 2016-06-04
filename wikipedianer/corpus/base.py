@@ -35,7 +35,7 @@ class Word(object):
         self.yago_relations = yago_relations if yago_relations is not None else []
 
     def __to_string__(self):
-        return '{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t'.format(
+        return '{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}'.format(
             self.token,
             self.tag,
             self.head,
@@ -116,7 +116,7 @@ class NamedEntity(object):
         
     @property
     def entity_gazette(self):
-        return ' '.join([word.token for word in self._words])
+        return '_'.join([word.token for word in self._words])
 
 
 class Sentence(object):
@@ -150,7 +150,7 @@ class Sentence(object):
         gazettes = set()
 
         for entity in self.get_named_entities():
-            gazettes.add('_'.join([word.token for widx, word in entity]))
+            gazettes.add(' '.join([word.token for widx, word in entity]))
 
         return gazettes
 

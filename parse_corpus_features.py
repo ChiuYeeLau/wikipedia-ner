@@ -52,7 +52,7 @@ if __name__ == "__main__":
                 gazetteer.update(sentence.get_gazettes())
 
     print('Updating features with gazette features', file=sys.stderr)
-    feature_extractor.update_features({'gazette:{}'.format(gazette for gazette in gazetteer)})
+    feature_extractor.update_features({'gazette:{}'.format(gazette) for gazette in gazetteer})
 
     print('Saving sorted features', file=sys.stderr)
     feature_extractor.save_sorted_features(os.path.join(args.output_dir, 'sorted_features.pickle'))

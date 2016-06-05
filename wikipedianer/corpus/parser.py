@@ -71,11 +71,11 @@ class InstanceExtractor(object):
             ]))] += 1
 
         if self.clean_gazette and named_entity is not None and named_entity.entity_gazette in self.gazetteer:
-            features['gazette:{}'.format(named_entity.entity_gazette)] += 1
+            features['gazette:clean:{}'.format(named_entity.entity_gazette)] += 1
 
         if word.token in self.sloppy_gazetteer:
             for feature in self.sloppy_gazetteer[word.token]:
-                features['gazette:{}'.format(feature)] += 1
+                features['gazette:sloppy:{}'.format(feature)] += 1
 
         return features
 

@@ -24,7 +24,6 @@ class InstanceExtractor(object):
         self.tag_sequence_window = int(kwargs.get('tag_sequence_window', 0))
         self.gazetteer = kwargs.get('gazetteer', set())
         self.sloppy_gazetteer = kwargs.get('sloppy_gazetteer', {})
-        self.clean_gazette = bool(kwargs.get('clean_gazette', False))
 
     def _features_for_word(self, word, sentence, named_entity=None):
         """
@@ -70,12 +69,14 @@ class InstanceExtractor(object):
                 sentence.get_right_window(word.idx, self.tag_sequence_window)
             ]))] += 1
 
-        if self.clean_gazette and named_entity is not None and named_entity.entity_gazette in self.gazetteer:
-            features['gazette:clean:{}'.format(named_entity.entity_gazette)] += 1
+        if named_entity is not None and named_entity.entity_gazette in self.gazetteer:
+            features['in:clean:gazetteer'] = 1
+            # features['gazette:{}'.format(named_entity.entity_gazette)] += 1
 
         if word.token in self.sloppy_gazetteer:
-            for feature in self.sloppy_gazetteer[word.token]:
-                features['gazette:sloppy:{}'.format(feature)] += 1
+            features['in:sloppy:gazetteer'] = 1
+            # for feature in self.sloppy_gazetteer[word.token]:
+            # features['gazette:sloppy:{}'.format(feature)] += 1
 
         return features
 

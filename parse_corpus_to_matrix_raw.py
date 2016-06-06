@@ -54,8 +54,7 @@ if __name__ == "__main__":
         disjunctive_right_window=4,
         tag_sequence_window=2,
         gazetteer=gazetteer,
-        sloppy_gazetteer=sloppy_gazetteer,
-        clean_gazette=True
+        sloppy_gazetteer=sloppy_gazetteer
     )
 
     instances = []

@@ -13,28 +13,31 @@ wikipages = set()
 ids_urls = {}
 uris_urls = {}
 
-for pkl in tqdm(os.listdir("../urls")):
-    with open("../urls/{}".format(pkl)) as f:
+pickles_dir = sys.argv[1]
+output_dir = sys.argv[2]
+
+for pkl in tqdm(os.listdir(pickles_dir)):
+    with open(os.path.join(pickles_dir, pkl)) as f:
         wikipages = wikipages.union({w[1] for w in pickle.load(f)[1:]})
 
-with open("../resources/ids_urls.txt", "r") as f:
+with open("../../resources/ids_urls.txt", "r") as f:
     for line in tqdm(f.readlines()):
         line = line.strip().split(",", 1)
         ids_urls[line[0]] = line[1]
 
-with open("../resources/parsed_uris.txt", "r") as f:
+with open("../../resources/parsed_uris.txt", "r") as f:
     for line in tqdm(f.readlines()):
         line = line.strip().split(",http://", 1)
         uris_urls[line[0]] = "http://{}".format(line[1])
 
-for wiki_doc in sorted(os.listdir("../links")):
+for wiki_doc in sorted(os.listdir("../../links")):
     print("Extracting NE from {}".format(wiki_doc), file=sys.stderr)
 
     last_doc_id = None
     docs_for_ner = {}
     last_doc_in_wikipages = False
 
-    with open("../links/{}".format(wiki_doc), "r") as f:
+    with open("../../links/{}".format(wiki_doc), "r") as f:
         for line in tqdm(f):
             soup = BeautifulSoup(line.strip().decode("utf-8"), "lxml")
             if soup.find('doc') is not None:
@@ -52,6 +55,6 @@ for wiki_doc in sorted(os.listdir("../links")):
                     pass
 
     print("Finished extracting NE from {}. Saving files.".format(wiki_doc), file=sys.stderr)
-    with open("../resources/docs_in_ner.txt", "a") as f:
+    with open(os.path.join(output_dir, "docs_in_ner.txt"), "a") as f:
         for doc in tqdm(sorted(docs_for_ner)):
             f.write("{},{}\n".format(doc, docs_for_ner[doc]).encode("utf-8"))

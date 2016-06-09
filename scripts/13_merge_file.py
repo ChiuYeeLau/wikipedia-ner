@@ -16,4 +16,3 @@ with open(sys.argv[1], "r") as fp, open(sys.argv[2], "r") as fh:
 
         if line.decode("utf-8").strip() == "":
             print(fh.readline(), end="")
-        

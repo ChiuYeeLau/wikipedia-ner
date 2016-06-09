@@ -64,3 +64,6 @@ test.ipynb
 
 # PyCharm
 .idea/
+
+# Logs
+logs/

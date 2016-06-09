@@ -22,7 +22,7 @@
 #SBATCH --ntasks-per-node=1
 
 ### Available cores per node (1-12)
-#SBATCH --cpus-per-task=12
+#SBATCH --cpus-per-task=1
 
 ### execution time. Format: days-hours:minutes:seconds -- Max: three days
 #SBATCH --time 1-00:00:00
@@ -40,7 +40,7 @@ fi
 ### Enqueue job
 CWD=$PWD
 cd `dirname $1`
-srun -o %j.out -e %j.err /bin/bash `basename $1`
+srun -o logs/%j.out -e logs/%j.err /bin/bash `basename $1`
 cd $CWD
 
 exit 0

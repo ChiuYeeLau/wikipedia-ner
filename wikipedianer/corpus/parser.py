@@ -74,7 +74,7 @@ class InstanceExtractor(object):
             # features['gazette:{}'.format(named_entity.entity_gazette)] += 1
 
         if word.token in self.sloppy_gazetteer:
-            features['in:sloppy:gazetteer'] = 1
+            features['in:sloppy:gazetteer'] += 1
             # for feature in self.sloppy_gazetteer[word.token]:
             # features['gazette:sloppy:{}'.format(feature)] += 1
 

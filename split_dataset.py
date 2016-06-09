@@ -5,6 +5,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 import argparse
 import cPickle as pickle
 import numpy as np
+import os
 import re
 import sys
 
@@ -53,7 +54,12 @@ def ne_uri_label_replace(labels, mappings):
         yield re.sub(r"^B-", "I-", label)
 
 
-labels_replacements = [ner_label_replace, ne_person_label_replace, ne_category_label_replace, ne_uri_label_replace]
+labels_replacements = [
+    ("NER", ner_label_replace),
+    ("NEP", ne_person_label_replace),
+    ("NEC", ne_category_label_replace),
+    ("NEU", ne_uri_label_replace)
+]
 
 
 if __name__ == "__main__":
@@ -74,8 +80,8 @@ if __name__ == "__main__":
     with open(args.mappings, 'rb') as f:
         class_mappings = pickle.load(f)
 
-    for idx, replacement_function in enumerate(labels_replacements, start=1):
-        print('Getting replaced labels for category {}'.format(idx), file=sys.stderr)
+    for category_name, replacement_function in labels_replacements:
+        print('Getting replaced labels for category {}'.format(category_name), file=sys.stderr)
 
         replaced_labels = list(replacement_function(labels, class_mappings))
 
@@ -91,4 +97,4 @@ if __name__ == "__main__":
                                   validation_size=args.validation_size)
 
         print('Saving splitted indices', file=sys.stderr)
-        strat_split.save_splitted_dataset_indices(args.save_path)
+        strat_split.save_splitted_dataset_indices(os.path.join(args.save_path, "{}_indices.npz".format(category_name)))

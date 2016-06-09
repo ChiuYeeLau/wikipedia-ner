@@ -86,7 +86,8 @@ if __name__ == "__main__":
         replaced_labels = list(replacement_function(labels, class_mappings))
 
         filtered_classes = {l for l, v in Counter(replaced_labels).iteritems()
-                            if (args.validation_size > 0. and v >= 3) or v >= 2}
+                            if (args.validation_size > 0. and v >= 3) or
+                            (args.validation_size == 0 and v >= 2)}
         filtered_indices = np.array([i for i, l in enumerate(replaced_labels) if l in filtered_classes],
                                     dtype=np.int32)
 

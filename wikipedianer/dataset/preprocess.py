@@ -22,7 +22,7 @@ class StratifiedSplitter(object):
         n_test = self._y_indices.shape[0] * test_size
         n_validation = self._y_indices.shape[0] * validation_size
 
-        if (validation_size > 0. and np.min(y_counts) < 3) or (np.min(y_counts) < 2):
+        if (validation_size > 0. and np.min(y_counts) < 3) or (validation_size == 0. and np.min(y_counts) < 2):
             raise ValueError("The least populated class needs to have more than 2 occurrences" +
                              " if you want to split with validation or more than 1 occurrence otherwise.")
 

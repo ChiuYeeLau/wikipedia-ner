@@ -58,9 +58,9 @@ class StratifiedSplitter(object):
             if validation_size > 0:
                 validation_indices.extend(perm_cls[train_count[idx]+test_count[idx]:])
 
-        self._train_indices = np.array(train_indices, dtype=np.int32)
-        self._test_indices = np.array(test_indices, dtype=np.int32)
-        self._validation_indices = np.array(validation_indices, dtype=np.int32)
+        self._train_indices = np.random.permutation(np.array(train_indices, dtype=np.int32))
+        self._test_indices = np.random.permutation(np.array(test_indices, dtype=np.int32))
+        self._validation_indices = np.random.permutation(np.array(validation_indices, dtype=np.int32))
 
     def save_splitted_dataset_indices(self, path, train_size=0.8, test_size=0.2, validation_size=0.2):
         if self._train_indices.shape == 0:

@@ -24,20 +24,18 @@ def ner_label_replace(labels, mappings):
 def ne_person_label_replace(labels, mappings):
     for label in labels:
         label = re.sub(r'^[BI]-', '', label)
-        if label == 'O':
-            yield 'O'
-        elif 'no_person' in mappings.get(label, set()):
+        if 'no_person' in mappings.get(label, set()):
             yield 'no_person'
         elif 'wordnet_person_100007846' in mappings.get(label, set()):
             yield 'wordnet_person_100007846'
+        else:
+            yield 'O'
 
 
 def ne_category_label_replace(labels, mappings):
     for label in labels:
         label = re.sub(r'^[BI]-', '', label)
-        if label == 'O':
-            yield 'O'
-        elif 'wordnet_movie_106613686' in mappings.get(label, set()):
+        if 'wordnet_movie_106613686' in mappings.get(label, set()):
             yield 'wordnet_movie_106613686'
         elif 'wordnet_soundtrack_104262969' in mappings.get(label, set()):
             yield 'wordnet_soundtrack_104262969'
@@ -47,6 +45,8 @@ def ne_category_label_replace(labels, mappings):
             yield 'wordnet_film_director_110088200'
         elif 'wordnet_film_maker_110088390' in mappings.get(label, set()):
             yield 'wordnet_film_maker_110088390'
+        else:
+            yield 'O'
 
 
 def ne_uri_label_replace(labels, mappings):

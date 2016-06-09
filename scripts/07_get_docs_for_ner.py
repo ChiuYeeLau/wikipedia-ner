@@ -16,7 +16,7 @@ uris_urls = {}
 pickles_dir = sys.argv[1]
 output_dir = sys.argv[2]
 
-for pkl in tqdm(pickles_dir):
+for pkl in tqdm(os.listdir(pickles_dir)):
     with open(os.path.join(pickles_dir, pkl)) as f:
         wikipages = wikipages.union({w[1] for w in pickle.load(f)[1:]})
 

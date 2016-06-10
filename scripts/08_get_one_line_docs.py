@@ -20,7 +20,7 @@ with open(os.path.join(working_dir, "docs_in_ner.txt"), "r") as f:
         doc, url = line.decode("utf-8").strip().split(",", 1)
         docs_in_ner[doc] = url
 
-for f in sorted(os.listdir("../clean")):
+for f in sorted(os.listdir("../../clean")):
     print("Extracting relevant documents for file {}".format(f), file=sys.stderr)
     with open(os.path.join(working_dir, "docs_for_ner.txt"), "a") as fo:
         with open("../../clean/{}".format(f), "r") as fi:

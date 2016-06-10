@@ -14,7 +14,7 @@ from tqdm import tqdm
 
 urls_dir = sys.argv[1]
 resources_dir = sys.argv[2]
-TOTAL_DOCS = sys.argv[3]
+TOTAL_DOCS = int(sys.argv[3])
 LINK_CHANGE_TOKEN = "LINK_CHANGE_TOKEN"
 TITLE_CHANGE_TOKEN = "TITLE_CHANGE_TOKEN."
 URLEntity = namedtuple('URLEntity', ['wikipage', 'yagouri', 'categories'])

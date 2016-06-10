@@ -16,7 +16,7 @@ urls_dir = sys.argv[1]
 resources_dir = sys.argv[2]
 TOTAL_DOCS = int(sys.argv[3])
 LINK_CHANGE_TOKEN = "LINK_CHANGE_TOKEN"
-TITLE_CHANGE_TOKEN = "TITLE_CHANGE_TOKEN."
+TITLE_CHANGE_TOKEN = "TITLE_CHANGE_TOKEN"
 URLEntity = namedtuple('URLEntity', ['wikipage', 'yagouri', 'categories'])
 conll_columns = ("_\t"*8).rstrip()
 url_entities = {}
@@ -64,7 +64,7 @@ with open(os.path.join(resources_dir, "docs_for_ner.txt"), "r") as fi:
         with open(os.path.join(resources_dir, "docs_for_ner/doc_{:02d}.conll".format(conll_doc_idx)), "a") as fo:
             doc_soup = BeautifulSoup(line_doc.decode("utf-8").strip(), "lxml")
             doc_url = doc_soup.doc["url"]
-            doc_title = doc_soup.doc.find("h1", {"id": "title"}).replaceWith(" {} ".format(TITLE_CHANGE_TOKEN))
+            doc_title = doc_soup.doc.find("h1", {"id": "title"}).replaceWith(" {}. ".format(TITLE_CHANGE_TOKEN))
             doc_links = doc_soup.doc.findAll(lambda tag: tag.name == "a" and "href" in tag.attrs)[:]
             for a in doc_soup.doc.findAll(lambda tag: tag.name == "a" and "href" in tag.attrs):
                 a.replaceWith(" {} ".format(LINK_CHANGE_TOKEN))
@@ -73,7 +73,9 @@ with open(os.path.join(resources_dir, "docs_for_ner.txt"), "r") as fi:
 
             for sentence_idx, sentence in enumerate(sentences, start=1):
                 token_idx = 0
-                for token in word_tokenize(sentence.replace("\xa0", " ")):
+                for token in word_tokenize(
+                        sentence.replace("\xa0", " ").replace("{}.".format(TITLE_CHANGE_TOKEN, TITLE_CHANGE_TOKEN))
+                ):
                     if token == LINK_CHANGE_TOKEN:
                         token_tag = doc_links.pop(0)
 

@@ -44,7 +44,7 @@ for f in sorted(os.listdir("../../clean")):
                     if line.startswith("</doc>"):
                         print("</doc>".encode("utf-8"), file=fo)
                         last_doc_in_ner = False
-                    elif is_doc_title:
+                    elif is_doc_title and line != "":
                         print("<h1 id=\"title\">{}</h1> ".format(line).encode("utf-8"), end="", file=fo)
                         is_doc_title = False
                     else:

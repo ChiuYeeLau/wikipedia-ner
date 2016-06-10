@@ -74,7 +74,7 @@ with open(os.path.join(resources_dir, "docs_for_ner.txt"), "r") as fi:
             for sentence_idx, sentence in enumerate(sentences, start=1):
                 token_idx = 0
                 for token in word_tokenize(
-                        sentence.replace("\xa0", " ").replace("{}.".format(TITLE_CHANGE_TOKEN, TITLE_CHANGE_TOKEN))
+                        sentence.replace("\xa0", " ").replace("{}.".format(TITLE_CHANGE_TOKEN), TITLE_CHANGE_TOKEN)
                 ):
                     if token == LINK_CHANGE_TOKEN:
                         token_tag = doc_links.pop(0)

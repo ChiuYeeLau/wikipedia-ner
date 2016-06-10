@@ -108,13 +108,15 @@ with open(os.path.join(resources_dir, "docs_for_ner.txt"), "r") as fi:
                         for subtoken_idx, subtoken in enumerate(word_tokenize(doc_title.text)):
                             token_idx += 1
                             if entity is not None and subtoken_idx == 0:
-                                print("{} {}\t{}\tB-{}".format(token_idx, subtoken, conll_columns,
-                                                               url_entity_to_string(entity)).encode("utf-8"), file=fo)
+                                print("{} {}\t{}\tB-{}-DOC".format(token_idx, subtoken, conll_columns,
+                                                                   url_entity_to_string(entity)).encode("utf-8"),
+                                      file=fo)
                             elif entity is not None:
-                                print("{} {}\t{}\tI-{}".format(token_idx, subtoken, conll_columns,
-                                                               url_entity_to_string(entity)).encode("utf-8"), file=fo)
+                                print("{} {}\t{}\tI-{}-DOC".format(token_idx, subtoken, conll_columns,
+                                                                   url_entity_to_string(entity)).encode("utf-8"),
+                                      file=fo)
                             else:
-                                print("{} {}\t{}\tO".format(token_idx, subtoken, conll_columns).encode("utf-8"),
+                                print("{} {}\t{}\tO-DOC".format(token_idx, subtoken, conll_columns).encode("utf-8"),
                                       file=fo)
                     else:
                         token_idx += 1

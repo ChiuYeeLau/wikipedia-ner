@@ -3,6 +3,13 @@
 from __future__ import absolute_import, unicode_literals
 
 import numpy as np
+from collections import Counter
+
+
+def labels_filterer(labels, min_occurrences=3):
+    filtered_classes = {l for l, v in Counter(labels).iteritems() if v >= min_occurrences}
+
+    return np.array([i for i, l in enumerate(labels) if l in filtered_classes], dtype=np.int32)
 
 
 class StratifiedSplitter(object):

@@ -17,8 +17,8 @@ class MultilayerPerceptron(BaseClassifier):
 
         assert batch_size <= self.train_dataset.shape[0]
 
-        self.X = tf.placeholder(tf.float32, shape=(batch_size, self.input_size), name='X')
-        self.y = tf.placeholder(tf.int32, shape=(batch_size), name='y')
+        self.X = tf.placeholder(tf.float32, shape=(None, self.input_size), name='X')
+        self.y = tf.placeholder(tf.int32, shape=(None, self.output_size), name='y')
         self.training_epochs = training_epochs
         self.batch_size = batch_size
         self.train_offset = 0
@@ -50,7 +50,7 @@ class MultilayerPerceptron(BaseClassifier):
             self.y_logits = tf.matmul(self.layers[-1], weights) + biases
 
         self.loss = tf.reduce_mean(
-            tf.nn.sparse_softmax_cross_entropy_with_logits(self.y_logits, tf.to_int64(self.y)),
+            tf.nn.softmax_cross_entropy_with_logits(self.y_logits, self.y),
             name='cross_entropy_mean_loss'
         )
         self.y_pred = tf.argmax(tf.nn.softmax(self.y_logits), 1, name='y_predictions')
@@ -100,10 +100,12 @@ class MultilayerPerceptron(BaseClassifier):
 
         end = self.train_offset
 
+        one_hot_labels = np.eye(self.output_size, dtype=self.train_dataset.dtype)[self.train_labels[start:end]]
+
         if hasattr(self.train_dataset, 'toarray'):
-            return self.train_dataset[start:end].toarray(), self.train_labels[start:end]
+            return self.train_dataset[start:end].toarray(), one_hot_labels
         else:
-            return self.train_dataset[start:end], self.train_labels[start:end]
+            return self.train_dataset[start:end], one_hot_labels
 
     def _evaluate(self, sess, dataset, labels):
         feed_dict = {
@@ -112,7 +114,8 @@ class MultilayerPerceptron(BaseClassifier):
 
         y_pred, accuracy = sess.run([self.y_pred, self.accuracy], feed_dict=feed_dict)
 
-        return accuracy, precision_score(labels, y_pred), recall_score(labels, y_pred)
+        return accuracy, precision_score(labels, y_pred.astype(labels.dtype)), \
+            recall_score(labels, y_pred.astype(labels.dtype))
 
     def _add_results(self, dataset, accuracy, precision, recall):
         self.results['{}_accuracy'.format(dataset)].append(accuracy)

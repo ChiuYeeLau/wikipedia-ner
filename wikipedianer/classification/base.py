@@ -13,8 +13,8 @@ class BaseClassifier(object):
         self.output_size = self.classes.shape[0]
 
         self.train_dataset = dataset[train_indices]
-        self.train_labels = integer_labels[train_indices]
+        self.train_labels = integer_labels[train_indices].astype(np.int32)
         self.test_dataset = dataset[test_indices]
-        self.test_labels = integer_labels[test_indices]
+        self.test_labels = integer_labels[test_indices].astype(np.int32)
         self.validation_dataset = dataset[validation_indices]
-        self.validation_labels = integer_labels[validation_indices]
+        self.validation_labels = integer_labels[validation_indices].astype(np.int32)

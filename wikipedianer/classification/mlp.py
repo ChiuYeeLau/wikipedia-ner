@@ -107,7 +107,7 @@ class MultilayerPerceptron(BaseClassifier):
 
     def _evaluate(self, sess, dataset, labels):
         feed_dict = {
-            self.X: dataset
+            self.X: dataset.toarray() if hasattr(dataset, 'toarray') else dataset
         }
 
         y_pred = sess.run([self.y_pred], feed_dict=feed_dict)

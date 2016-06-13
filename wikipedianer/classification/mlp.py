@@ -6,7 +6,7 @@ import tensorflow as tf
 import numpy as np
 import os
 import sys
-from sklearn.metrics import precision_score, recall_score
+from sklearn.metrics import accuracy_score, precision_score, recall_score
 from .base import BaseClassifier
 
 
@@ -18,7 +18,7 @@ class MultilayerPerceptron(BaseClassifier):
         assert batch_size <= self.train_dataset.shape[0]
 
         self.X = tf.placeholder(tf.float32, shape=(None, self.input_size), name='X')
-        self.y = tf.placeholder(tf.int32, shape=(None, self.output_size), name='y')
+        self.y = tf.placeholder(tf.float32, shape=(None, self.output_size), name='y')
         self.training_epochs = training_epochs
         self.batch_size = batch_size
         self.train_offset = 0
@@ -54,8 +54,6 @@ class MultilayerPerceptron(BaseClassifier):
             name='cross_entropy_mean_loss'
         )
         self.y_pred = tf.argmax(tf.nn.softmax(self.y_logits), 1, name='y_predictions')
-
-        self.accuracy = tf.reduce_mean(tf.cast(tf.nn.in_top_k(self.y_logits, self.y, 1), tf.float32))
 
         self.learning_rate = tf.Variable(learning_rate, trainable=False)
         global_step = tf.Variable(0, name='global_step', trainable=False)
@@ -112,9 +110,10 @@ class MultilayerPerceptron(BaseClassifier):
             self.X: dataset
         }
 
-        y_pred, accuracy = sess.run([self.y_pred, self.accuracy], feed_dict=feed_dict)
+        y_pred = sess.run([self.y_pred], feed_dict=feed_dict)
 
-        return accuracy, precision_score(labels, y_pred.astype(labels.dtype)), \
+        return accuracy_score(labels, y_pred.astype(labels.dtype)), \
+            precision_score(labels, y_pred.astype(labels.dtype)), \
             recall_score(labels, y_pred.astype(labels.dtype))
 
     def _add_results(self, dataset, accuracy, precision, recall):

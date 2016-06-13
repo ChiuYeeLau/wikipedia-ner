@@ -15,7 +15,7 @@ class MultilayerPerceptron(BaseClassifier):
                  layers, learning_rate=0.01, training_epochs=1000, batch_size=100):
         super(MultilayerPerceptron, self).__init__(dataset, labels, train_indices, test_indices, validation_indices)
 
-        assert self.batch_size <= self.train_dataset.shape[0]
+        assert batch_size <= self.train_dataset.shape[0]
 
         self.X = tf.placeholder(tf.float32, shape=(None, self.input_size))
         self.y = tf.placeholder(tf.int32, shape=(self.output_size))
@@ -159,9 +159,7 @@ class MultilayerPerceptron(BaseClassifier):
                    header=header)
 
     def train(self):
-        gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.5)
-
-        with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options)) as sess:
+        with tf.Session() as sess:
             self.summary_writer = tf.train.SummaryWriter(self.logs_dir, sess.graph)
 
             sess.run(tf.initialize_all_variables())

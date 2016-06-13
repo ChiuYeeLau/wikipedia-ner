@@ -17,8 +17,8 @@ class MultilayerPerceptron(BaseClassifier):
 
         assert batch_size <= self.train_dataset.shape[0]
 
-        self.X = tf.placeholder(tf.float32, shape=(None, self.input_size))
-        self.y = tf.placeholder(tf.int32, shape=(self.output_size))
+        self.X = tf.placeholder(tf.float32, shape=(batch_size, self.input_size), name='X')
+        self.y = tf.placeholder(tf.int32, shape=(batch_size), name='y')
         self.training_epochs = training_epochs
         self.batch_size = batch_size
         self.train_offset = 0
@@ -59,6 +59,9 @@ class MultilayerPerceptron(BaseClassifier):
 
         self.learning_rate = tf.Variable(learning_rate, trainable=False)
         global_step = tf.Variable(0, name='global_step', trainable=False)
+
+        # Add a scalar summary for the snapshot loss.
+        tf.scalar_summary(self.loss.op.name, self.loss)
         self.train_step = tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss, global_step=global_step)
 
         self.init = tf.initialize_all_variables()

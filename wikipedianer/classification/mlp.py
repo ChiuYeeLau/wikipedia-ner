@@ -110,7 +110,7 @@ class MultilayerPerceptron(BaseClassifier):
             self.X: dataset.toarray() if hasattr(dataset, 'toarray') else dataset
         }
 
-        y_pred = sess.run([self.y_pred], feed_dict=feed_dict)
+        y_pred = sess.run(self.y_pred, feed_dict=feed_dict)
 
         return accuracy_score(labels, y_pred.astype(labels.dtype)), \
             precision_score(labels, y_pred.astype(labels.dtype)), \

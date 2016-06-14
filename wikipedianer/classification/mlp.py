@@ -112,7 +112,7 @@ class MultilayerPerceptron(BaseClassifier):
     def _evaluate(self, sess, dataset, labels, dataset_name):
         y_pred = np.zeros(dataset.shape[0], dtype=np.int32)
 
-        print('Running evaluation for dataset {}\n'.format(dataset_name), file=sys.stderr)
+        print('Running evaluation for dataset {}'.format(dataset_name), file=sys.stderr)
         for step in tqdm(np.arange(dataset.shape[0], step=self.batch_size)):
             dataset_chunk = dataset[step:min(step+self.batch_size, dataset.shape[0])]
             feed_dict = {

@@ -62,7 +62,7 @@ if __name__ == "__main__":
 
                 labels.extend(sentence_labels)
 
-        if corpus_doc == "doc_04" or corpus_doc == "doc_07":
+        if corpus_doc == "doc_03" or corpus_doc == "doc_07":
             print('Saving partial matrix', file=sys.stderr)
             np.savez_compressed(os.path.join(args.output_dir, 'ner_word_vectors_matrix_partial.npz'),
                                 data=dataset_matrix.data, indices=dataset_matrix.indices,
@@ -76,7 +76,7 @@ if __name__ == "__main__":
                         data=dataset_matrix.data, indices=dataset_matrix.indices,
                         indptr=dataset_matrix.indptr, shape=dataset_matrix.shape)
 
-    with open(os.path.join(args.output_dir, 'ner_word_vectors_labels_partial.pickle'), 'wb') as f:
+    with open(os.path.join(args.output_dir, 'ner_word_vectors_labels.pickle'), 'wb') as f:
         cPickle.dump(labels, f)
 
     print('All operations finished', file=sys.stderr)

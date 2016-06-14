@@ -39,11 +39,11 @@ if __name__ == "__main__":
     word2vec_model = gensim.models.Word2Vec.load_word2vec_format(args.wordvectors, binary=True)
 
     instance_extractor = WordVectorsExtractor(word2vec_model, args.window)
-    dataset_matrix = []
-    labels = []
 
     for conll_file in sorted(os.listdir(args.input_dir)):
         corpus_doc, _ = conll_file.split(".", 1)
+        dataset_matrix = []
+        labels = []
 
         print('Getting instances from corpus {}'.format(conll_file), file=sys.stderr)
 

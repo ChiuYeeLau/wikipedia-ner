@@ -58,20 +58,24 @@ if __name__ == "__main__":
 
         if corpus_doc != "doc_01":
             print('Loading partial matrix and labels', file=sys.stderr)
-            partial_matrix = np.load(os.path.join(args.output_dir, 'ner_word_vectors_matrix.npz'))['dataset']
+            partial_matrix = np.load(os.path.join(args.output_dir, 'ner_word_vectors_matrix.npz'))
+            partial_matrix = sparse.csr_matrix((partial_matrix['data'], partial_matrix['indices'],
+                                                partial_matrix['indptr']), shape=partial_matrix['shape'])
 
             with open(os.path.join(args.output_dir, 'ner_word_vectors_labels.pickle'), 'rb') as f:
                 partial_labels = cPickle.load(f)
 
-            partial_matrix = np.vstack((partial_matrix, np.vstack(dataset_matrix)))
+            dataset_matrix = sparse.csr_matrix(np.vstack(dataset_matrix))
+            partial_matrix = sparse.vstack((partial_matrix, dataset_matrix))
             partial_labels.extend(labels)
         else:
-            partial_matrix = np.vstack(dataset_matrix)
+            partial_matrix = sparse.csr_matrix(np.vstack(dataset_matrix))
             partial_labels = labels
 
         print('Saving partial matrix', file=sys.stderr)
         np.savez_compressed(os.path.join(args.output_dir, 'ner_word_vectors_matrix.npz'),
-                            dataset=partial_matrix)
+                            data=partial_matrix.data, indices=partial_matrix.indices, indptr=partial_matrix.indptr,
+                            shape=partial_matrix.shape)
 
         with open(os.path.join(args.output_dir, 'ner_word_vectors_labels.pickle'), 'wb') as f:
             cPickle.dump(partial_labels, f)

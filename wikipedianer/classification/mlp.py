@@ -106,11 +106,15 @@ class MultilayerPerceptron(BaseClassifier):
             return self.train_dataset[start:end], one_hot_labels
 
     def _evaluate(self, sess, dataset, labels):
-        feed_dict = {
-            self.X: dataset.toarray() if hasattr(dataset, 'toarray') else dataset
-        }
+        y_pred = np.zeros(dataset.shape[0], dtype=np.int32)
 
-        y_pred = sess.run(self.y_pred, feed_dict=feed_dict)
+        for step in np.arange(dataset.shape[0], step=self.batch_size):
+            dataset_chunk = dataset[step:min(step+self.batch_size, dataset.shape[0])]
+            feed_dict = {
+                self.X: dataset_chunk.toarray() if hasattr(dataset_chunk, 'toarray') else dataset_chunk
+            }
+
+            y_pred[step:min(step+self.batch_size, dataset.shape[0])] = sess.run(self.y_pred, feed_dict=feed_dict)
 
         return accuracy_score(labels, y_pred.astype(labels.dtype)), \
             precision_score(labels, y_pred.astype(labels.dtype)), \

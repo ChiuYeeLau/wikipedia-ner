@@ -1,17 +1,19 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 
 import numpy as np
 
 
 class BaseClassifier(object):
     def __init__(self, dataset, labels, train_indices, test_indices, validation_indices):
+        print('Getting unique classes')
         self.classes, integer_labels = np.unique(labels, return_inverse=True)
 
         self.input_size = dataset.shape[1]
         self.output_size = self.classes.shape[0]
 
+        print('Indexing split datasets')
         self.train_dataset = dataset[train_indices]
         self.train_labels = integer_labels[train_indices].astype(np.int32)
         self.test_dataset = dataset[test_indices]

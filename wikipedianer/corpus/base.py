@@ -90,6 +90,7 @@ class Word(object):
 
         return prefixes, suffixes
 
+    @property
     def tokens(self):
         """
         Method to get different combinations of tokens, with different use of capital letters

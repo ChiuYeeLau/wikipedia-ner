@@ -3,6 +3,7 @@
 from __future__ import absolute_import, unicode_literals
 
 import cPickle
+import numpy as np
 from collections import defaultdict
 from nltk.corpus import stopwords
 from .base import Sentence, Word, WORDNET_CATEGORIES, YAGO_RELATIONS
@@ -165,6 +166,55 @@ class FeatureExtractor(object):
     def save_features(self, file_name):
         with open(file_name, 'wb') as f:
             cPickle.dump(self.features, f)
+
+
+class WordVectorsExtractor(object):
+    def __init__(self, model, window_size=5):
+        self.model = model
+        self.vector_size = self.model.vector_size
+        self.window_size = window_size
+
+    @property
+    def instance_vector_size(self):
+        return self.window_size * self.vector_size
+
+    def _vectors_for_word(self, word, sentence):
+        word_window_vector = []
+
+        full_word_window = sentence.get_left_window(word.idx, self.window_size) + [word] + \
+            sentence.get_right_window(word.idx, self.window_size)
+
+        for wrd in full_word_window:
+            tokens = [s for s in wrd.tokens if s in self.model]
+
+            if tokens:  # If there is an existing combination, take the best one (the first)
+                word_window_vector.append(self.model[tokens[0]])
+            else:  # If no possible combination is found, use a zero pad. TODO: What is the best solution?
+                word_window_vector.append(np.zeros(self.vector_size, dtype=np.float32))
+
+        window_vector = np.hstack(word_window_vector)  # Stack all the vectors in one large vector
+
+        # Padding the window vector in case the predicate is located near the start or end of the sentence
+        if word.idx - self.window_size < 0:  # Pad to left if the predicate is near to the start
+            pad = abs(word.idx - self.window_size)
+            window_vector = np.hstack((np.zeros(pad * self.vector_size, dtype=np.float32), window_vector))
+
+        if word.idx + self.window_size + 1 > len(sentence):
+            # Pad to right if the predicate is near to the end
+            pad = word.idx + self.window_size + 1 - len(sentence)
+            window_vector = np.hstack((window_vector, np.zeros(pad * self.vector_size, dtype=np.float32)))
+
+        return window_vector
+
+    def get_instances_for_sentence(self, sentence):
+        instances = []
+        labels = []
+
+        for word in sentence:
+            instances.append(self._vectors_for_word(word, sentence))
+            labels.append(word.short_label)
+
+        return instances, labels
 
 
 class WikipediaCorpusColumnParser(object):

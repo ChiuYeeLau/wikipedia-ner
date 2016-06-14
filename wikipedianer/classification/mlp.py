@@ -112,7 +112,7 @@ class MultilayerPerceptron(BaseClassifier):
     def _evaluate(self, sess, dataset, labels, dataset_name):
         y_pred = np.zeros(dataset.shape[0], dtype=np.int32)
 
-        print('Running evaluation for dataset {}'.format(dataset_name), file=sys.stderr)
+        print('Running evaluation for dataset {}\n'.format(dataset_name), file=sys.stderr)
         for step in tqdm(np.arange(dataset.shape[0], step=self.batch_size)):
             dataset_chunk = dataset[step:min(step+self.batch_size, dataset.shape[0])]
             feed_dict = {
@@ -136,40 +136,40 @@ class MultilayerPerceptron(BaseClassifier):
         # Train
         np.savetxt(os.path.join(self.results_dir, 'train_accuracy.txt'),
                    np.array(self.results['train_accuracy'], dtype=np.float32),
-                   fmt='%.2f', delimiter=','.encode('utf-8'))
+                   fmt='%.2f'.encode('utf-8'), delimiter=','.encode('utf-8'))
         np.savetxt(os.path.join(self.results_dir, 'train_precision.txt'),
                    np.array(self.results['train_precision'], dtype=np.float32),
-                   fmt='%.2f', delimiter=','.encode('utf-8'),
+                   fmt='%.2f'.encode('utf-8'), delimiter=','.encode('utf-8'),
                    header=header)
         np.savetxt(os.path.join(self.results_dir, 'train_recall.txt'),
                    np.array(self.results['train_recall'], dtype=np.float32),
-                   fmt='%.2f', delimiter=','.encode('utf-8'),
+                   fmt='%.2f'.encode('utf-8'), delimiter=','.encode('utf-8'),
                    header=header)
 
         # Test
         np.savetxt(os.path.join(self.results_dir, 'test_accuracy.txt'),
                    np.array(self.results['test_accuracy'], dtype=np.float32),
-                   fmt='%.2f', delimiter=','.encode('utf-8'))
+                   fmt='%.2f'.encode('utf-8'), delimiter=','.encode('utf-8'))
         np.savetxt(os.path.join(self.results_dir, 'test_precision.txt'),
                    np.array(self.results['test_precision'], dtype=np.float32),
-                   fmt='%.2f', delimiter=','.encode('utf-8'),
+                   fmt='%.2f'.encode('utf-8'), delimiter=','.encode('utf-8'),
                    header=header)
         np.savetxt(os.path.join(self.results_dir, 'test_recall.txt'),
                    np.array(self.results['test_recall'], dtype=np.float32),
-                   fmt='%.2f', delimiter=','.encode('utf-8'),
+                   fmt='%.2f'.encode('utf-8'), delimiter=','.encode('utf-8'),
                    header=header)
 
         # Validation
         np.savetxt(os.path.join(self.results_dir, 'validation_accuracy.txt'),
                    np.array(self.results['validation_accuracy'], dtype=np.float32),
-                   fmt='%.2f', delimiter=','.encode('utf-8'))
+                   fmt='%.2f'.encode('utf-8'), delimiter=','.encode('utf-8'))
         np.savetxt(os.path.join(self.results_dir, 'validation_precision.txt'),
                    np.array(self.results['validation_precision'], dtype=np.float32),
-                   fmt='%.2f', delimiter=','.encode('utf-8'),
+                   fmt='%.2f'.encode('utf-8'), delimiter=','.encode('utf-8'),
                    header=header)
         np.savetxt(os.path.join(self.results_dir, 'validation_recall.txt'),
                    np.array(self.results['validation_recall'], dtype=np.float32),
-                   fmt='%.2f', delimiter=','.encode('utf-8'),
+                   fmt='%.2f'.encode('utf-8'), delimiter=','.encode('utf-8'),
                    header=header)
 
     def train(self):
@@ -201,18 +201,18 @@ class MultilayerPerceptron(BaseClassifier):
 
                     accuracy, precision, recall = self._evaluate(sess, self.train_dataset, self.train_labels,
                                                                  'Train')
-                    print('Training accuracy: {:.2f}'.format(accuracy), file=sys.stderr)
+                    print('\nTraining accuracy: {:.2f}'.format(accuracy), file=sys.stderr)
                     self._add_results('train', accuracy, precision, recall)
 
                     accuracy, precision, recall = self._evaluate(sess, self.validation_dataset, self.validation_labels,
                                                                  'Validation')
-                    print('Validation accuracy: {:.2f}'.format(accuracy), file=sys.stderr)
+                    print('\nValidation accuracy: {:.2f}'.format(accuracy), file=sys.stderr)
                     self._add_results('validation', accuracy, precision, recall)
 
-            print('Finished training', file=sys.stderr)
+            print('\nFinished training', file=sys.stderr)
 
             accuracy, precision, recall = self._evaluate(sess, self.test_dataset, self.test_labels, 'Test')
-            print('Testing accuracy: {:.2f}'.format(accuracy), file=sys.stderr)
+            print('\nTesting accuracy: {:.2f}'.format(accuracy), file=sys.stderr)
             self._add_results('test', accuracy, precision, recall)
 
             print('Saving results', file=sys.stderr)

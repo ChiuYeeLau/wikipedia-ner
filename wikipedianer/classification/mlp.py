@@ -13,7 +13,8 @@ from .base import BaseClassifier
 
 class MultilayerPerceptron(BaseClassifier):
     def __init__(self, dataset, labels, train_indices, test_indices, validation_indices, logs_dir, results_dir,
-                 layers, learning_rate=0.01, training_epochs=1000, batch_size=100):
+                 layers, learning_rate=0.01, training_epochs=100000, batch_size=250, loss_report=100,
+                 results_report=10000):
         super(MultilayerPerceptron, self).__init__(dataset, labels, train_indices, test_indices, validation_indices)
 
         assert batch_size <= self.train_dataset.shape[0]
@@ -84,6 +85,8 @@ class MultilayerPerceptron(BaseClassifier):
             test_recall=[],
             validation_recall=[]
         )
+        self.loss_report = loss_report
+        self.results_report = results_report
 
     def _next_batch(self):
         start = self.train_offset
@@ -176,7 +179,7 @@ class MultilayerPerceptron(BaseClassifier):
             sess.run(tf.initialize_all_variables())
 
             print('Training classifier', file=sys.stderr)
-            for epoch in np.arange(self.training_epochs):
+            for epoch in tqdm(np.arange(self.training_epochs)):
                 batch_dataset, batch_labels = self._next_batch()
 
                 feed_dict = {
@@ -186,14 +189,14 @@ class MultilayerPerceptron(BaseClassifier):
 
                 _, loss = sess.run([self.train_step, self.loss], feed_dict=feed_dict)
 
-                if epoch % 10 == 0:
-                    print('Epoch {}: loss = {:.2f}'.format(epoch, loss), file=sys.stderr)
+                if epoch % self.loss_report == 0:
+                    print('\nEpoch {}: loss = {:.2f}'.format(epoch, loss), file=sys.stderr)
 
                     summary_str = sess.run(self.summary_op, feed_dict=feed_dict)
                     self.summary_writer.add_summary(summary_str, epoch)
                     self.summary_writer.flush()
 
-                if epoch % 100 == 0:
+                if epoch % self.results_report == 0:
                     self.saver.save(sess, self.logs_dir, global_step=epoch)
 
                     accuracy, precision, recall = self._evaluate(sess, self.train_dataset, self.train_labels,

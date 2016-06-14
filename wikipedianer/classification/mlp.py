@@ -13,8 +13,7 @@ from .base import BaseClassifier
 
 class MultilayerPerceptron(BaseClassifier):
     def __init__(self, dataset, labels, train_indices, test_indices, validation_indices, logs_dir, results_dir,
-                 layers, learning_rate=0.01, training_epochs=100000, batch_size=250, loss_report=100,
-                 results_report=10000):
+                 layers, learning_rate=0.01, training_epochs=1500, batch_size=2000, loss_report=50):
         super(MultilayerPerceptron, self).__init__(dataset, labels, train_indices, test_indices, validation_indices)
 
         assert batch_size <= self.train_dataset.shape[0]
@@ -66,9 +65,8 @@ class MultilayerPerceptron(BaseClassifier):
 
         self.init = tf.initialize_all_variables()
 
-        # Session saver and tensorboard logs
+        # Tensorboard logs
         self.logs_dir = logs_dir
-        self.saver = tf.train.Saver()
         self.summary_op = tf.merge_all_summaries()
         self.summary_writer = None
 
@@ -86,7 +84,6 @@ class MultilayerPerceptron(BaseClassifier):
             validation_recall=[]
         )
         self.loss_report = loss_report
-        self.results_report = results_report
 
     def _next_batch(self):
         start = self.train_offset
@@ -174,12 +171,14 @@ class MultilayerPerceptron(BaseClassifier):
 
     def train(self):
         with tf.Session() as sess:
+            last_loss = np.inf
+
             self.summary_writer = tf.train.SummaryWriter(self.logs_dir, sess.graph)
 
             sess.run(tf.initialize_all_variables())
 
             print('Training classifier', file=sys.stderr)
-            for epoch in tqdm(np.arange(self.training_epochs)):
+            for epoch in np.arange(self.training_epochs):
                 batch_dataset, batch_labels = self._next_batch()
 
                 feed_dict = {
@@ -196,18 +195,28 @@ class MultilayerPerceptron(BaseClassifier):
                     self.summary_writer.add_summary(summary_str, epoch)
                     self.summary_writer.flush()
 
-                if epoch % self.results_report == 0:
-                    self.saver.save(sess, self.logs_dir, global_step=epoch)
-
+                if epoch % (self.training_epochs / 10) == 0:
                     accuracy, precision, recall = self._evaluate(sess, self.train_dataset, self.train_labels,
                                                                  'Train')
                     print('Training accuracy: {:.2f}'.format(accuracy), file=sys.stderr)
                     self._add_results('train', accuracy, precision, recall)
 
+                if epoch % (self.training_epochs / 20) == 0:
                     accuracy, precision, recall = self._evaluate(sess, self.validation_dataset, self.validation_labels,
                                                                  'Validation')
                     print('Validation accuracy: {:.2f}'.format(accuracy), file=sys.stderr)
                     self._add_results('validation', accuracy, precision, recall)
+
+                    if len(self.results['validation_accuracy']) >= 2:
+                        delta_acc = self.results['validation_accuracy'][-2] - self.results['validation_accuracy'][-1]
+                        delta_loss = last_loss - loss
+
+                        if delta_acc < 1e-3 and delta_loss < 1e-3:
+                            print('Validation accuracy converging: delta_acc {:.2f} / delta_loss {:2.f}.'
+                                  .format(delta_acc, delta_loss), file=sys.stderr)
+                            break
+
+                last_loss = loss
 
             print('Finished training', file=sys.stderr)
 

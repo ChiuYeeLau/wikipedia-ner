@@ -72,10 +72,9 @@ if __name__ == "__main__":
     parser.add_argument("logs_dir", type=unicode)
     parser.add_argument("results_dir", type=unicode)
     parser.add_argument("--learning_rate", type=float, default=0.01)
-    parser.add_argument("--epochs", type=int, default=100000)
-    parser.add_argument("--batch_size", type=int, default=250)
-    parser.add_argument("--loss_report", type=int, default=100)
-    parser.add_argument("--results_report", type=int, default=10000)
+    parser.add_argument("--epochs", type=int, default=1500)
+    parser.add_argument("--batch_size", type=int, default=2000)
+    parser.add_argument("--loss_report", type=int, default=50)
     parser.add_argument("--layers", type=int, nargs='+')
 
     args = parser.parse_args()
@@ -114,7 +113,7 @@ if __name__ == "__main__":
     print('Creating multilayer perceptron', file=sys.stderr)
     mlp = MultilayerPerceptron(dataset, labels, indices['train_indices'], indices['test_indices'],
                                indices['validation_indices'], args.logs_dir, args.results_dir, args.layers,
-                               args.learning_rate, args.epochs, args.batch_size, args.loss_report, args.results_report)
+                               args.learning_rate, args.epochs, args.batch_size, args.loss_report)
 
     print('Training the classifier', file=sys.stderr)
     mlp.train()

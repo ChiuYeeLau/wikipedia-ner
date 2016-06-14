@@ -39,7 +39,7 @@ if __name__ == "__main__":
     word2vec_model = gensim.models.Word2Vec.load_word2vec_format(args.wordvectors, binary=True)
 
     instance_extractor = WordVectorsExtractor(word2vec_model, args.window)
-    dataset_matrix = sparse.csr_matrix((0, instance_extractor.instance_vector_size), dtype=np.int32)
+    dataset_matrix = []
     labels = []
 
     for conll_file in sorted(os.listdir(args.input_dir)):
@@ -53,28 +53,20 @@ if __name__ == "__main__":
             if sentence.has_named_entity:
                 sentence_instances, sentence_labels = instance_extractor.get_instances_for_sentence(sentence)
 
-                instances = sparse.csr_matrix(np.vstack(sentence_instances))
-
-                if dataset_matrix.shape[0] == 0:
-                    dataset_matrix = instances
-                else:
-                    dataset_matrix = sparse.vstack((dataset_matrix, instances))
-
+                dataset_matrix.extend(sentence_instances)
                 labels.extend(sentence_labels)
 
         if corpus_doc == "doc_03" or corpus_doc == "doc_07":
             print('Saving partial matrix', file=sys.stderr)
             np.savez_compressed(os.path.join(args.output_dir, 'ner_word_vectors_matrix_partial.npz'),
-                                data=dataset_matrix.data, indices=dataset_matrix.indices,
-                                indptr=dataset_matrix.indptr, shape=dataset_matrix.shape)
+                                dataset=np.vstack(dataset_matrix))
 
             with open(os.path.join(args.output_dir, 'ner_word_vectors_labels_partial.pickle'), 'wb') as f:
                 cPickle.dump(labels, f)
     
     print('Saving matrix of features and labels', file=sys.stderr)
     np.savez_compressed(os.path.join(args.output_dir, 'ner_word_vectors_matrix.npz'),
-                        data=dataset_matrix.data, indices=dataset_matrix.indices,
-                        indptr=dataset_matrix.indptr, shape=dataset_matrix.shape)
+                        dataset=np.vstack(dataset_matrix))
 
     with open(os.path.join(args.output_dir, 'ner_word_vectors_labels.pickle'), 'wb') as f:
         cPickle.dump(labels, f)

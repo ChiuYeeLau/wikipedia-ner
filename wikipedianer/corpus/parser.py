@@ -169,7 +169,7 @@ class FeatureExtractor(object):
 
 
 class WordVectorsExtractor(object):
-    def __init__(self, model, window_size=5):
+    def __init__(self, model, window_size=2):
         self.model = model
         self.vector_size = self.model.vector_size
         self.window_size = window_size

@@ -31,7 +31,7 @@ if __name__ == "__main__":
     parser.add_argument("wordvectors", type=unicode)
     parser.add_argument("output_dir", type=unicode)
     parser.add_argument("--stopwords", action="store_true")
-    parser.add_argument("--window", type=int, default=5)
+    parser.add_argument("--window", type=int, default=2)
 
     args = parser.parse_args()
 
@@ -56,19 +56,24 @@ if __name__ == "__main__":
                 dataset_matrix.extend(sentence_instances)
                 labels.extend(sentence_labels)
 
-        if corpus_doc == "doc_03" or corpus_doc == "doc_07":
-            print('Saving partial matrix', file=sys.stderr)
-            np.savez_compressed(os.path.join(args.output_dir, 'ner_word_vectors_matrix_partial.npz'),
-                                dataset=np.vstack(dataset_matrix))
+        if corpus_doc != "doc_01":
+            print('Loading partial matrix and labels', file=sys.stderr)
+            partial_matrix = np.load(os.path.join(args.output_dir, 'ner_word_vectors_matrix.npz'))['dataset']
 
-            with open(os.path.join(args.output_dir, 'ner_word_vectors_labels_partial.pickle'), 'wb') as f:
-                cPickle.dump(labels, f)
+            with open(os.path.join(args.output_dir, 'ner_word_vectors_labels.pickle'), 'rb') as f:
+                partial_labels = cPickle.load(f)
+
+            partial_matrix = np.vstack((partial_matrix, np.vstack(dataset_matrix)))
+            partial_labels.extend(labels)
+        else:
+            partial_matrix = np.vstack(dataset_matrix)
+            partial_labels = labels
+
+        print('Saving partial matrix', file=sys.stderr)
+        np.savez_compressed(os.path.join(args.output_dir, 'ner_word_vectors_matrix.npz'),
+                            dataset=partial_matrix)
+
+        with open(os.path.join(args.output_dir, 'ner_word_vectors_labels.pickle'), 'wb') as f:
+            cPickle.dump(partial_labels, f)
     
-    print('Saving matrix of features and labels', file=sys.stderr)
-    np.savez_compressed(os.path.join(args.output_dir, 'ner_word_vectors_matrix.npz'),
-                        dataset=np.vstack(dataset_matrix))
-
-    with open(os.path.join(args.output_dir, 'ner_word_vectors_labels.pickle'), 'wb') as f:
-        cPickle.dump(labels, f)
-
     print('All operations finished', file=sys.stderr)

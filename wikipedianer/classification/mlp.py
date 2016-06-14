@@ -201,18 +201,18 @@ class MultilayerPerceptron(BaseClassifier):
 
                     accuracy, precision, recall = self._evaluate(sess, self.train_dataset, self.train_labels,
                                                                  'Train')
-                    print('\nTraining accuracy: {:.2f}'.format(accuracy), file=sys.stderr)
+                    print('Training accuracy: {:.2f}'.format(accuracy), file=sys.stderr)
                     self._add_results('train', accuracy, precision, recall)
 
                     accuracy, precision, recall = self._evaluate(sess, self.validation_dataset, self.validation_labels,
                                                                  'Validation')
-                    print('\nValidation accuracy: {:.2f}'.format(accuracy), file=sys.stderr)
+                    print('Validation accuracy: {:.2f}'.format(accuracy), file=sys.stderr)
                     self._add_results('validation', accuracy, precision, recall)
 
-            print('\nFinished training', file=sys.stderr)
+            print('Finished training', file=sys.stderr)
 
             accuracy, precision, recall = self._evaluate(sess, self.test_dataset, self.test_labels, 'Test')
-            print('\nTesting accuracy: {:.2f}'.format(accuracy), file=sys.stderr)
+            print('Testing accuracy: {:.2f}'.format(accuracy), file=sys.stderr)
             self._add_results('test', accuracy, precision, recall)
 
             print('Saving results', file=sys.stderr)

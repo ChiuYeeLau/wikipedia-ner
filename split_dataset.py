@@ -70,6 +70,7 @@ if __name__ == "__main__":
     parser.add_argument("--train_size", type=float, default=0.8)
     parser.add_argument("--test_size", type=float, default=0.1)
     parser.add_argument("--validation_size", type=float, default=0.1)
+    parser.add_argument("--min_count", type=int, default=50)
 
     args = parser.parse_args()
 
@@ -85,9 +86,7 @@ if __name__ == "__main__":
         replaced_labels = list(replacement_function(labels, class_mappings))
 
         print('Getting filtered classes for category {}'.format(category_name), file=sys.stderr)
-        filtered_classes = {l for l, v in Counter(replaced_labels).iteritems()
-                            if (args.validation_size > 0. and v >= 3) or
-                            (args.validation_size == 0 and v >= 2)}
+        filtered_classes = {l for l, v in Counter(replaced_labels).iteritems() if v >= args.min_count}
 
         print('Getting filtered indices for category {}'.format(category_name), file=sys.stderr)
         filtered_indices = np.array([i for i, l in enumerate(replaced_labels) if l in filtered_classes],

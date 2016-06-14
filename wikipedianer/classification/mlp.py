@@ -7,6 +7,7 @@ import numpy as np
 import os
 import sys
 from sklearn.metrics import accuracy_score, precision_score, recall_score
+from tqdm import tqdm
 from .base import BaseClassifier
 
 
@@ -105,10 +106,11 @@ class MultilayerPerceptron(BaseClassifier):
         else:
             return self.train_dataset[start:end], one_hot_labels
 
-    def _evaluate(self, sess, dataset, labels):
+    def _evaluate(self, sess, dataset, labels, dataset_name):
         y_pred = np.zeros(dataset.shape[0], dtype=np.int32)
 
-        for step in np.arange(dataset.shape[0], step=self.batch_size):
+        print('Running evaluation for dataset {}'.format(dataset_name), file=sys.stderr)
+        for step in tqdm(np.arange(dataset.shape[0], step=self.batch_size)):
             dataset_chunk = dataset[step:min(step+self.batch_size, dataset.shape[0])]
             feed_dict = {
                 self.X: dataset_chunk.toarray() if hasattr(dataset_chunk, 'toarray') else dataset_chunk
@@ -117,8 +119,8 @@ class MultilayerPerceptron(BaseClassifier):
             y_pred[step:min(step+self.batch_size, dataset.shape[0])] = sess.run(self.y_pred, feed_dict=feed_dict)
 
         return accuracy_score(labels, y_pred.astype(labels.dtype)), \
-            precision_score(labels, y_pred.astype(labels.dtype)), \
-            recall_score(labels, y_pred.astype(labels.dtype))
+            precision_score(labels, y_pred.astype(labels.dtype), average=None, labels=self.classes), \
+            recall_score(labels, y_pred.astype(labels.dtype), average=None, labels=self.classes)
 
     def _add_results(self, dataset, accuracy, precision, recall):
         self.results['{}_accuracy'.format(dataset)].append(accuracy)
@@ -194,17 +196,19 @@ class MultilayerPerceptron(BaseClassifier):
                 if epoch % 100 == 0:
                     self.saver.save(sess, self.logs_dir, global_step=epoch)
 
-                    accuracy, precision, recall = self._evaluate(sess, self.train_dataset, self.train_labels)
+                    accuracy, precision, recall = self._evaluate(sess, self.train_dataset, self.train_labels,
+                                                                 'Train')
                     print('Training accuracy: {:.2f}'.format(accuracy), file=sys.stderr)
                     self._add_results('train', accuracy, precision, recall)
 
-                    accuracy, precision, recall = self._evaluate(sess, self.validation_dataset, self.validation_labels)
+                    accuracy, precision, recall = self._evaluate(sess, self.validation_dataset, self.validation_labels,
+                                                                 'Validation')
                     print('Validation accuracy: {:.2f}'.format(accuracy), file=sys.stderr)
                     self._add_results('validation', accuracy, precision, recall)
 
             print('Finished training', file=sys.stderr)
 
-            accuracy, precision, recall = self._evaluate(sess, self.test_dataset, self.test_labels)
+            accuracy, precision, recall = self._evaluate(sess, self.test_dataset, self.test_labels, 'Test')
             print('Testing accuracy: {:.2f}'.format(accuracy), file=sys.stderr)
             self._add_results('test', accuracy, precision, recall)
 

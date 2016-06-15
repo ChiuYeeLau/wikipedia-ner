@@ -76,7 +76,7 @@ if __name__ == "__main__":
     parser.add_argument("--epochs", type=int, default=1500)
     parser.add_argument("--batch_size", type=int, default=2000)
     parser.add_argument("--loss_report", type=int, default=50)
-    parser.add_argument("--layers", type=int, nargs='+', default=[1000])
+    parser.add_argument("--layers", type=lambda x: map(int, x.split(',')), nargs='+', default=[[12000, 9000, 7000]])
 
     args = parser.parse_args()
 
@@ -86,6 +86,10 @@ if __name__ == "__main__":
         if mapping_kind not in labels_replacements:
             print('Not a valid replacement {}'.format(mapping_kind), file=sys.stderr)
             sys.exit(1)
+
+    if len(args.mappings_kind) != len(args.layers):
+        print('Layers and mappings don\'t have the same amount of items')
+        sys.exit(1)
 
     print('Loading dataset from file {}'.format(args.dataset), file=sys.stderr)
 
@@ -124,7 +128,7 @@ if __name__ == "__main__":
         print('Normalizing dataset', file=sys.stderr)
         experiment_dataset = normalize(experiment_dataset.astype(np.float32), norm='max', axis=0)
 
-        if len(experiments_name) > 0:
+        if len(experiments_name) > 1:
             print('Loading previous weights and biases')
             pre_weights = np.load(os.path.join(args.saves_dir, '{}_weights.npz'.format(experiments_name[-1])))
             pre_biases = np.load(os.path.join(args.saves_dir, '{}_biases.npz'.format(experiments_name[-1])))
@@ -136,10 +140,10 @@ if __name__ == "__main__":
         mlp = MultilayerPerceptron(dataset=experiment_dataset, labels=experiment_labels,
                                    train_indices=indices['train_indices'], test_indices=indices['test_indices'],
                                    validation_indices=indices['validation_indices'], saves_dir=args.saves_dir,
-                                   results_dir=args.results_dir, experiment_name=experiment_name, layers=args.layers,
-                                   learning_rate=args.learning_rate, training_epochs=args.epochs,
-                                   batch_size=args.batch_size, loss_report=args.loss_report, pre_weights=pre_weights,
-                                   pre_biases=pre_biases)
+                                   results_dir=args.results_dir, experiment_name=experiment_name,
+                                   layers=args.layers[idx], learning_rate=args.learning_rate,
+                                   training_epochs=args.epochs, batch_size=args.batch_size,
+                                   loss_report=args.loss_report, pre_weights=pre_weights, pre_biases=pre_biases)
 
         print('Training the classifier', file=sys.stderr)
         mlp.train()

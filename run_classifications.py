@@ -71,7 +71,7 @@ if __name__ == "__main__":
     parser.add_argument("indices_dir", type=unicode)
     parser.add_argument("results_dir", type=unicode)
     parser.add_argument("saves_dir", type=unicode)
-    parser.add_argument("--mappings_kind", type=unicode, default='NEU')
+    parser.add_argument("--mappings_kind", type=unicode, default='NEU', nargs='+')
     parser.add_argument("--learning_rate", type=float, default=0.01)
     parser.add_argument("--epochs", type=int, default=1500)
     parser.add_argument("--batch_size", type=int, default=2000)
@@ -130,8 +130,8 @@ if __name__ == "__main__":
 
         if len(experiments_name) > 1:
             print('Loading previous weights and biases')
-            pre_weights = np.load(os.path.join(args.saves_dir, '{}_weights.npz'.format(experiments_name[-1])))
-            pre_biases = np.load(os.path.join(args.saves_dir, '{}_biases.npz'.format(experiments_name[-1])))
+            pre_weights = np.load(os.path.join(args.saves_dir, '{}_weights.npz'.format(experiments_name[-2])))
+            pre_biases = np.load(os.path.join(args.saves_dir, '{}_biases.npz'.format(experiments_name[-2])))
         else:
             pre_weights = None
             pre_biases = None

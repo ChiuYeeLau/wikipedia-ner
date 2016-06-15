@@ -124,7 +124,7 @@ class MultilayerPerceptron(BaseClassifier):
         y_pred = np.zeros(dataset.shape[0], dtype=np.int32)
 
         print('Running evaluation for dataset {}'.format(dataset_name), file=sys.stderr)
-        for step in tqdm(np.arange(dataset.shape[0], step=self.batch_size)):
+        for step in tqdm(np.arange(6000, step=self.batch_size)):
             dataset_chunk = dataset[step:min(step+self.batch_size, dataset.shape[0])]
             feed_dict = {
                 self.X: dataset_chunk.toarray() if hasattr(dataset_chunk, 'toarray') else dataset_chunk
@@ -245,7 +245,7 @@ class MultilayerPerceptron(BaseClassifier):
                 biases_dict['hidden_layer_{:02d}'.format(layer_idx)] = biases.eval()
 
             np.savez_compressed(file_name_weights, **weights_dict)
-            np.savez_compressed(file_name_biases, **weights_dict)
+            np.savez_compressed(file_name_biases, **biases_dict)
 
             print('Saving results', file=sys.stderr)
             self._save_results()

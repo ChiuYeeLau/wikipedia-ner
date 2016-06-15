@@ -219,7 +219,6 @@ class MultilayerPerceptron(BaseClassifier):
 
                     last_loss = loss
 
-
             print('Finished training', file=sys.stderr)
 
             accuracy, precision, recall = self._evaluate(sess, self.test_dataset, self.test_labels, 'Test')

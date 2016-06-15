@@ -14,6 +14,6 @@ do
   echo "Analyzing $filename"
   total_lines=$(grep "$filename" $3 | awk '{ print $1 }')
   output_file=$2/$filename
-  ./tag_conllx_docs.py $file $output_file $total_lines &> logs/$filename &
+  ./10_tag_conllx_docs.py $file $output_file $total_lines &> logs/${filename}.log &
 done
 wait)

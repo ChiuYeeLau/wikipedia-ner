@@ -71,7 +71,7 @@ if __name__ == "__main__":
     parser.add_argument("indices_dir", type=unicode)
     parser.add_argument("results_dir", type=unicode)
     parser.add_argument("saves_dir", type=unicode)
-    parser.add_argument("--mappings_kind", type=unicode, default=['NEU'])
+    parser.add_argument("--mappings_kind", type=unicode, default='NEU')
     parser.add_argument("--learning_rate", type=float, default=0.01)
     parser.add_argument("--epochs", type=int, default=1500)
     parser.add_argument("--batch_size", type=int, default=2000)
@@ -80,9 +80,12 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    args.mappings_kind = [args.mappings_kind] if isinstance(args.mappings_kind, unicode) else args.mappings_kind
+
     for mapping_kind in args.mappings_kind:
         if mapping_kind not in labels_replacements:
             print('Not a valid replacement {}'.format(mapping_kind), file=sys.stderr)
+            sys.exit(1)
 
     print('Loading dataset from file {}'.format(args.dataset), file=sys.stderr)
 
@@ -134,8 +137,9 @@ if __name__ == "__main__":
                                    train_indices=indices['train_indices'], test_indices=indices['test_indices'],
                                    validation_indices=indices['validation_indices'], saves_dir=args.saves_dir,
                                    results_dir=args.results_dir, experiment_name=experiment_name, layers=args.layers,
-                                   training_epochs=args.epochs, batch_size=args.batch_size,
-                                   loss_report=args.loss_report, pre_weights=pre_weights, pre_biases=pre_biases)
+                                   learning_rate=args.learning_rate, training_epochs=args.epochs,
+                                   batch_size=args.batch_size, loss_report=args.loss_report, pre_weights=pre_weights,
+                                   pre_biases=pre_biases)
 
         print('Training the classifier', file=sys.stderr)
         mlp.train()

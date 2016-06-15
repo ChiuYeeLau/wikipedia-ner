@@ -214,7 +214,7 @@ class MultilayerPerceptron(BaseClassifier):
                         delta_acc = self.results['validation_accuracy'][-2] - self.results['validation_accuracy'][-1]
                         delta_loss = self.results['loss'][-1] - loss
 
-                        if delta_acc < 1e-3 and delta_loss < 1e-3:
+                        if delta_loss < 1e-3 < delta_acc:
                             print('Validation accuracy converging: ' +
                                   'delta_acc {:.2f} / delta_loss {:.2f}.' .format(delta_acc, delta_loss),
                                   file=sys.stderr)
@@ -229,6 +229,20 @@ class MultilayerPerceptron(BaseClassifier):
             accuracy, precision, recall = self._evaluate(sess, self.test_dataset, self.test_labels, 'Test')
             print('Testing accuracy: {:.2f}'.format(accuracy), file=sys.stderr)
             self._add_results('test', accuracy, precision, recall)
+
+            print('Saving weights and biases', file=sys.stderr)
+            file_name_weights = os.path.join(self.saves_dir, "{}_weights.npz".format(self.experiment_name))
+            file_name_biases = os.path.join(self.saves_dir, "{}_biases.npz".format(self.experiment_name))
+
+            weights_dict = {}
+            biases_dict = {}
+
+            for layer_idx, (weights, biases) in enumerate(zip(self.weights, self.biases)):
+                weights_dict['hidden_layer_{}'.format(layer_idx)] = weights.eval()
+                biases_dict['hidden_layer_{}'.format(layer_idx)] = biases.eval()
+
+            np.savez_compressed(file_name_weights, **weights_dict)
+            np.savez_compressed(file_name_biases, **weights_dict)
 
             print('Saving results', file=sys.stderr)
             self._save_results()

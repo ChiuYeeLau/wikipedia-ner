@@ -215,6 +215,12 @@ class MultilayerPerceptron(BaseClassifier):
                             print('Validation accuracy converging: ' +
                                   'delta_acc {:.2f} / delta_loss {:.2f}.' .format(delta_acc, delta_loss),
                                   file=sys.stderr)
+
+                            accuracy, precision, recall = self._evaluate(sess, self.train_dataset, self.train_labels,
+                                                                         'Train')
+                            print('Final training accuracy: {:.2f}'.format(accuracy), file=sys.stderr)
+                            self._add_results('train', accuracy, precision, recall)
+
                             break
 
                     last_loss = loss

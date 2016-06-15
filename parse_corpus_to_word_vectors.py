@@ -12,7 +12,7 @@ from tqdm import tqdm
 from wikipedianer.corpus.parser import WordVectorsExtractor, WikipediaCorpusColumnParser
 
 FILES_SENTENCES = {
-    "doc_01.conll": 5255631,
+    "doc_01.conll": 2700000,
     "doc_02.conll": 2584456,
     "doc_03.conll": 2089800,
     "doc_04.conll": 1762920,
@@ -21,7 +21,8 @@ FILES_SENTENCES = {
     "doc_07.conll": 1813089,
     "doc_08.conll": 1841952,
     "doc_09.conll": 1495951,
-    "doc_10.conll": 514936
+    "doc_10.conll": 2700000,
+    "doc_11.conll": 514936
 }
 
 if __name__ == "__main__":

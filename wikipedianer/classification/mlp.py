@@ -195,7 +195,7 @@ class MultilayerPerceptron(BaseClassifier):
                     self.summary_writer.add_summary(summary_str, epoch)
                     self.summary_writer.flush()
 
-                if epoch % (self.training_epochs / 10) == 0:
+                if epoch != 0 and epoch % (self.training_epochs / 10) == 0:
                     accuracy, precision, recall = self._evaluate(sess, self.train_dataset, self.train_labels,
                                                                  'Train')
                     print('Training accuracy: {:.2f}'.format(accuracy), file=sys.stderr)
@@ -212,11 +212,13 @@ class MultilayerPerceptron(BaseClassifier):
                         delta_loss = last_loss - loss
 
                         if delta_acc < 1e-3 and delta_loss < 1e-3:
-                            print('Validation accuracy converging: delta_acc {:.2f} / delta_loss {:2.f}.'
-                                  .format(delta_acc, delta_loss), file=sys.stderr)
+                            print('Validation accuracy converging: ' +
+                                  'delta_acc {:.2f} / delta_loss {:.2f}.' .format(delta_acc, delta_loss),
+                                  file=sys.stderr)
                             break
 
-                last_loss = loss
+                    last_loss = loss
+
 
             print('Finished training', file=sys.stderr)
 

@@ -131,40 +131,40 @@ class MultilayerPerceptron(BaseClassifier):
         header = ','.join(self.classes).encode('utf-8')
 
         # Train
-        np.savetxt(os.path.join(self.results_dir, 'train_accuracy.txt'),
+        np.savetxt(os.path.join(self.results_dir, 'train_accuracy_{}.txt'.format("_".join(self.layers))),
                    np.array(self.results['train_accuracy'], dtype=np.float32),
                    fmt='%.2f'.encode('utf-8'), delimiter=','.encode('utf-8'))
-        np.savetxt(os.path.join(self.results_dir, 'train_precision.txt'),
+        np.savetxt(os.path.join(self.results_dir, 'train_precision_{}.txt'.format("_".join(self.layers))),
                    np.array(self.results['train_precision'], dtype=np.float32),
                    fmt='%.2f'.encode('utf-8'), delimiter=','.encode('utf-8'),
                    header=header)
-        np.savetxt(os.path.join(self.results_dir, 'train_recall.txt'),
+        np.savetxt(os.path.join(self.results_dir, 'train_recall_{}.txt'.format("_".join(self.layers))),
                    np.array(self.results['train_recall'], dtype=np.float32),
                    fmt='%.2f'.encode('utf-8'), delimiter=','.encode('utf-8'),
                    header=header)
 
         # Test
-        np.savetxt(os.path.join(self.results_dir, 'test_accuracy.txt'),
+        np.savetxt(os.path.join(self.results_dir, 'test_accuracy_{}.txt'.format("_".join(self.layers))),
                    np.array(self.results['test_accuracy'], dtype=np.float32),
                    fmt='%.2f'.encode('utf-8'), delimiter=','.encode('utf-8'))
-        np.savetxt(os.path.join(self.results_dir, 'test_precision.txt'),
+        np.savetxt(os.path.join(self.results_dir, 'test_precision_{}.txt'.format("_".join(self.layers))),
                    np.array(self.results['test_precision'], dtype=np.float32),
                    fmt='%.2f'.encode('utf-8'), delimiter=','.encode('utf-8'),
                    header=header)
-        np.savetxt(os.path.join(self.results_dir, 'test_recall.txt'),
+        np.savetxt(os.path.join(self.results_dir, 'test_recall_{}.txt'.format("_".join(self.layers))),
                    np.array(self.results['test_recall'], dtype=np.float32),
                    fmt='%.2f'.encode('utf-8'), delimiter=','.encode('utf-8'),
                    header=header)
 
         # Validation
-        np.savetxt(os.path.join(self.results_dir, 'validation_accuracy.txt'),
+        np.savetxt(os.path.join(self.results_dir, 'validation_accuracy_{}.txt'.format("_".join(self.layers))),
                    np.array(self.results['validation_accuracy'], dtype=np.float32),
                    fmt='%.2f'.encode('utf-8'), delimiter=','.encode('utf-8'))
-        np.savetxt(os.path.join(self.results_dir, 'validation_precision.txt'),
+        np.savetxt(os.path.join(self.results_dir, 'validation_precision_{}.txt'.format("_".join(self.layers))),
                    np.array(self.results['validation_precision'], dtype=np.float32),
                    fmt='%.2f'.encode('utf-8'), delimiter=','.encode('utf-8'),
                    header=header)
-        np.savetxt(os.path.join(self.results_dir, 'validation_recall.txt'),
+        np.savetxt(os.path.join(self.results_dir, 'validation_recall_{}.txt'.format("_".join(self.layers))),
                    np.array(self.results['validation_recall'], dtype=np.float32),
                    fmt='%.2f'.encode('utf-8'), delimiter=','.encode('utf-8'),
                    header=header)

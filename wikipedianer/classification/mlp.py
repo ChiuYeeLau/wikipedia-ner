@@ -31,10 +31,13 @@ class MultilayerPerceptron(BaseClassifier):
 
         # Create the layers
         for layer_idx, (size_prev, size_current) in enumerate(zip([self.input_size] + layers, layers)):
-            print('Creating hidden layer {}: {} -> {}'.format(layer_idx, size_prev, size_current), file=sys.stderr)
-            with tf.name_scope('hidden_layer_{}'.format(layer_idx)):
-                if pre_weights and len(pre_weights) > layer_idx:
-                    weights = tf.Variable(pre_weights[layer_idx], name='weights')
+            print('Creating hidden layer {:02d}: {} -> {}'.format(layer_idx, size_prev, size_current), file=sys.stderr)
+
+            layer_name = 'hidden_layer_{:02d}'.format(layer_idx)
+
+            with tf.name_scope(layer_name):
+                if pre_weights and layer_name in pre_weights:
+                    weights = tf.Variable(pre_weights[layer_name], name='weights')
                 else:
                     weights = tf.Variable(
                         tf.truncated_normal([size_prev, size_current],
@@ -42,8 +45,8 @@ class MultilayerPerceptron(BaseClassifier):
                         name='weights'
                     )
 
-                if pre_biases and len(pre_biases) > layer_idx:
-                    biases = tf.Variable(pre_biases[layer_idx])
+                if pre_biases and layer_name in pre_biases:
+                    biases = tf.Variable(pre_biases[layer_name])
                 else:
                     biases = tf.Variable(tf.zeros([size_current]), name='biases')
 
@@ -238,8 +241,8 @@ class MultilayerPerceptron(BaseClassifier):
             biases_dict = {}
 
             for layer_idx, (weights, biases) in enumerate(zip(self.weights, self.biases)):
-                weights_dict['hidden_layer_{}'.format(layer_idx)] = weights.eval()
-                biases_dict['hidden_layer_{}'.format(layer_idx)] = biases.eval()
+                weights_dict['hidden_layer_{:02d}'.format(layer_idx)] = weights.eval()
+                biases_dict['hidden_layer_{:02d}'.format(layer_idx)] = biases.eval()
 
             np.savez_compressed(file_name_weights, **weights_dict)
             np.savez_compressed(file_name_biases, **weights_dict)

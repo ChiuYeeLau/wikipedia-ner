@@ -5,6 +5,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 import argparse
 import cPickle as pickle
 import numpy as np
+import os
 import re
 import sys
 
@@ -67,21 +68,21 @@ if __name__ == "__main__":
     parser.add_argument("dataset", type=unicode)
     parser.add_argument("labels", type=unicode)
     parser.add_argument("mappings", type=unicode)
-    parser.add_argument("mapping_kind", type=unicode)
-    parser.add_argument("indices", type=unicode)
-    parser.add_argument("logs_dir", type=unicode)
+    parser.add_argument("indices_dir", type=unicode)
     parser.add_argument("results_dir", type=unicode)
+    parser.add_argument("saves_dir", type=unicode)
+    parser.add_argument("--mappings_kind", type=unicode, default=['NEU'])
     parser.add_argument("--learning_rate", type=float, default=0.01)
     parser.add_argument("--epochs", type=int, default=1500)
     parser.add_argument("--batch_size", type=int, default=2000)
     parser.add_argument("--loss_report", type=int, default=50)
-    parser.add_argument("--layers", type=int, nargs='+')
+    parser.add_argument("--layers", type=int, nargs='+', default=[1000])
 
     args = parser.parse_args()
 
-    if args.mapping_kind not in labels_replacements:
-        print('Not a valid replacement', file=sys.stderr)
-        sys.exit(1)
+    for mapping_kind in args.mappings_kind:
+        if mapping_kind not in labels_replacements:
+            print('Not a valid replacement {}'.format(mapping_kind), file=sys.stderr)
 
     print('Loading dataset from file {}'.format(args.dataset), file=sys.stderr)
 
@@ -96,26 +97,49 @@ if __name__ == "__main__":
     with open(args.mappings, 'rb') as f:
         class_mappings = pickle.load(f)
 
-    print('Replacing the labels', file=sys.stderr)
-    replacement_function = labels_replacements[args.mapping_kind]
-    labels = list(replacement_function(labels, class_mappings))
+    experiments_name = []
 
-    print('Loading indices for train, test and validation from file {}'.format(args.indices), file=sys.stderr)
-    indices = np.load(args.indices)
+    for idx, mapping_kind in enumerate(args.mappings_kind):
+        experiment_name = "{}_{}".format("{}".format(
+            "_".join(args.mappings_kind[:idx] + [mapping_kind])), "_".join(args.layers)
+        )
+        experiments_name.append(experiment_name)
 
-    print('Filtering dataset and labels according to indices', file=sys.stderr)
-    dataset = dataset[indices['filtered_indices']]
-    labels = np.array(labels)[indices['filtered_indices']]
+        print('Running experiment: {}'.format(experiment_name), file=sys.stderr)
 
-    print('Normalizing dataset', file=sys.stderr)
-    dataset = normalize(dataset.astype(np.float32), norm='max', axis=0)
+        print('Replacing the labels', file=sys.stderr)
+        replacement_function = labels_replacements[mapping_kind]
+        experiment_labels = list(replacement_function(labels, class_mappings))
 
-    print('Creating multilayer perceptron', file=sys.stderr)
-    mlp = MultilayerPerceptron(dataset, labels, indices['train_indices'], indices['test_indices'],
-                               indices['validation_indices'], args.logs_dir, args.results_dir, args.layers,
-                               args.learning_rate, args.epochs, args.batch_size, args.loss_report)
+        print('Loading indices for train, test and validation'.format(args.indices), file=sys.stderr)
+        indices = np.load(os.path.join(args.indices_dir, "{}_indices.npz".format(mapping_kind)))
 
-    print('Training the classifier', file=sys.stderr)
-    mlp.train()
+        print('Filtering dataset and labels according to indices', file=sys.stderr)
+        experiment_dataset = dataset[indices['filtered_indices']]
+        experiment_labels = np.array(experiment_labels)[indices['filtered_indices']]
 
-    print('Finished the experiment', file=sys.stderr)
+        print('Normalizing dataset', file=sys.stderr)
+        experiment_dataset = normalize(experiment_dataset.astype(np.float32), norm='max', axis=0)
+
+        if len(experiments_name) > 0:
+            print('Loading previous weights and biases')
+            pre_weights = np.load(os.path.join(args.saves_dir, '{}_weights.npz'.format(experiments_name[-1])))
+            pre_biases = np.load(os.path.join(args.saves_dir, '{}_biases.npz'.format(experiments_name[-1])))
+        else:
+            pre_weights = None
+            pre_biases = None
+
+        print('Creating multilayer perceptron', file=sys.stderr)
+        mlp = MultilayerPerceptron(dataset=experiment_dataset, labels=experiment_labels,
+                                   train_indices=indices['train_indices'], test_indices=indices['test_indices'],
+                                   validation_indices=indices['validation_indices'], saves_dir=args.saves_dir,
+                                   results_dir=args.results_dir, experiment_name=experiment_name, layers=args.layers,
+                                   training_epochs=args.epochs, batch_size=args.batch_size,
+                                   loss_report=args.loss_report, pre_weights=pre_weights, pre_biases=pre_biases)
+
+        print('Training the classifier', file=sys.stderr)
+        mlp.train()
+
+        print('Finished experiment {}'.format(experiment_name))
+
+    print('Finished all the experiments', file=sys.stderr)

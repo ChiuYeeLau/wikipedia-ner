@@ -104,7 +104,7 @@ if __name__ == "__main__":
 
     for idx, mapping_kind in enumerate(args.mappings_kind):
         experiment_name = "{}_{}".format("{}".format(
-            "_".join(args.mappings_kind[:idx] + [mapping_kind])), "_".join(args.layers)
+            "_".join(args.mappings_kind[:idx] + [mapping_kind])), "_".join([unicode(l) for l in args.layers])
         )
         experiments_name.append(experiment_name)
 

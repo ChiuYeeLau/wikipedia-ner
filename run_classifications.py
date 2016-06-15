@@ -114,7 +114,7 @@ if __name__ == "__main__":
         replacement_function = labels_replacements[mapping_kind]
         experiment_labels = list(replacement_function(labels, class_mappings))
 
-        print('Loading indices for train, test and validation'.format(args.indices), file=sys.stderr)
+        print('Loading indices for train, test and validation', file=sys.stderr)
         indices = np.load(os.path.join(args.indices_dir, "{}_indices.npz".format(mapping_kind)))
 
         print('Filtering dataset and labels according to indices', file=sys.stderr)

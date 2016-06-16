@@ -147,45 +147,45 @@ class MultilayerPerceptron(BaseClassifier):
         # Loss
         np.savetxt(os.path.join(self.results_dir, 'loss_{}.txt'.format(self.experiment_name)),
                    np.array(self.results['loss'], dtype=np.float32),
-                   fmt='%.2f'.encode('utf-8'), delimiter=','.encode('utf-8'))
+                   fmt='%.3f'.encode('utf-8'), delimiter=','.encode('utf-8'))
 
         # Train
         np.savetxt(os.path.join(self.results_dir, 'train_accuracy_{}.txt'.format(self.experiment_name)),
                    np.array(self.results['train_accuracy'], dtype=np.float32),
-                   fmt='%.2f'.encode('utf-8'), delimiter=','.encode('utf-8'))
+                   fmt='%.3f'.encode('utf-8'), delimiter=','.encode('utf-8'))
         np.savetxt(os.path.join(self.results_dir, 'train_precision_{}.txt'.format(self.experiment_name)),
                    np.array(self.results['train_precision'], dtype=np.float32),
-                   fmt='%.2f'.encode('utf-8'), delimiter=','.encode('utf-8'),
+                   fmt='%.3f'.encode('utf-8'), delimiter=','.encode('utf-8'),
                    header=header)
         np.savetxt(os.path.join(self.results_dir, 'train_recall_{}.txt'.format(self.experiment_name)),
                    np.array(self.results['train_recall'], dtype=np.float32),
-                   fmt='%.2f'.encode('utf-8'), delimiter=','.encode('utf-8'),
+                   fmt='%.3f'.encode('utf-8'), delimiter=','.encode('utf-8'),
                    header=header)
 
         # Test
         np.savetxt(os.path.join(self.results_dir, 'test_accuracy_{}.txt'.format(self.experiment_name)),
                    np.array(self.results['test_accuracy'], dtype=np.float32),
-                   fmt='%.2f'.encode('utf-8'), delimiter=','.encode('utf-8'))
+                   fmt='%.3f'.encode('utf-8'), delimiter=','.encode('utf-8'))
         np.savetxt(os.path.join(self.results_dir, 'test_precision_{}.txt'.format(self.experiment_name)),
                    np.array(self.results['test_precision'], dtype=np.float32),
-                   fmt='%.2f'.encode('utf-8'), delimiter=','.encode('utf-8'),
+                   fmt='%.3f'.encode('utf-8'), delimiter=','.encode('utf-8'),
                    header=header)
         np.savetxt(os.path.join(self.results_dir, 'test_recall_{}.txt'.format(self.experiment_name)),
                    np.array(self.results['test_recall'], dtype=np.float32),
-                   fmt='%.2f'.encode('utf-8'), delimiter=','.encode('utf-8'),
+                   fmt='%.3f'.encode('utf-8'), delimiter=','.encode('utf-8'),
                    header=header)
 
         # Validation
         np.savetxt(os.path.join(self.results_dir, 'validation_accuracy_{}.txt'.format(self.experiment_name)),
                    np.array(self.results['validation_accuracy'], dtype=np.float32),
-                   fmt='%.2f'.encode('utf-8'), delimiter=','.encode('utf-8'))
+                   fmt='%.3f'.encode('utf-8'), delimiter=','.encode('utf-8'))
         np.savetxt(os.path.join(self.results_dir, 'validation_precision_{}.txt'.format(self.experiment_name)),
                    np.array(self.results['validation_precision'], dtype=np.float32),
-                   fmt='%.2f'.encode('utf-8'), delimiter=','.encode('utf-8'),
+                   fmt='%.3f'.encode('utf-8'), delimiter=','.encode('utf-8'),
                    header=header)
         np.savetxt(os.path.join(self.results_dir, 'validation_recall_{}.txt'.format(self.experiment_name)),
                    np.array(self.results['validation_recall'], dtype=np.float32),
-                   fmt='%.2f'.encode('utf-8'), delimiter=','.encode('utf-8'),
+                   fmt='%.3f'.encode('utf-8'), delimiter=','.encode('utf-8'),
                    header=header)
 
     def train(self):
@@ -204,33 +204,37 @@ class MultilayerPerceptron(BaseClassifier):
                 _, loss = sess.run([self.train_step, self.loss], feed_dict=feed_dict)
 
                 if epoch % self.loss_report == 0:
-                    print('Epoch {}: loss = {:.2f}'.format(epoch, loss), file=sys.stderr)
+                    print('Epoch {}: loss = {:.3f}'.format(epoch, loss), file=sys.stderr)
                     self.results['loss'].append(loss)
 
                 if epoch % (self.loss_report * 2) == 0:
                     accuracy, precision, recall = self._evaluate(sess, self.validation_dataset, self.validation_labels,
                                                                  'Validation')
-                    print('Validation accuracy: {:.2f}'.format(accuracy), file=sys.stderr)
+                    print('Validation accuracy: {:.3f}'.format(accuracy), file=sys.stderr)
                     self._add_results('validation', accuracy, precision, recall)
 
                     if len(self.results['validation_accuracy']) >= 2:
                         delta_acc = self.results['validation_accuracy'][-2] - self.results['validation_accuracy'][-1]
                         delta_loss = self.results['loss'][-1] - loss
 
-                        if delta_loss < 1e-3 < delta_acc:
+                        if delta_loss <= 1e-3 < delta_acc:
                             print('Validation accuracy converging: ' +
-                                  'delta_acc {:.2f} / delta_loss {:.2f}.' .format(delta_acc, delta_loss),
+                                  'delta_acc {:.3f} / delta_loss {:.3f}.' .format(delta_acc, delta_loss),
                                   file=sys.stderr)
                             break
+
+                    if accuracy == 1:
+                        print('Validation accuracy maxed: {:.2f}'.format(accuracy))
+                        break
 
             print('Finished training', file=sys.stderr)
 
             accuracy, precision, recall = self._evaluate(sess, self.train_dataset, self.train_labels, 'Train')
-            print('Training accuracy: {:.2f}'.format(accuracy), file=sys.stderr)
+            print('Training accuracy: {:.3f}'.format(accuracy), file=sys.stderr)
             self._add_results('train', accuracy, precision, recall)
 
             accuracy, precision, recall = self._evaluate(sess, self.test_dataset, self.test_labels, 'Test')
-            print('Testing accuracy: {:.2f}'.format(accuracy), file=sys.stderr)
+            print('Testing accuracy: {:.3f}'.format(accuracy), file=sys.stderr)
             self._add_results('test', accuracy, precision, recall)
 
             print('Saving weights and biases', file=sys.stderr)

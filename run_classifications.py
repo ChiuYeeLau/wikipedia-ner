@@ -8,6 +8,7 @@ import numpy as np
 import os
 import re
 import sys
+import tensorflow as tf
 
 from scipy.sparse import csr_matrix
 from sklearn.preprocessing import normalize
@@ -136,17 +137,27 @@ if __name__ == "__main__":
             pre_weights = None
             pre_biases = None
 
-        print('Creating multilayer perceptron', file=sys.stderr)
-        mlp = MultilayerPerceptron(dataset=experiment_dataset, labels=experiment_labels,
-                                   train_indices=indices['train_indices'], test_indices=indices['test_indices'],
-                                   validation_indices=indices['validation_indices'], saves_dir=args.saves_dir,
-                                   results_dir=args.results_dir, experiment_name=experiment_name,
-                                   layers=args.layers[idx], learning_rate=args.learning_rate,
-                                   training_epochs=args.epochs, batch_size=args.batch_size,
-                                   loss_report=args.loss_report, pre_weights=pre_weights, pre_biases=pre_biases)
+        with tf.Graph().as_default() as g:
+            print('Creating multilayer perceptron', file=sys.stderr)
+            mlp = MultilayerPerceptron(dataset=experiment_dataset, labels=experiment_labels,
+                                       train_indices=indices['train_indices'], test_indices=indices['test_indices'],
+                                       validation_indices=indices['validation_indices'], saves_dir=args.saves_dir,
+                                       results_dir=args.results_dir, experiment_name=experiment_name,
+                                       layers=args.layers[idx], learning_rate=args.learning_rate,
+                                       training_epochs=args.epochs, batch_size=args.batch_size,
+                                       loss_report=args.loss_report, pre_weights=pre_weights, pre_biases=pre_biases)
 
-        print('Training the classifier', file=sys.stderr)
-        mlp.train()
+            print('Training the classifier', file=sys.stderr)
+            mlp.train()
+
+        # Releasing some memory
+        del pre_weights
+        del pre_biases
+        del experiment_dataset
+        del experiment_labels
+        del indices
+        del mlp
+        del g
 
         print('Finished experiment {}'.format(experiment_name))
 

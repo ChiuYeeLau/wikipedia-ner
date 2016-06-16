@@ -204,7 +204,7 @@ class MultilayerPerceptron(BaseClassifier):
                 _, loss = sess.run([self.train_step, self.loss], feed_dict=feed_dict)
 
                 if epoch % self.loss_report == 0:
-                    print('\nEpoch {}: loss = {:.2f}'.format(epoch, loss), file=sys.stderr)
+                    print('Epoch {}: loss = {:.2f}'.format(epoch, loss), file=sys.stderr)
                     self.results['loss'].append(loss)
 
                 if epoch % (self.loss_report * 2) == 0:

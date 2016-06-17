@@ -130,7 +130,7 @@ if __name__ == "__main__":
         experiment_dataset = normalize(experiment_dataset.astype(np.float32), norm='max', axis=0)
 
         if len(experiments_name) > 1:
-            print('Loading previous weights and biases')
+            print('Loading previous weights and biases', file=sys.stderr)
             pre_weights = np.load(os.path.join(args.saves_dir, '{}_weights.npz'.format(experiments_name[-2])))
             pre_biases = np.load(os.path.join(args.saves_dir, '{}_biases.npz'.format(experiments_name[-2])))
         else:
@@ -161,6 +161,6 @@ if __name__ == "__main__":
         del mlp
         del g
 
-        print('Finished experiment {}'.format(experiment_name))
+        print('Finished experiment {}'.format(experiment_name), file=sys.stderr)
 
     print('Finished all the experiments', file=sys.stderr)

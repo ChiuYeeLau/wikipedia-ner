@@ -138,6 +138,8 @@ if __name__ == "__main__":
             pre_biases = None
 
         with tf.Graph().as_default() as g:
+            tf.set_random_seed(1234)
+
             print('Creating multilayer perceptron', file=sys.stderr)
             mlp = MultilayerPerceptron(dataset=experiment_dataset, labels=experiment_labels,
                                        train_indices=indices['train_indices'], test_indices=indices['test_indices'],

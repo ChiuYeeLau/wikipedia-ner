@@ -133,8 +133,9 @@ class MultilayerPerceptron(BaseClassifier):
             y_pred[step:min(step+self.batch_size, dataset.shape[0])] = sess.run(self.y_pred, feed_dict=feed_dict)
 
         return accuracy_score(labels, y_pred.astype(labels.dtype)), \
-            precision_score(labels, y_pred.astype(labels.dtype), average=None, labels=self.classes), \
-            recall_score(labels, y_pred.astype(labels.dtype), average=None, labels=self.classes)
+            precision_score(labels, y_pred.astype(labels.dtype), average=None,
+                            labels=np.arange(self.classes.shape[0])), \
+            recall_score(labels, y_pred.astype(labels.dtype), average=None, labels=np.arange(self.classes.shape[0]))
 
     def _add_results(self, dataset, accuracy, precision, recall):
         self.results['{}_accuracy'.format(dataset)].append(accuracy)

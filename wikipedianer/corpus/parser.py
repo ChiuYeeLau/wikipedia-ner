@@ -6,7 +6,7 @@ import cPickle
 import numpy as np
 from collections import defaultdict
 from nltk.corpus import stopwords
-from .base import Sentence, Word, WORDNET_CATEGORIES, YAGO_RELATIONS
+from .base import Sentence, Word, WORDNET_CATEGORIES_LEGAL, WORDNET_CATEGORIES_MOVIES, YAGO_RELATIONS_MOVIES
 
 
 STOPWORDS_SET = set(stopwords.words())
@@ -240,19 +240,21 @@ class WikipediaCorpusColumnParser(object):
 
                     widx = len(words)
 
-                    if class_string.strip() != 'O':
+                    if not class_string.strip().startswith('O'):
                         has_named_entity = True
+                        class_string = class_string.split('-DOC', 1)[0]
                         ner_tag, resources = class_string.split('-', 1)
                         wiki_uri, yago_uri, categories = resources.split('#', 3)
                         categories = categories.split('|')
                         wordnet_categories = [wc.split('-', 1)[0] for wc in categories
-                                              if wc.split('-', 1)[0] in WORDNET_CATEGORIES]
+                                              if wc.split('-', 1)[0] in WORDNET_CATEGORIES_MOVIES or
+                                              wc.split('-', 1)[0] in WORDNET_CATEGORIES_LEGAL]
                         yago_relations = [yr.split('-', 1)[0] for yr in categories
-                                          if yr.split('-', 1)[0] in YAGO_RELATIONS]
+                                          if yr.split('-', 1)[0] in YAGO_RELATIONS_MOVIES]
 
                         words.append(Word(widx, token, tag, dep, head, ner_tag, yago_uri, wiki_uri,
                                           wordnet_categories, yago_relations))
                     elif self.remove_stop_words and token in STOPWORDS_SET:
                         continue
                     else:
-                        words.append(Word(widx, token, tag, dep, head, class_string))
+                        words.append(Word(widx, token, tag, dep, head, 'O'))

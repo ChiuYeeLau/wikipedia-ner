@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import absolute_import, unicode_literals
+
+import re
 from collections import defaultdict
 
-WORDNET_CATEGORIES = {
+WORDNET_CATEGORIES_MOVIES = {
     'wordnet_actor_109765278',
     'wordnet_film_director_110088200',
     'wordnet_film_maker_110088390',
@@ -11,7 +13,25 @@ WORDNET_CATEGORIES = {
     'wordnet_soundtrack_104262969'
 }
 
-YAGO_RELATIONS = {
+WORDNET_CATEGORIES_LEGAL = {
+    'wordnet_adjudicator_109769636',
+    'wordnet_court_108329453',
+    'wordnet_criminal_record_106490173',
+    'wordnet_judge_110225219',
+    'wordnet_judiciary_108166318',
+    'wordnet_jurisdiction_108590369',
+    'wordnet_law_100611143',
+    'wordnet_law_106532330',
+    'wordnet_law_108441203',
+    'wordnet_lawyer_110249950',
+    'wordnet_legal_code_106667792',
+    'wordnet_legal_document_106479665',
+    'wordnet_legal_power_105198427',
+    'wordnet_party_110402824',
+    'wordnet_pleading_106559365'
+}
+
+YAGO_RELATIONS_MOVIES = {
     'actedIn',
     'directed',
     'edited',
@@ -74,7 +94,7 @@ class Word(object):
 
     @property
     def is_ner(self):
-        return self.ner_tag != 'O'
+        return not self.ner_tag.startswith('O')
 
     @property
     def is_ner_start(self):
@@ -147,6 +167,14 @@ class Sentence(object):
 
     def __len__(self):
         return len(self._words)
+
+    @property
+    def labels(self):
+        return [word.short_label for word in self]
+
+    @property
+    def io_labels(self):
+        return [re.sub(r"^B-", "I-", word.short_label) for word in self]
 
     def get_gazettes(self):
         gazettes = defaultdict(int)

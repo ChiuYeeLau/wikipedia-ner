@@ -10,6 +10,17 @@ import sys
 from tqdm import tqdm
 from wikipedianer.corpus.parser import WikipediaCorpusColumnParser
 
+FILES_SENTENCES = {
+    "doc_01.conll": 2962737,
+    "doc_02.conll": 3156576,
+    "doc_03.conll": 2574401,
+    "doc_04.conll": 2379707,
+    "doc_05.conll": 2495369,
+    "doc_06.conll": 2493490,
+    "doc_07.conll": 475036,
+    "doc_08.conll": 2994167,
+}
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -28,7 +39,7 @@ if __name__ == "__main__":
 
         parser = WikipediaCorpusColumnParser(os.path.join(args.input_dir, conll_file), args.stopwords)
 
-        for sentence in tqdm(parser):
+        for sentence in tqdm(parser, total=FILES_SENTENCES[conll_file]):
             if sentence.has_named_entity:
                 labels.extend(sentence.io_labels)
 

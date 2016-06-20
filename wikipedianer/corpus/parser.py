@@ -25,6 +25,7 @@ class InstanceExtractor(object):
         self.tag_sequence_window = int(kwargs.get('tag_sequence_window', 0))
         self.gazetteer = kwargs.get('gazetteer', set())
         self.sloppy_gazetteer = kwargs.get('sloppy_gazetteer', {})
+        self.valid_indices = kwargs.get('valid_indices', set())
 
     def _features_for_word(self, word, sentence, named_entity=None):
         """
@@ -81,23 +82,28 @@ class InstanceExtractor(object):
 
         return features
 
-    def get_instances_for_sentence(self, sentence):
+    def get_instances_for_sentence(self, sentence, word_idx):
         """
         :param sentence: wikipedianer.corpus.base.Sentence
+        :param word_idx: int
         """
         instances = []
         labels = []
 
         for unit in sentence.get_words_and_entities():
             if unit.name == "Word":
-                instances.append(self._features_for_word(unit, sentence))
-                labels.append(unit.short_label)
+                if not self.valid_indices or word_idx in self.valid_indices:
+                    instances.append(self._features_for_word(unit, sentence))
+                    labels.append(unit.short_label)
+                word_idx += 1
             else:
                 for word in unit:
-                    instances.append(self._features_for_word(word, sentence, unit))
-                    labels.append(word.short_label)
+                    if not self.valid_indices or word_idx in self.valid_indices:
+                        instances.append(self._features_for_word(word, sentence, unit))
+                        labels.append(word.short_label)
+                    word_idx += 1
 
-        return instances, labels
+        return instances, labels, word_idx
 
 
 class FeatureExtractor(object):

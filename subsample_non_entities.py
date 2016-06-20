@@ -15,7 +15,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("input_dir", type=unicode)
     parser.add_argument("output_file", type=unicode)
-    parser.add_argument("--stopwords", type=bool, action="store_true")
+    parser.add_argument("--stopwords", action="store_true")
 
     args = parser.parse_args()
 

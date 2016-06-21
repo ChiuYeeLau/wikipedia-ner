@@ -86,14 +86,15 @@ if __name__ == "__main__":
         replaced_labels = list(replacement_function(labels, class_mappings))
 
         print('Subsampling "O" category to be at most equal to the second most populated category')
-        unique_labels, inverse_indices, count = np.unique(replaced_labels, return_inverse=True, return_counts=True)
-        count.sort()
-        second_to_max = count[::-1][1]
+        unique_labels, inverse_indices, counts = np.unique(replaced_labels, return_inverse=True, return_counts=True)
+        counts.sort()
+        second_to_max = counts[::-1][1]
         nne_index = np.where(unique_labels == 'O')[0][0]
         nne_instances = set(np.random.permutation(np.where(inverse_indices == nne_index)[0])[:second_to_max])
 
         print('Getting filtered classes for category {}'.format(category_name), file=sys.stderr)
         filtered_classes = {l for l, v in Counter(replaced_labels).iteritems() if v >= args.min_count}
+        # TODO: Better top 6000?
 
         print('Getting filtered indices for category {}'.format(category_name), file=sys.stderr)
         filtered_indices = np.array([i for i, l in enumerate(replaced_labels)

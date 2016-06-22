@@ -98,6 +98,7 @@ class MultilayerPerceptron(BaseClassifier):
             validation_recall=[]
         )
         self.loss_report = loss_report
+        self.saver = tf.train.Saver()
 
     def _next_batch(self):
         start = self.train_offset
@@ -254,3 +255,8 @@ class MultilayerPerceptron(BaseClassifier):
 
             print('Saving results', file=sys.stderr)
             self._save_results()
+
+            print('Saving model', file=sys.stderr)
+            save_path = self.saver.save(sess, os.path.join(self.results_dir, '{}.model'.format(self.experiment_name)))
+            print('Model saved in file {}'.format(save_path))
+

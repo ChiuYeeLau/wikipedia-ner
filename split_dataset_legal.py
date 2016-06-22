@@ -35,16 +35,16 @@ def ne_person_label_replace(labels, mappings):
 def ne_category_label_replace(labels, mappings):
     for label in labels:
         label = re.sub(r'^[BI]-', '', label)
-        if 'wordnet_legal_document_106479665' in mappings.get(label, set()):
-            yield 'wordnet_legal_document_106479665'
-        elif 'wordnet_due_process_101181475' in mappings.get(label, set()):
-            yield 'wordnet_due_process_101181475'
-        elif 'wordnet_law_108441203' in mappings.get(label, set()):
+        if 'wordnet_law_108441203' in mappings.get(label, set()):
             yield 'wordnet_law_108441203'
         elif 'wordnet_law_100611143' in mappings.get(label, set()):
             yield 'wordnet_law_100611143'
         elif 'wordnet_law_106532330' in mappings.get(label, set()):
             yield 'wordnet_law_106532330'
+        elif 'wordnet_legal_document_106479665' in mappings.get(label, set()):
+            yield 'wordnet_legal_document_106479665'
+        elif 'wordnet_due_process_101181475' in mappings.get(label, set()):
+            yield 'wordnet_due_process_101181475'
         elif 'wordnet_legal_code_106667792' in mappings.get(label, set()):
             yield 'wordnet_legal_code_106667792'
         elif 'wordnet_criminal_record_106490173' in mappings.get(label, set()):
@@ -59,12 +59,12 @@ def ne_category_label_replace(labels, mappings):
             yield 'wordnet_pleading_106559365'
         elif 'wordnet_court_108329453' in mappings.get(label, set()):
             yield 'wordnet_court_108329453'
-        elif 'wordnet_lawyer_110249950' in mappings.get(label, set()):
-            yield 'wordnet_lawyer_110249950'
         elif 'wordnet_judge_110225219' in mappings.get(label, set()):
             yield 'wordnet_judge_110225219'
         elif 'wordnet_adjudicator_109769636' in mappings.get(label, set()):
             yield 'wordnet_adjudicator_109769636'
+        elif 'wordnet_lawyer_110249950' in mappings.get(label, set()):
+            yield 'wordnet_lawyer_110249950'
         elif 'wordnet_party_110402824' in mappings.get(label, set()):
             yield 'wordnet_party_110402824'
         else:
@@ -89,15 +89,15 @@ if __name__ == "__main__":
     parser.add_argument("labels_path", type=unicode)
     parser.add_argument("save_path", type=unicode)
     parser.add_argument("mappings", type=unicode)
-    parser.add_argument("--mapping_kind", type=unicode, default=['NEU'], nargs='+')
+    parser.add_argument("--mapping_kind", type=unicode, default=['NER', 'NEP', 'NEC', 'NEU'], nargs='+')
     parser.add_argument("--train_size", type=float, default=0.8)
     parser.add_argument("--test_size", type=float, default=0.1)
     parser.add_argument("--validation_size", type=float, default=0.1)
-    parser.add_argument("--min_count", type=int, default=15)
+    parser.add_argument("--min_count", type=int, default=10)
 
     args = parser.parse_args()
 
-    args.mapping_kind = [args.mapping_kind] if not isinstance(args.mapping_kind, list) else args.mapping_kind
+    args.mapping_kind = [args.mapping_kind] if isinstance(args.mapping_kind, unicode) else args.mapping_kind
 
     print('Loading labels from file {}'.format(args.labels_path), file=sys.stderr)
     with open(args.labels_path, 'rb') as f:
@@ -122,7 +122,6 @@ if __name__ == "__main__":
 
         print('Getting filtered classes for category {}'.format(category_name), file=sys.stderr)
         filtered_classes = {l for l, v in Counter(replaced_labels).iteritems() if v >= args.min_count}
-        # TODO: Better top 6000?
 
         print('Getting filtered indices for category {}'.format(category_name), file=sys.stderr)
         filtered_indices = np.array([i for i, l in enumerate(replaced_labels)

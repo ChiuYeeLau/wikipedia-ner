@@ -113,7 +113,7 @@ if __name__ == "__main__":
         print('Getting replaced labels for category {}'.format(category_name), file=sys.stderr)
         replaced_labels = list(replacement_function(labels, class_mappings))
 
-        print('Subsampling "O" category to be at most equal to the second most populated category')
+        print('Subsampling "O" category to be at most equal to the second most populated category', file=sys.stderr)
         unique_labels, inverse_indices, counts = np.unique(replaced_labels, return_inverse=True, return_counts=True)
         counts.sort()
         second_to_max = counts[::-1][1]

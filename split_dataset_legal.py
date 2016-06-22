@@ -93,7 +93,7 @@ if __name__ == "__main__":
     parser.add_argument("--train_size", type=float, default=0.8)
     parser.add_argument("--test_size", type=float, default=0.1)
     parser.add_argument("--validation_size", type=float, default=0.1)
-    parser.add_argument("--min_count", type=int, default=15)
+    parser.add_argument("--min_count", type=int, default=10)
 
     args = parser.parse_args()
 

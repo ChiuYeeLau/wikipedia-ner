@@ -159,6 +159,8 @@ if __name__ == "__main__":
             pre_weights = None
             pre_biases = None
 
+        save_model = True if idx >= len(args.mappings_kind) - 2 else False
+
         with tf.Graph().as_default() as g:
             tf.set_random_seed(1234)
 
@@ -169,7 +171,8 @@ if __name__ == "__main__":
                                        results_dir=args.results_dir, experiment_name=experiment_name,
                                        layers=args.layers[idx], learning_rate=args.learning_rate,
                                        training_epochs=args.epochs, batch_size=args.batch_size,
-                                       loss_report=args.loss_report, pre_weights=pre_weights, pre_biases=pre_biases)
+                                       loss_report=args.loss_report, pre_weights=pre_weights, pre_biases=pre_biases,
+                                       save_model=save_model)
 
             print('Training the classifier', file=sys.stderr)
             mlp.train()

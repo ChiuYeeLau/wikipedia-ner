@@ -8,38 +8,8 @@ import numpy as np
 import os
 import sys
 from tqdm import tqdm
+from utils import SENTENCES
 from wikipedianer.corpus.parser import WikipediaCorpusColumnParser
-
-
-LEGAL_SENTENCES = {
-    "doc_01.conll": 2962737,
-    "doc_02.conll": 3156576,
-    "doc_03.conll": 2574401,
-    "doc_04.conll": 2379707,
-    "doc_05.conll": 2495369,
-    "doc_06.conll": 2493490,
-    "doc_07.conll": 475036,
-    "doc_08.conll": 2994167,
-}
-
-MOVIES_SENTENCES = {
-    "doc_01.conll": 2636728,
-    "doc_02.conll": 2643458,
-    "doc_03.conll": 2148683,
-    "doc_04.conll": 1821729,
-    "doc_05.conll": 1664229,
-    "doc_06.conll": 1747290,
-    "doc_07.conll": 1872077,
-    "doc_08.conll": 1900873,
-    "doc_09.conll": 1555085,
-    "doc_10.conll": 540151,
-    "doc_11.conll": 2678258,
-}
-
-SENTENCES = {
-    "legal": LEGAL_SENTENCES,
-    "movies": MOVIES_SENTENCES,
-}
 
 
 if __name__ == "__main__":

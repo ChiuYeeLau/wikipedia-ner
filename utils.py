@@ -3,6 +3,7 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 import re
+from collections import OrderedDict
 
 
 def ner_label_replace(labels, mappings):
@@ -86,16 +87,48 @@ def ne_uri_label_replace(labels, mappings):
 
 
 LABELS_REPLACEMENT = {
-    'legal': dict(
-        NER=ner_label_replace,
-        NEP=ne_person_label_replace,
-        NEC=ne_category_label_replace_legal,
-        NEU=ne_uri_label_replace
-    ),
-    'movies': dict(
-        NER=ner_label_replace,
-        NEP=ne_person_label_replace,
-        NEC=ne_category_label_replace_movies,
-        NEU=ne_uri_label_replace
-    )
+    'legal': OrderedDict([
+        ("NER", ner_label_replace),
+        ("NEP", ne_person_label_replace),
+        ("NEC", ne_category_label_replace_legal),
+        ("NEU", ne_uri_label_replace)
+    ]),
+    'movies': OrderedDict([
+        ("NER", ner_label_replace),
+        ("NEP", ne_person_label_replace),
+        ("NEC", ne_category_label_replace_movies),
+        ("NEU", ne_uri_label_replace)
+    ])
 }
+
+LEGAL_SENTENCES = {
+    "doc_01.conll": 2962737,
+    "doc_02.conll": 3156576,
+    "doc_03.conll": 2574401,
+    "doc_04.conll": 2379707,
+    "doc_05.conll": 2495369,
+    "doc_06.conll": 2493490,
+    "doc_07.conll": 475036,
+    "doc_08.conll": 2994167,
+}
+
+MOVIES_SENTENCES = {
+    "doc_01.conll": 2636728,
+    "doc_02.conll": 2643458,
+    "doc_03.conll": 2148683,
+    "doc_04.conll": 1821729,
+    "doc_05.conll": 1664229,
+    "doc_06.conll": 1747290,
+    "doc_07.conll": 1872077,
+    "doc_08.conll": 1900873,
+    "doc_09.conll": 1555085,
+    "doc_10.conll": 540151,
+    "doc_11.conll": 2678258,
+}
+
+SENTENCES = {
+    "legal": LEGAL_SENTENCES,
+    "movies": MOVIES_SENTENCES,
+}
+
+

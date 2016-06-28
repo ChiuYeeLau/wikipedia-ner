@@ -6,60 +6,11 @@ import argparse
 import cPickle as pickle
 import numpy as np
 import os
-import re
 import sys
 
 from collections import Counter
+from utils import LABELS_REPLACEMENT
 from wikipedianer.dataset.preprocess import StratifiedSplitter
-
-
-def ner_label_replace(labels, mappings):
-    for label in labels:
-        if label.startswith('O'):
-            yield 'O'
-        else:
-            yield 'I'
-
-
-def ne_person_label_replace(labels, mappings):
-    for label in labels:
-        label = re.sub(r'^[BI]-', '', label)
-        if 'no_person' in mappings.get(label, set()):
-            yield 'no_person'
-        elif 'wordnet_person_100007846' in mappings.get(label, set()):
-            yield 'wordnet_person_100007846'
-        else:
-            yield 'O'
-
-
-def ne_category_label_replace(labels, mappings):
-    for label in labels:
-        label = re.sub(r'^[BI]-', '', label)
-        if 'wordnet_movie_106613686' in mappings.get(label, set()):
-            yield 'wordnet_movie_106613686'
-        elif 'wordnet_soundtrack_104262969' in mappings.get(label, set()):
-            yield 'wordnet_soundtrack_104262969'
-        elif 'wordnet_actor_109765278' in mappings.get(label, set()):
-            yield 'wordnet_actor_109765278'
-        elif 'wordnet_film_director_110088200' in mappings.get(label, set()):
-            yield 'wordnet_film_director_110088200'
-        elif 'wordnet_film_maker_110088390' in mappings.get(label, set()):
-            yield 'wordnet_film_maker_110088390'
-        else:
-            yield 'O'
-
-
-def ne_uri_label_replace(labels, mappings):
-    for label in labels:
-        yield re.sub(r"^B-", "I-", label)
-
-
-labels_replacements = [
-    ("NER", ner_label_replace),
-    ("NEP", ne_person_label_replace),
-    ("NEC", ne_category_label_replace),
-    ("NEU", ne_uri_label_replace)
-]
 
 
 if __name__ == "__main__":
@@ -67,12 +18,16 @@ if __name__ == "__main__":
     parser.add_argument("labels_path", type=unicode)
     parser.add_argument("save_path", type=unicode)
     parser.add_argument("mappings", type=unicode)
+    parser.add_argument("--mapping_kind", type=unicode, default=['NER', 'NEP', 'NEC', 'NEU'], nargs='+')
+    parser.add_argument("--experiment_kind", type=unicode, default='legal')
     parser.add_argument("--train_size", type=float, default=0.8)
     parser.add_argument("--test_size", type=float, default=0.1)
     parser.add_argument("--validation_size", type=float, default=0.1)
-    parser.add_argument("--min_count", type=int, default=50)
+    parser.add_argument("--min_count", type=int, default=10)
 
     args = parser.parse_args()
+
+    args.mapping_kind = [args.mapping_kind] if isinstance(args.mapping_kind, unicode) else args.mapping_kind
 
     print('Loading labels from file {}'.format(args.labels_path), file=sys.stderr)
     with open(args.labels_path, 'rb') as f:
@@ -81,14 +36,17 @@ if __name__ == "__main__":
     with open(args.mappings, 'rb') as f:
         class_mappings = pickle.load(f)
 
-    for category_name, replacement_function in labels_replacements:
+    for category_name, replacement_function in LABELS_REPLACEMENT[args.experiment_kind]:
+        if category_name not in set(args.mapping_kind):
+            continue
+
         print('Getting replaced labels for category {}'.format(category_name), file=sys.stderr)
         replaced_labels = list(replacement_function(labels, class_mappings))
 
-        print('Subsampling "O" category to be at most equal to the second most populated category')
-        unique_labels, inverse_indices, count = np.unique(replaced_labels, return_inverse=True, return_counts=True)
-        count.sort()
-        second_to_max = count[::-1][1]
+        print('Subsampling "O" category to be at most equal to the second most populated category', file=sys.stderr)
+        unique_labels, inverse_indices, counts = np.unique(replaced_labels, return_inverse=True, return_counts=True)
+        counts.sort()
+        second_to_max = counts[::-1][1]
         nne_index = np.where(unique_labels == 'O')[0][0]
         nne_instances = set(np.random.permutation(np.where(inverse_indices == nne_index)[0])[:second_to_max])
 

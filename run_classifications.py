@@ -9,9 +9,9 @@ import os
 import sys
 import tensorflow as tf
 
-from mappings import LABELS_REPLACEMENT
 from scipy.sparse import csr_matrix
 from sklearn.preprocessing import normalize
+from utils import LABELS_REPLACEMENT
 from wikipedianer.classification.mlp import MultilayerPerceptron
 
 
@@ -61,7 +61,7 @@ if __name__ == "__main__":
 
     for idx, mapping_kind in enumerate(args.mappings_kind):
         experiment_name = "{}_{}".format("{}".format(
-            "_".join(args.mappings_kind[:idx] + [mapping_kind])), "_".join([unicode(l) for l in args.layers[idx]])
+            "_".join(args.mappings_kind[:idx+1])), "_".join([unicode(l) for l in args.layers[idx]])
         )
         experiments_name.append(experiment_name)
 

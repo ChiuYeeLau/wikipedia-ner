@@ -13,7 +13,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("input_file", type=unicode)
     parser.add_argument("output_file", type=unicode)
-    parser.add_argument("--max_features", type=int, default=10000)
+    parser.add_argument("--min_variance", type=float, default=2e-4)
 
     args = parser.parse_args()
 
@@ -26,11 +26,13 @@ if __name__ == "__main__":
     square_dataset.data **= 2
     variance = np.asarray(square_dataset.mean(axis=0) - np.square(dataset.mean(axis=0)))[0]
 
-    print('Sorting indices of variance', file=sys.stderr)
-    sorted_variance_indices = np.argsort(variance)[::-1]
+    print('Getting features with variance over {:.2e}'.format(args.min_variance), file=sys.stderr)
+    valid_indices = np.where(variance >= args.min_variance)[0]
 
-    print('Selecting top variance features', file=sys.stderr)
-    dataset = csr_matrix(dataset[:, sorted_variance_indices[:args.max_features]])
+    print('Filtering features', file=sys.stderr)
+    dataset = csr_matrix(dataset[:, valid_indices])
+
+    print('Final features count: {}'.format(dataset.shape[1]))
 
     print('Saving dataset to file {}'.format(args.output_file), file=sys.stderr)
     np.savez_compressed(args.output_file, data=dataset.data, indices=dataset.indices,

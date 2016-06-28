@@ -6,62 +6,13 @@ import argparse
 import cPickle as pickle
 import numpy as np
 import os
-import re
 import sys
 import tensorflow as tf
 
+from mappings import LABELS_REPLACEMENT
 from scipy.sparse import csr_matrix
 from sklearn.preprocessing import normalize
 from wikipedianer.classification.mlp import MultilayerPerceptron
-
-
-def ner_label_replace(labels, mappings):
-    for label in labels:
-        if label.startswith('O'):
-            yield 'O'
-        else:
-            yield 'I'
-
-
-def ne_person_label_replace(labels, mappings):
-    for label in labels:
-        label = re.sub(r'^[BI]-', '', label)
-        if 'no_person' in mappings.get(label, set()):
-            yield 'no_person'
-        elif 'wordnet_person_100007846' in mappings.get(label, set()):
-            yield 'wordnet_person_100007846'
-        else:
-            yield 'O'
-
-
-def ne_category_label_replace(labels, mappings):
-    for label in labels:
-        label = re.sub(r'^[BI]-', '', label)
-        if 'wordnet_movie_106613686' in mappings.get(label, set()):
-            yield 'wordnet_movie_106613686'
-        elif 'wordnet_soundtrack_104262969' in mappings.get(label, set()):
-            yield 'wordnet_soundtrack_104262969'
-        elif 'wordnet_actor_109765278' in mappings.get(label, set()):
-            yield 'wordnet_actor_109765278'
-        elif 'wordnet_film_director_110088200' in mappings.get(label, set()):
-            yield 'wordnet_film_director_110088200'
-        elif 'wordnet_film_maker_110088390' in mappings.get(label, set()):
-            yield 'wordnet_film_maker_110088390'
-        else:
-            yield 'O'
-
-
-def ne_uri_label_replace(labels, mappings):
-    for label in labels:
-        yield re.sub(r"^B-", "I-", label)
-
-
-labels_replacements = dict(
-    NER=ner_label_replace,
-    NEP=ne_person_label_replace,
-    NEC=ne_category_label_replace,
-    NEU=ne_uri_label_replace
-)
 
 
 if __name__ == "__main__":
@@ -73,18 +24,19 @@ if __name__ == "__main__":
     parser.add_argument("results_dir", type=unicode)
     parser.add_argument("saves_dir", type=unicode)
     parser.add_argument("--mappings_kind", type=unicode, default='NEU', nargs='+')
+    parser.add_argument("--experiment_kind", type=unicode, default='legal')
     parser.add_argument("--learning_rate", type=float, default=0.01)
     parser.add_argument("--epochs", type=int, default=1500)
     parser.add_argument("--batch_size", type=int, default=2000)
     parser.add_argument("--loss_report", type=int, default=50)
-    parser.add_argument("--layers", type=lambda x: map(int, x.split(',')), nargs='+', default=[[12000, 9000, 7000]])
+    parser.add_argument("--layers", type=lambda x: map(int, x.split(',')), nargs='+', default=[[12000, 9000]])
 
     args = parser.parse_args()
 
     args.mappings_kind = [args.mappings_kind] if isinstance(args.mappings_kind, unicode) else args.mappings_kind
 
     for mapping_kind in args.mappings_kind:
-        if mapping_kind not in labels_replacements:
+        if mapping_kind not in LABELS_REPLACEMENT[args.experiment_kind]:
             print('Not a valid replacement {}'.format(mapping_kind), file=sys.stderr)
             sys.exit(1)
 
@@ -116,7 +68,7 @@ if __name__ == "__main__":
         print('Running experiment: {}'.format(experiment_name), file=sys.stderr)
 
         print('Replacing the labels', file=sys.stderr)
-        replacement_function = labels_replacements[mapping_kind]
+        replacement_function = LABELS_REPLACEMENT[args.experiment_kind][mapping_kind]
         experiment_labels = list(replacement_function(labels, class_mappings))
 
         print('Loading indices for train, test and validation', file=sys.stderr)
@@ -137,6 +89,8 @@ if __name__ == "__main__":
             pre_weights = None
             pre_biases = None
 
+        save_model = True if idx >= len(args.mappings_kind) - 2 else False
+
         with tf.Graph().as_default() as g:
             tf.set_random_seed(1234)
 
@@ -147,7 +101,8 @@ if __name__ == "__main__":
                                        results_dir=args.results_dir, experiment_name=experiment_name,
                                        layers=args.layers[idx], learning_rate=args.learning_rate,
                                        training_epochs=args.epochs, batch_size=args.batch_size,
-                                       loss_report=args.loss_report, pre_weights=pre_weights, pre_biases=pre_biases)
+                                       loss_report=args.loss_report, pre_weights=pre_weights, pre_biases=pre_biases,
+                                       save_model=save_model)
 
             print('Training the classifier', file=sys.stderr)
             mlp.train()

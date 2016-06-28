@@ -14,7 +14,7 @@ from .base import BaseClassifier
 class MultilayerPerceptron(BaseClassifier):
     def __init__(self, dataset, labels, train_indices, test_indices, validation_indices, saves_dir, results_dir,
                  experiment_name, layers, learning_rate=0.01, training_epochs=1500, batch_size=2000, loss_report=50,
-                 pre_weights=None, pre_biases=None):
+                 pre_weights=None, pre_biases=None, save_model=False):
         super(MultilayerPerceptron, self).__init__(dataset, labels, train_indices, test_indices, validation_indices)
 
         assert batch_size <= self.train_dataset.shape[0]
@@ -98,6 +98,7 @@ class MultilayerPerceptron(BaseClassifier):
             validation_recall=[]
         )
         self.loss_report = loss_report
+        self.saver = tf.train.Saver() if save_model else None
 
     def _next_batch(self):
         start = self.train_offset
@@ -254,3 +255,11 @@ class MultilayerPerceptron(BaseClassifier):
 
             print('Saving results', file=sys.stderr)
             self._save_results()
+
+            if self.saver is not None:
+                print('Saving model', file=sys.stderr)
+                save_path = self.saver.save(sess,
+                                            os.path.join(self.results_dir, '{}.model'.format(self.experiment_name))
+                                            )
+                print('Model saved in file {}'.format(save_path))
+

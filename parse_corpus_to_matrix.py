@@ -19,6 +19,7 @@ if __name__ == "__main__":
     parser.add_argument("output_dir", type=unicode)
     parser.add_argument("--experiment_kind", type=unicode, default="legal")
     parser.add_argument("--stopwords", action="store_true")
+    parser.add_argument("--save_features_names", type=unicode, default=None)
 
     args = parser.parse_args()
 
@@ -92,6 +93,12 @@ if __name__ == "__main__":
     vectorizer = DictVectorizer(dtype=np.int32)
 
     dataset_matrix = vectorizer.fit_transform(instances)
+
+    if args.save_features_names is not None:
+        print('Saving features to file {}'.format(args.save_features_names), file=sys.stderr)
+        features = sorted(vectorizer.vocabulary_, key=vectorizer.vocabulary_.get)
+        with open(args.save_features_names, "wb") as f:
+            cPickle.dump(features, f)
 
     del vectorizer
 

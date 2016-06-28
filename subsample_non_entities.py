@@ -10,7 +10,8 @@ import sys
 from tqdm import tqdm
 from wikipedianer.corpus.parser import WikipediaCorpusColumnParser
 
-FILES_SENTENCES = {
+
+LEGAL_SENTENCES = {
     "doc_01.conll": 2962737,
     "doc_02.conll": 3156576,
     "doc_03.conll": 2574401,
@@ -21,11 +22,31 @@ FILES_SENTENCES = {
     "doc_08.conll": 2994167,
 }
 
+MOVIES_SENTENCES = {
+    "doc_01.conll": 2636728,
+    "doc_02.conll": 2643458,
+    "doc_03.conll": 2148683,
+    "doc_04.conll": 1821729,
+    "doc_05.conll": 1664229,
+    "doc_06.conll": 1747290,
+    "doc_07.conll": 1872077,
+    "doc_08.conll": 1900873,
+    "doc_09.conll": 1555085,
+    "doc_10.conll": 540151,
+    "doc_11.conll": 2678258,
+}
+
+SENTENCES = {
+    "legal": LEGAL_SENTENCES,
+    "movies": MOVIES_SENTENCES,
+}
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("input_dir", type=unicode)
     parser.add_argument("output_file", type=unicode)
+    parser.add_argument("--sentences", type=unicode, default="movies")
     parser.add_argument("--stopwords", action="store_true")
 
     args = parser.parse_args()
@@ -39,7 +60,7 @@ if __name__ == "__main__":
 
         parser = WikipediaCorpusColumnParser(os.path.join(args.input_dir, conll_file), args.stopwords)
 
-        for sentence in tqdm(parser, total=FILES_SENTENCES[conll_file]):
+        for sentence in tqdm(parser, total=SENTENCES[args.sentences][conll_file]):
             if sentence.has_named_entity:
                 labels.extend(sentence.io_labels)
 

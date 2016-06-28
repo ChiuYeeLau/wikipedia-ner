@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-my @files = `find ../../resources/legal/docs_for_ner -type f -name "*.conll"`;
+my @files = `find ../../resources/movies/docs_for_ner -type f -name "*.conll"`;
 chomp @files;
 my %sentences = ();
 
@@ -14,7 +14,7 @@ foreach my $file(@files) {
 
 print STDERR "Counting finished";
 
-open(my $fh, ">", "../../resources/legal/conll_sentences.txt");
+open(my $fh, ">", "../../resources/movies/conll_sentences.txt");
 
 foreach my $key (sort keys %sentences) {
     print $fh "$key: " . $sentences{$key} . "\n";

@@ -190,7 +190,7 @@ class MultilayerPerceptron(BaseClassifier):
                    fmt='%.3f'.encode('utf-8'), delimiter=','.encode('utf-8'),
                    header=header)
 
-    def train(self):
+    def train(self, layer_idexes=None, save_layers=True):
         with tf.Session() as sess:
             sess.run(tf.initialize_all_variables())
 
@@ -243,15 +243,18 @@ class MultilayerPerceptron(BaseClassifier):
             file_name_weights = os.path.join(self.saves_dir, "{}_weights.npz".format(self.experiment_name))
             file_name_biases = os.path.join(self.saves_dir, "{}_biases.npz".format(self.experiment_name))
 
-            weights_dict = {}
-            biases_dict = {}
+            if save_layers:
+                weights_dict = {}
+                biases_dict = {}
 
-            for layer_idx, (weights, biases) in enumerate(zip(self.weights, self.biases)):
-                weights_dict['hidden_layer_{:02d}'.format(layer_idx)] = weights.eval()
-                biases_dict['hidden_layer_{:02d}'.format(layer_idx)] = biases.eval()
+                for layer_idx, (weights, biases) in enumerate(zip(self.weights, self.biases)):
+                    if layer_idexes is not None and layer_idx not in layer_idexes:
+                        continue
+                    weights_dict['hidden_layer_{:02d}'.format(layer_idx)] = weights.eval()
+                    biases_dict['hidden_layer_{:02d}'.format(layer_idx)] = biases.eval()
 
-            np.savez_compressed(file_name_weights, **weights_dict)
-            np.savez_compressed(file_name_biases, **biases_dict)
+                np.savez_compressed(file_name_weights, **weights_dict)
+                np.savez_compressed(file_name_biases, **biases_dict)
 
             print('Saving results', file=sys.stderr)
             self._save_results()

@@ -36,7 +36,7 @@ if __name__ == "__main__":
     with open(args.mappings, 'rb') as f:
         class_mappings = pickle.load(f)
 
-    for category_name, replacement_function in LABELS_REPLACEMENT[args.experiment_kind]:
+    for category_name, replacement_function in LABELS_REPLACEMENT[args.experiment_kind].iteritems():
         if category_name not in set(args.mapping_kind):
             continue
 

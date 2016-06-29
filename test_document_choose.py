@@ -34,7 +34,6 @@ if __name__ == "__main__":
         corpus_doc, _ = conll_file.split(".", 1)
         print('Getting selected documents from corpus {}'.format(corpus_doc), file=sys.stderr)
 
-        last_doc = ''
         last_doc_in_sample = False
 
         with open(os.path.join(args.input_dir, conll_file), 'r') as fi, open(args.output_file, 'a') as fo:
@@ -42,9 +41,9 @@ if __name__ == "__main__":
                 line = line.decode('utf-8').strip()
 
                 if line != '':
-                    _, token, tag, class_string, head, dep = line.split()
+                    idx, token, tag, class_string, head, dep = line.split()
 
-                    if class_string.endswith('-DOC'):
+                    if class_string.endswith('-DOC') and int(idx) == 1:
                         last_doc_in_sample = class_string in chosen_documents
 
                 if last_doc_in_sample:

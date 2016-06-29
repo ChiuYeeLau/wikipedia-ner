@@ -46,7 +46,7 @@ class MultilayerPerceptron(BaseClassifier):
                     )
 
                 if pre_biases and layer_name in pre_biases:
-                    biases = tf.Variable(pre_biases[layer_name])
+                    biases = tf.Variable(pre_biases[layer_name], name='biases')
                 else:
                     biases = tf.Variable(tf.zeros([size_current]), name='biases')
 

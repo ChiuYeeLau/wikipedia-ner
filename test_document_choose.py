@@ -38,7 +38,7 @@ if __name__ == "__main__":
         last_doc_in_sample = False
 
         with open(os.path.join(args.input_dir, conll_file), 'r') as fi, open(args.output_file, 'a') as fo:
-            for line in tqdm(fi, total=LINES[args.experiment_kind]):
+            for line in tqdm(fi, total=LINES[args.experiment_kind][conll_file]):
                 line = line.decode('utf-8').strip()
 
                 if line != '':

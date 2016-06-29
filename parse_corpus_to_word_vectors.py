@@ -29,7 +29,7 @@ if __name__ == "__main__":
     if not args.debug:
         word2vec_model = gensim.models.Word2Vec.load_word2vec_format(args.wordvectors, binary=True)
     else:
-        word2vec_model = {}
+        word2vec_model = gensim.models.Word2Vec()
 
     try:
         valid_indices = np.load(args.valid_indices)

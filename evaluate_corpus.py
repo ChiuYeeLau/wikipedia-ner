@@ -105,7 +105,7 @@ if __name__ == "__main__":
 
             doc_title = 'DOCUMENT START' if is_doc_start else ''
 
-            print('{}\t{}\t{}\t{}'.format(word_idx, token, tag, doc_title).encode('utf-8'), file=f)
+            print('{}\t{}\t{}\t{}\t{}'.format(word_idx, token, tag, word_label, doc_title).encode('utf-8'), file=f)
 
     print('All finished', file=sys.stderr)
 

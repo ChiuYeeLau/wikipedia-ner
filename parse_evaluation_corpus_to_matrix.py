@@ -7,12 +7,9 @@ import cPickle
 import numpy as np
 import os
 import sys
-from collections import namedtuple
 from scipy.sparse import csr_matrix
 from tqdm import tqdm
 from wikipedianer.corpus.parser import InstanceExtractor, WikipediaCorpusColumnParser
-
-ShortWord = namedtuple('ShortWord', 'idx token tag')
 
 
 if __name__ == "__main__":
@@ -59,7 +56,7 @@ if __name__ == "__main__":
     parser = WikipediaCorpusColumnParser(args.input_file, args.stopwords)
 
     for sentence in tqdm(parser, total=args.total_sentences):
-        sentence_words = [ShortWord(idx=word.idx, token=word.token, tag=word.tag) for word in sentence]
+        sentence_words = [(word.idx, word.token, word.tag) for word in sentence]
         sentence_instances, _, _ = instance_extractor.get_instances_for_sentence(sentence, 0)
 
         assert len(sentence_words) == len(sentence_instances)

@@ -245,10 +245,10 @@ class WikipediaCorpusColumnParser(object):
                     _, token, tag, class_string, head, dep = line.split()
 
                     widx = len(words)
+                    is_doc_start = class_string.endswith('-DOC')
 
                     if not class_string.strip().startswith('O'):
                         has_named_entity = True
-                        is_doc_start = class_string.endswith('-DOC')
                         class_string = class_string.split('-DOC', 1)[0]
                         ner_tag, resources = class_string.split('-', 1)
                         wiki_uri, yago_uri, categories = resources.split('#', 3)
@@ -260,8 +260,8 @@ class WikipediaCorpusColumnParser(object):
                                           if yr.split('-', 1)[0] in YAGO_RELATIONS_MOVIES]
 
                         words.append(Word(widx, token, tag, dep, head, ner_tag, yago_uri, wiki_uri,
-                                          wordnet_categories, yago_relations))
+                                          wordnet_categories, yago_relations, is_doc_start))
                     elif self.remove_stop_words and token in STOPWORDS_SET:
                         continue
                     else:
-                        words.append(Word(widx, token, tag, dep, head, 'O'))
+                        words.append(Word(widx, token, tag, dep, head, 'O', is_doc_start=is_doc_start))

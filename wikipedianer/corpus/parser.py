@@ -175,10 +175,11 @@ class FeatureExtractor(object):
 
 
 class WordVectorsExtractor(object):
-    def __init__(self, model, window_size=2):
+    def __init__(self, model, window_size=5, valid_indices=None):
         self.model = model
         self.vector_size = self.model.vector_size
         self.window_size = window_size
+        self.valid_indices = valid_indices if valid_indices is not None else set()
 
     @property
     def instance_vector_size(self):
@@ -212,15 +213,17 @@ class WordVectorsExtractor(object):
 
         return window_vector
 
-    def get_instances_for_sentence(self, sentence):
+    def get_instances_for_sentence(self, sentence, word_idx):
         instances = []
         labels = []
 
         for word in sentence:
-            instances.append(self._vectors_for_word(word, sentence))
-            labels.append(word.short_label)
+            if not self.valid_indices or word_idx in self.valid_indices:
+                instances.append(self._vectors_for_word(word, sentence))
+                labels.append(word.short_label)
+            word_idx += 1
 
-        return instances, labels
+        return instances, labels, word_idx
 
 
 class WikipediaCorpusColumnParser(object):

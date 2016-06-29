@@ -48,4 +48,4 @@ if __name__ == "__main__":
                         last_doc_in_sample = class_string in chosen_documents
 
                 if last_doc_in_sample:
-                    print(line, file=fo)
+                    print(line.encode('utf-8'), file=fo)

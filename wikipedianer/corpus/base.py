@@ -43,7 +43,7 @@ class Word(object):
     name = "Word"
 
     def __init__(self, idx, token, tag, dep, head, ner_tag, yago_uri='', wiki_uri='',
-                 wordnet_categories=None, yago_relations=None):
+                 wordnet_categories=None, yago_relations=None, is_doc_start=False):
         self.idx = int(idx)
         self.token = token
         self.tag = tag.upper()
@@ -54,6 +54,7 @@ class Word(object):
         self.wiki_uri = wiki_uri
         self.wordnet_categories = wordnet_categories if wordnet_categories is not None else []
         self.yago_relations = yago_relations if yago_relations is not None else []
+        self.is_doc_start = is_doc_start
 
     def __to_string__(self):
         return '{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}'.format(

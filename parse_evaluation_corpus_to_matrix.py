@@ -56,7 +56,7 @@ if __name__ == "__main__":
     parser = WikipediaCorpusColumnParser(args.input_file, args.stopwords)
 
     for sentence in tqdm(parser, total=args.total_sentences):
-        sentence_words = [(word.idx, word.token, word.tag) for word in sentence]
+        sentence_words = [(word.idx, word.token, word.tag, word.is_doc_start) for word in sentence]
         sentence_instances, _, _ = instance_extractor.get_instances_for_sentence(sentence, 0)
 
         assert len(sentence_words) == len(sentence_instances)

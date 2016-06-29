@@ -248,6 +248,7 @@ class WikipediaCorpusColumnParser(object):
 
                     if not class_string.strip().startswith('O'):
                         has_named_entity = True
+                        is_doc_start = class_string.endswith('-DOC')
                         class_string = class_string.split('-DOC', 1)[0]
                         ner_tag, resources = class_string.split('-', 1)
                         wiki_uri, yago_uri, categories = resources.split('#', 3)

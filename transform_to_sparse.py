@@ -4,6 +4,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 import argparse
 import numpy as np
+import sys
 from tqdm import tqdm
 
 
@@ -14,10 +15,10 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    print('Loading dataset from file {}'.format(args.dataset))
+    print('Loading dataset from file {}'.format(args.dataset), file=sys.stderr)
     dataset = np.load(args.dataset)["dataset"]
 
-    print('Saving dataset to file {}'.format(args.output))
+    print('Saving dataset to file {}'.format(args.output), file=sys.stderr)
 
     nnz_count = 0
 
@@ -32,6 +33,7 @@ if __name__ == "__main__":
                     nnz_count += 1
                     print('{} {} {}'.format(i+1, j+1, dataset[i, j]), file=f)
 
-    print('Finished writing matrix.')
-    print('Final number of non zero items: {}'.format(nnz_count))
-    print('Sparse ratio: {:.02e}'.format(float(nnz_count) / float(dataset.shape[0] * dataset.shape[1])))
+    print('Finished writing matrix.', file=sys.stderr)
+    print('Final number of non zero items: {}'.format(nnz_count), file=sys.stderr)
+    print('Sparse ratio: {:.02e}'.format(float(nnz_count) / float(dataset.shape[0] * dataset.shape[1])),
+          file=sys.stderr)

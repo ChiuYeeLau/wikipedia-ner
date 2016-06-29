@@ -21,14 +21,18 @@ if __name__ == "__main__":
     parser.add_argument("--experiment_kind", type=unicode, default="legal")
     parser.add_argument("--stopwords", action="store_true")
     parser.add_argument("--window", type=int, default=5)
+    parser.add_argument("--debug", action="store_true")
 
     args = parser.parse_args()
 
     print('Loading vectors', file=sys.stderr)
-    word2vec_model = gensim.models.Word2Vec.load_word2vec_format(args.wordvectors, binary=True)
+    if not args.debug:
+        word2vec_model = gensim.models.Word2Vec.load_word2vec_format(args.wordvectors, binary=True)
+    else:
+        word2vec_model = {}
 
     try:
-        valid_indices = np.load(os.path.join(args.resources_dir, "valid_indices.npz"))
+        valid_indices = np.load(args.valid_indices)
     except IOError:
         valid_indices = {'nne_instances': [], 'ne_instances': []}
 

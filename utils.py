@@ -131,4 +131,32 @@ SENTENCES = {
     "movies": MOVIES_SENTENCES,
 }
 
+LEGAL_LINES = {
+    "doc_01.conll": 81758432,
+    "doc_02.conll": 84858928,
+    "doc_03.conll": 67968957,
+    "doc_04.conll": 62523339,
+    "doc_05.conll": 66490686,
+    "doc_06.conll": 66268338,
+    "doc_07.conll": 12469212,
+    "doc_08.conll": 81758180
+}
 
+MOVIES_LINES = {
+    "doc_01.conll": 73038794,
+    "doc_02.conll": 70566294,
+    "doc_03.conll": 56058376,
+    "doc_04.conll": 47034568,
+    "doc_05.conll": 42751351,
+    "doc_06.conll": 45453359,
+    "doc_07.conll": 49179807,
+    "doc_08.conll": 49409121,
+    "doc_09.conll": 39881841,
+    "doc_10.conll": 13709285,
+    "doc_11.conll": 73035225
+}
+
+LINES = {
+    "legal": LEGAL_LINES,
+    "movies": MOVIES_LINES
+}

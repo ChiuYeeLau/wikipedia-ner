@@ -9,6 +9,7 @@ import os
 import sys
 import tensorflow as tf
 from scipy.sparse import csr_matrix
+from sklearn.preprocessing import normalize
 from tqdm import tqdm
 
 
@@ -27,6 +28,9 @@ if __name__ == "__main__":
     print('Loading dataset from file {}'.format(args.dataset), file=sys.stderr)
     dataset = np.load(args.dataset)
     dataset = csr_matrix((dataset['data'], dataset['indices'], dataset['indptr']), shape=dataset['shape'])
+
+    print('Normalizing dataset', file=sys.stderr)
+    dataset = normalize(dataset.astype(np.float32), norm='max', axis=0)
 
     print('Loading classes from file {}'.format(args.classes), file=sys.stderr)
     with open(args.classes, 'rb') as f:

@@ -42,10 +42,6 @@ if __name__ == "__main__":
         print('Layers and mappings don\'t have the same amount of items')
         sys.exit(1)
 
-    print('Loading dataset from file {}'.format(args.dataset), file=sys.stderr)
-
-    dataset = np.load(args.dataset)['dataset']
-
     print('Loading labels from file {}'.format(args.labels), file=sys.stderr)
     with open(args.labels, 'rb') as f:
         labels = pickle.load(f)
@@ -71,7 +67,11 @@ if __name__ == "__main__":
         print('Loading indices for train, test and validation', file=sys.stderr)
         indices = np.load(os.path.join(args.indices_dir, "{}_indices.npz".format(mapping_kind)))
 
-        print('Filtering dataset and labels according to indices', file=sys.stderr)
+        print('Loading dataset from file {}. Filtering dataset according to indices'.format(args.dataset),
+              file=sys.stderr)
+        experiment_dataset = np.load(args.dataset)['dataset'][indices['filtered_indices']]
+
+        print('Filtering labels according to indices', file=sys.stderr)
         experiment_labels = np.array(experiment_labels)[indices['filtered_indices']]
 
         if len(experiments_name) > 1:
@@ -88,8 +88,7 @@ if __name__ == "__main__":
             tf.set_random_seed(1234)
 
             print('Creating multilayer perceptron', file=sys.stderr)
-            mlp = MultilayerPerceptron(dataset=dataset, labels=experiment_labels,
-                                       filtered_indices=indices['filtered_indices'],
+            mlp = MultilayerPerceptron(dataset=experiment_dataset, labels=experiment_labels,
                                        train_indices=indices['train_indices'], test_indices=indices['test_indices'],
                                        validation_indices=indices['validation_indices'], saves_dir=args.saves_dir,
                                        results_dir=args.results_dir, experiment_name=experiment_name,
@@ -97,6 +96,8 @@ if __name__ == "__main__":
                                        training_epochs=args.epochs, batch_size=args.batch_size,
                                        loss_report=args.loss_report, pre_weights=pre_weights, pre_biases=pre_biases,
                                        save_model=save_model)
+            del experiment_dataset
+            del experiment_labels
 
             print('Training the classifier', file=sys.stderr)
             mlp.train()
@@ -104,7 +105,6 @@ if __name__ == "__main__":
         # Releasing some memory
         del pre_weights
         del pre_biases
-        del experiment_labels
         del indices
         del mlp
         del g

@@ -12,11 +12,10 @@ from .base import BaseClassifier
 
 
 class MultilayerPerceptron(BaseClassifier):
-    def __init__(self, dataset, labels, train_indices, test_indices, validation_indices, saves_dir,
-                 results_dir, experiment_name, layers, learning_rate=0.01, training_epochs=1500, batch_size=2000,
-                 loss_report=50, pre_weights=None, pre_biases=None, save_model=False, filtered_indices=None):
-        super(MultilayerPerceptron, self).__init__(dataset, labels, train_indices, test_indices,
-                                                   validation_indices, filtered_indices)
+    def __init__(self, dataset, labels, train_indices, test_indices, validation_indices, saves_dir, results_dir,
+                 experiment_name, layers, learning_rate=0.01, training_epochs=1500, batch_size=2000, loss_report=50,
+                 pre_weights=None, pre_biases=None, save_model=False):
+        super(MultilayerPerceptron, self).__init__(dataset, labels, train_indices, test_indices, validation_indices)
 
         assert batch_size <= self.train_dataset.shape[0]
 

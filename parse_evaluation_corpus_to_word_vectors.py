@@ -54,7 +54,7 @@ if __name__ == "__main__":
 
     dataset_matrix = np.vstack(instances)
 
-    np.savez_compressed(os.path.join(args.output_dir, 'evaluation_dataset_word_vectors.npz'), datataset=dataset_matrix)
+    np.savez_compressed(os.path.join(args.output_dir, 'evaluation_dataset_word_vectors.npz'), dataset=dataset_matrix)
 
     with open(os.path.join(args.output_dir, 'evaluation_words_word_vectors.pickle'), 'wb') as f:
         cPickle.dump(words, f)

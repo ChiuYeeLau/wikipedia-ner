@@ -20,24 +20,29 @@ if __name__ == "__main__":
     parser.add_argument('model', type=unicode)
     parser.add_argument('words', type=unicode)
     parser.add_argument('results', type=unicode)
-    parser.add_argument('--layers', type=int, nargs='+', default=[12000, 10000])
+    parser.add_argument('--layers', type=int, nargs='+')
     parser.add_argument('--batch_size', type=int, default=2000)
+    parser.add_argument('--word_vectors', action='store_true')
+    parser.add_argument('--has_biases_names', action='store_true')
 
     args = parser.parse_args()
 
     print('Loading dataset from file {}'.format(args.dataset), file=sys.stderr)
-    dataset = np.load(args.dataset)
-    dataset = csr_matrix((dataset['data'], dataset['indices'], dataset['indptr']), shape=dataset['shape'])
+    if args.word_vectors:
+        dataset = np.load(args.dataset)['dataset']
+    else:
+        dataset = np.load(args.dataset)
+        dataset = csr_matrix((dataset['data'], dataset['indices'], dataset['indptr']), shape=dataset['shape'])
 
-    print('Normalizing dataset', file=sys.stderr)
-    dataset = normalize(dataset.astype(np.float32), norm='max', axis=0)
+        print('Normalizing dataset', file=sys.stderr)
+        dataset = normalize(dataset.astype(np.float32), norm='max', axis=0)
 
     print('Loading classes from file {}'.format(args.classes), file=sys.stderr)
     with open(args.classes, 'rb') as f:
         classes = np.array(cPickle.load(f))
 
     layers_size = [args.layers] if isinstance(args.layers, int) else args.layers
-    biases_names = "biases" if os.path.basename(args.model).startswith("NEU") else None
+    biases_names = "biases" if os.path.basename(args.model).startswith("NEU") or args.has_biases_names else None
 
     input_size = dataset.shape[1]
     output_size = classes.shape[0]

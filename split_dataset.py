@@ -46,9 +46,9 @@ if __name__ == "__main__":
         print('Subsampling "O" category to be at most equal to the second most populated category', file=sys.stderr)
         unique_labels, inverse_indices, counts = np.unique(replaced_labels, return_inverse=True, return_counts=True)
         counts.sort()
-        second_to_max = counts[::-1][1]
+        min_count = min(counts[:-1].sum(), counts[-1])
         nne_index = np.where(unique_labels == 'O')[0][0]
-        nne_instances = set(np.random.permutation(np.where(inverse_indices == nne_index)[0])[:second_to_max])
+        nne_instances = set(np.random.permutation(np.where(inverse_indices == nne_index)[0])[:min_count])
 
         print('Getting filtered classes for category {}'.format(category_name), file=sys.stderr)
         filtered_classes = {l for l, v in Counter(replaced_labels).iteritems() if v >= args.min_count}

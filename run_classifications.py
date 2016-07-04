@@ -30,6 +30,7 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=2000)
     parser.add_argument("--loss_report", type=int, default=50)
     parser.add_argument("--layers", type=lambda x: map(int, x.split(',')), nargs='+', default=[[12000, 9000]])
+    parser.add_argument("--dropout_ratios", type=int, default=None)
 
     args = parser.parse_args()
 
@@ -43,6 +44,8 @@ if __name__ == "__main__":
     if len(args.mappings_kind) != len(args.layers):
         print('Layers and mappings don\'t have the same amount of items')
         sys.exit(1)
+
+    args.dropout_ratios = [args.dropout_ratios] if isinstance(args.dropout_ratios, int) else args.dropout_ratios
 
     print('Loading dataset from file {}'.format(args.dataset), file=sys.stderr)
 
@@ -102,7 +105,7 @@ if __name__ == "__main__":
                                        layers=args.layers[idx], learning_rate=args.learning_rate,
                                        training_epochs=args.epochs, batch_size=args.batch_size,
                                        loss_report=args.loss_report, pre_weights=pre_weights, pre_biases=pre_biases,
-                                       save_model=save_model)
+                                       save_model=save_model, dropout_ratios=args.dropout_ratios)
 
             print('Training the classifier', file=sys.stderr)
             mlp.train()

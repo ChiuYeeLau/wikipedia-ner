@@ -28,6 +28,8 @@ class MultilayerPerceptron(BaseClassifier):
         self.layers = [self.X]
         self.weights = []
         self.biases = []
+        self.keep_probs = []
+        self.keep_probs_ratios = []
 
         dropout_ratios = [] if dropout_ratios is None else dropout_ratios
 
@@ -38,9 +40,9 @@ class MultilayerPerceptron(BaseClassifier):
             layer_name = 'hidden_layer_{:02d}'.format(layer_idx)
 
             try:
-                keep_prob = 1.0 - dropout_ratios.pop(0)
+                self.keep_probs_ratios.append(1.0 - dropout_ratios.pop(0))
             except IndexError:
-                keep_prob = 1.0
+                self.keep_probs_ratios.append(1.0)
 
             with tf.name_scope(layer_name):
                 if pre_weights and layer_name in pre_weights:
@@ -57,17 +59,19 @@ class MultilayerPerceptron(BaseClassifier):
                 else:
                     biases = tf.Variable(tf.zeros([size_current]), name='biases')
 
+                keep_prob = tf.placeholder(tf.float32, name='keep_prob')
                 layer = tf.nn.relu(tf.matmul(tf.nn.dropout(self.layers[-1], keep_prob), weights) + biases)
                 self.weights.append(weights)
                 self.biases.append(biases)
                 self.layers.append(layer)
+                self.keep_probs.append(keep_prob)
 
         # The last layer is for the classifier
         with tf.name_scope('softmax_layer'):
             try:
-                keep_prob = 1.0 - dropout_ratios.pop(0)
+                self.keep_probs_ratios.append(1.0 - dropout_ratios.pop(0))
             except IndexError:
-                keep_prob = 1.0
+                self.keep_probs_ratios.append(1.0)
 
             print('Creating softmax layer: {} -> {}'.format(layers[-1], self.output_size), file=sys.stderr)
             weights = tf.Variable(
@@ -76,6 +80,8 @@ class MultilayerPerceptron(BaseClassifier):
                 name='weights'
             )
             biases = tf.Variable(tf.zeros([self.output_size]), name='biases')
+            keep_prob = tf.placeholder(tf.float32, name='keep_prob')
+            self.keep_probs.append(keep_prob)
             self.y_logits = tf.matmul(tf.nn.dropout(self.layers[-1], keep_prob), weights) + biases
 
         self.loss = tf.reduce_mean(
@@ -142,6 +148,9 @@ class MultilayerPerceptron(BaseClassifier):
             feed_dict = {
                 self.X: dataset_chunk.toarray() if hasattr(dataset_chunk, 'toarray') else dataset_chunk
             }
+
+            for keep_prob in self.keep_probs:
+                feed_dict[keep_prob] = 1.0
 
             y_pred[step:min(step+self.batch_size, dataset.shape[0])] = sess.run(self.y_pred, feed_dict=feed_dict)
 
@@ -214,6 +223,9 @@ class MultilayerPerceptron(BaseClassifier):
                     self.X: batch_dataset,
                     self.y: batch_labels
                 }
+
+                for idx, keep_prob in enumerate(self.keep_probs):
+                    feed_dict[keep_prob] = self.keep_probs_ratios[idx]
 
                 _, loss = sess.run([self.train_step, self.loss], feed_dict=feed_dict)
 

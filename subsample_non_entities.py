@@ -16,7 +16,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("input_dir", type=unicode)
     parser.add_argument("output_file", type=unicode)
-    parser.add_argument("--sentences", type=unicode, default="movies")
+    parser.add_argument("--sentences", type=unicode, default="legal")
     parser.add_argument("--stopwords", action="store_true")
 
     args = parser.parse_args()

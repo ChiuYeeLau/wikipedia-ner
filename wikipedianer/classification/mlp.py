@@ -240,7 +240,7 @@ class MultilayerPerceptron(BaseClassifier):
                     self._add_results('validation', accuracy, precision, recall)
 
                     if len(self.results['validation_accuracy']) >= 2:
-                        delta_acc = self.results['validation_accuracy'][-2] - accuracy
+                        delta_acc = max(self.results['validation_accuracy']) - accuracy
                         delta_loss = self.results['loss'][-3] - loss
 
                         if delta_loss < -1e-3 and delta_acc > 1e-3:

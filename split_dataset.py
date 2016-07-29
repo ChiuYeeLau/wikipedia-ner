@@ -50,8 +50,11 @@ if __name__ == "__main__":
         nne_index = np.where(unique_labels == 'O')[0][0]
         nne_instances = set(np.random.permutation(np.where(inverse_indices == nne_index)[0])[:min_count])
 
-        print('Getting filtered classes for category {}'.format(category_name), file=sys.stderr)
-        filtered_classes = {l for l, v in Counter(replaced_labels).iteritems() if v >= args.min_count}
+        if category_name == 'NEU':
+            print('Getting filtered classes for category {}'.format(category_name), file=sys.stderr)
+            filtered_classes = {l for l, v in Counter(replaced_labels).iteritems() if v >= args.min_count}
+        else:
+            filtered_classes = replaced_labels[:]
 
         print('Getting filtered indices for category {}'.format(category_name), file=sys.stderr)
         filtered_indices = np.array([i for i, l in enumerate(replaced_labels)

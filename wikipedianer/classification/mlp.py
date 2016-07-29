@@ -241,11 +241,10 @@ class MultilayerPerceptron(BaseClassifier):
 
                     if len(self.results['validation_accuracy']) >= 2:
                         delta_acc = max(self.results['validation_accuracy']) - accuracy
-                        delta_loss = self.results['loss'][-3] - loss
 
-                        if delta_loss < -1e-3 and delta_acc > 1e-3:
+                        if delta_acc > 0.01:
                             print('Validation accuracy converging: ' +
-                                  'delta_acc {:.3f} / delta_loss {:.3f}.' .format(delta_acc, delta_loss),
+                                  'delta_acc {:.3f}' .format(delta_acc),
                                   file=sys.stderr)
                             break
 

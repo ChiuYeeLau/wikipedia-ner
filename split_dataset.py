@@ -51,7 +51,7 @@ if __name__ == "__main__":
 
         print('Getting filtered indices for category {}'.format(category_name), file=sys.stderr)
         filtered_indices = np.array([i for i, l in enumerate(replaced_labels)
-                                     if (l != 'O' and l in filtered_classes) or (l == 'O' and i in nne_instances)],
+                                     if (l != 'O' and l in filtered_classes) or (l == 'O')],
                                     dtype=np.int32)
 
         strat_split = StratifiedSplitter(np.array(replaced_labels), filtered_indices)

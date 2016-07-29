@@ -60,19 +60,17 @@ class MultilayerPerceptron(BaseClassifier):
                     biases = tf.Variable(tf.zeros([size_current]), name='biases')
 
                 keep_prob = tf.placeholder(tf.float32, name='keep_prob')
-                layer = tf.nn.relu(tf.matmul(tf.nn.dropout(self.layers[-1], keep_prob), weights) + biases)
+                layer = tf.nn.relu(tf.matmul(self.layers[-1], weights) + biases)
+                mean, var = tf.nn.moments(layer, axes=[0])
+                normalized_layer = tf.nn.batch_normalization(layer, mean, var, None, None, 1e-10)
+                regularized_layer = tf.nn.dropout(normalized_layer, keep_prob)
+                self.layers.append(regularized_layer)
                 self.weights.append(weights)
                 self.biases.append(biases)
-                self.layers.append(layer)
                 self.keep_probs.append(keep_prob)
 
         # The last layer is for the classifier
         with tf.name_scope('softmax_layer'):
-            try:
-                self.keep_probs_ratios.append(1.0 - dropout_ratios.pop(0))
-            except IndexError:
-                self.keep_probs_ratios.append(1.0)
-
             print('Creating softmax layer: {} -> {}'.format(layers[-1], self.output_size), file=sys.stderr)
             weights = tf.Variable(
                 tf.truncated_normal([layers[-1], self.output_size],
@@ -80,9 +78,8 @@ class MultilayerPerceptron(BaseClassifier):
                 name='weights'
             )
             biases = tf.Variable(tf.zeros([self.output_size]), name='biases')
-            keep_prob = tf.placeholder(tf.float32, name='keep_prob')
-            self.keep_probs.append(keep_prob)
-            self.y_logits = tf.matmul(tf.nn.dropout(self.layers[-1], keep_prob), weights) + biases
+
+            self.y_logits = tf.matmul(self.layers[-1], weights) + biases
 
         self.loss = tf.reduce_mean(
             tf.nn.softmax_cross_entropy_with_logits(self.y_logits, self.y),

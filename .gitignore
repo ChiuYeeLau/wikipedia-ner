@@ -67,3 +67,6 @@ test.ipynb
 
 # Logs
 logs/
+
+# VIM
+.*.swp

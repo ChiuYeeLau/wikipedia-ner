@@ -14,7 +14,7 @@ from .base import BaseClassifier
 class MultilayerPerceptron(BaseClassifier):
     def __init__(self, dataset, labels, train_indices, test_indices, validation_indices, saves_dir, results_dir,
                  experiment_name, layers, learning_rate=0.01, training_epochs=1500, batch_size=2000, loss_report=50,
-                 pre_weights=None, pre_biases=None, save_model=False, dropout_ratios=None):
+                 pre_weights=None, pre_biases=None, save_model=False, dropout_ratios=None, dynamic_layer=None):
         super(MultilayerPerceptron, self).__init__(dataset, labels, train_indices, test_indices, validation_indices)
 
         assert batch_size <= self.train_dataset.shape[0]
@@ -26,6 +26,7 @@ class MultilayerPerceptron(BaseClassifier):
         self.train_offset = 0
 
         self.layers = [self.X]
+        self.dynamic_layer = dynamic_layer
         self.weights = []
         self.biases = []
         self.keep_probs = []
@@ -72,12 +73,19 @@ class MultilayerPerceptron(BaseClassifier):
         # The last layer is for the classifier
         with tf.name_scope('softmax_layer'):
             print('Creating softmax layer: {} -> {}'.format(layers[-1], self.output_size), file=sys.stderr)
-            weights = tf.Variable(
-                tf.truncated_normal([layers[-1], self.output_size],
-                                    stddev=1.0 / np.sqrt(layers[-1])),
-                name='weights'
-            )
-            biases = tf.Variable(tf.zeros([self.output_size]), name='biases')
+            if pre_weights and 'softmax_layer' in pre_weights:
+                weights = tf.Variable(pre_weights['softmax_layer'], name='weights')
+            else:
+                weights = tf.Variable(
+                    tf.truncated_normal([layers[-1], self.output_size],
+                                        stddev=1.0 / np.sqrt(layers[-1])),
+                    name='weights'
+                )
+
+            if pre_biases and 'softmax_layer' in pre_biases:
+                biases = tf.Variable(pre_biases['softmax_layer'], name='biases')
+            else:
+                biases = tf.Variable(tf.zeros([self.output_size]), name='biases')
 
             self.y_logits = tf.matmul(self.layers[-1], weights) + biases
 
@@ -192,7 +200,7 @@ class MultilayerPerceptron(BaseClassifier):
                    fmt='%.3f'.encode('utf-8'), delimiter=','.encode('utf-8'),
                    header=header)
 
-    def train(self, layer_idexes=None, save_layers=True):
+    def train(self, layer_indexes=None, save_layers=True):
         with tf.Session() as sess:
             sess.run(tf.initialize_all_variables())
 
@@ -248,10 +256,12 @@ class MultilayerPerceptron(BaseClassifier):
                 biases_dict = {}
 
                 for layer_idx, (weights, biases) in enumerate(zip(self.weights, self.biases)):
-                    if layer_idexes is not None and layer_idx not in layer_idexes:
+                    if layer_indexes is not None and layer_idx not in layer_indexes:
                         continue
-                    weights_dict['hidden_layer_{:02d}'.format(layer_idx)] = weights.eval()
-                    biases_dict['hidden_layer_{:02d}'.format(layer_idx)] = biases.eval()
+                    layer_name = 'softmax_layer' if layer_idx == self.dynamic_layer \
+                        else 'hidden_layer_{:02d}'.format(layer_idx)
+                    weights_dict[layer_name] = weights.eval()
+                    biases_dict[layer_name] = biases.eval()
 
                 np.savez_compressed(file_name_weights, **weights_dict)
                 np.savez_compressed(file_name_biases, **biases_dict)

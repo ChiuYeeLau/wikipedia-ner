@@ -102,13 +102,10 @@ class MultilayerPerceptron(BaseClassifier):
         self.results_dir = results_dir
         self.results = dict(
             loss=[],
-            train_accuracy=[],
             test_accuracy=[],
             validation_accuracy=[],
-            train_precision=[],
             test_precision=[],
             validation_precision=[],
-            train_recall=[],
             test_recall=[],
             validation_recall=[]
         )
@@ -169,19 +166,6 @@ class MultilayerPerceptron(BaseClassifier):
                    np.array(self.results['loss'], dtype=np.float32),
                    fmt='%.3f'.encode('utf-8'), delimiter=','.encode('utf-8'))
 
-        # Train
-        np.savetxt(os.path.join(self.results_dir, 'train_accuracy_{}.txt'.format(self.experiment_name)),
-                   np.array(self.results['train_accuracy'], dtype=np.float32),
-                   fmt='%.3f'.encode('utf-8'), delimiter=','.encode('utf-8'))
-        np.savetxt(os.path.join(self.results_dir, 'train_precision_{}.txt'.format(self.experiment_name)),
-                   np.array(self.results['train_precision'], dtype=np.float32),
-                   fmt='%.3f'.encode('utf-8'), delimiter=','.encode('utf-8'),
-                   header=header)
-        np.savetxt(os.path.join(self.results_dir, 'train_recall_{}.txt'.format(self.experiment_name)),
-                   np.array(self.results['train_recall'], dtype=np.float32),
-                   fmt='%.3f'.encode('utf-8'), delimiter=','.encode('utf-8'),
-                   header=header)
-
         # Test
         np.savetxt(os.path.join(self.results_dir, 'test_accuracy_{}.txt'.format(self.experiment_name)),
                    np.array(self.results['test_accuracy'], dtype=np.float32),
@@ -226,11 +210,11 @@ class MultilayerPerceptron(BaseClassifier):
 
                 _, loss = sess.run([self.train_step, self.loss], feed_dict=feed_dict)
 
-                if epoch % self.loss_report == 0:
+                if epoch > 0 and epoch % self.loss_report == 0:
                     print('Epoch {}: loss = {:.3f}'.format(epoch, loss), file=sys.stderr)
                     self.results['loss'].append(loss)
 
-                if epoch % (self.loss_report * 2) == 0:
+                if epoch > 0 and epoch % (self.loss_report * 2) == 0:
                     accuracy, precision, recall = self._evaluate(sess, self.validation_dataset, self.validation_labels,
                                                                  'Validation')
                     print('Validation accuracy: {:.3f}'.format(accuracy), file=sys.stderr)
@@ -250,10 +234,6 @@ class MultilayerPerceptron(BaseClassifier):
                         break
 
             print('Finished training', file=sys.stderr)
-
-            accuracy, precision, recall = self._evaluate(sess, self.train_dataset, self.train_labels, 'Train')
-            print('Training accuracy: {:.3f}'.format(accuracy), file=sys.stderr)
-            self._add_results('train', accuracy, precision, recall)
 
             accuracy, precision, recall = self._evaluate(sess, self.test_dataset, self.test_labels, 'Test')
             print('Testing accuracy: {:.3f}'.format(accuracy), file=sys.stderr)

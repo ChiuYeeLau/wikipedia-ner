@@ -274,5 +274,5 @@ class MultilayerPerceptron(BaseClassifier):
                 save_path = self.saver.save(sess,
                                             os.path.join(self.results_dir, '{}.model'.format(self.experiment_name))
                                             )
-                print('Model saved in file {}'.format(save_path))
+                print('Model saved in file {}'.format(save_path), file=sys.stderr)
 

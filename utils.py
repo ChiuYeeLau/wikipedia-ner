@@ -29,37 +29,37 @@ def ne_category_label_replace_legal(labels, mappings):
     for label in labels:
         label = re.sub(r'^[BI]-', '', label)
         if 'wordnet_law_108441203' in mappings.get(label, set()):
-            yield 'wordnet_law_108441203'
+            yield 'wordnet_law'
         elif 'wordnet_law_100611143' in mappings.get(label, set()):
-            yield 'wordnet_law_100611143'
+            yield 'wordnet_law'
         elif 'wordnet_law_106532330' in mappings.get(label, set()):
-            yield 'wordnet_law_106532330'
+            yield 'wordnet_law'
         elif 'wordnet_legal_document_106479665' in mappings.get(label, set()):
-            yield 'wordnet_legal_document_106479665'
+            yield 'wordnet_legal_document'
         elif 'wordnet_due_process_101181475' in mappings.get(label, set()):
-            yield 'wordnet_due_process_101181475'
+            yield 'wordnet_due_process'
         elif 'wordnet_legal_code_106667792' in mappings.get(label, set()):
-            yield 'wordnet_legal_code_106667792'
+            yield 'wordnet_legal_code'
         elif 'wordnet_criminal_record_106490173' in mappings.get(label, set()):
-            yield 'wordnet_criminal_record_106490173'
+            yield 'wordnet_criminal_record'
         elif 'wordnet_legal_power_105198427' in mappings.get(label, set()):
-            yield 'wordnet_legal_power_105198427'
+            yield 'wordnet_legal_power'
         elif 'wordnet_jurisdiction_108590369' in mappings.get(label, set()):
-            yield 'wordnet_jurisdiction_108590369'
+            yield 'wordnet_jurisdiction'
         elif 'wordnet_judiciary_108166318' in mappings.get(label, set()):
-            yield 'wordnet_judiciary_108166318'
+            yield 'wordnet_judiciary'
         elif 'wordnet_pleading_106559365' in mappings.get(label, set()):
-            yield 'wordnet_pleading_106559365'
+            yield 'wordnet_pleading'
         elif 'wordnet_court_108329453' in mappings.get(label, set()):
-            yield 'wordnet_court_108329453'
+            yield 'wordnet_court'
         elif 'wordnet_judge_110225219' in mappings.get(label, set()):
-            yield 'wordnet_judge_110225219'
+            yield 'wordnet_judge'
         elif 'wordnet_adjudicator_109769636' in mappings.get(label, set()):
-            yield 'wordnet_adjudicator_109769636'
+            yield 'wordnet_adjudicator'
         elif 'wordnet_lawyer_110249950' in mappings.get(label, set()):
-            yield 'wordnet_lawyer_110249950'
+            yield 'wordnet_lawyer'
         elif 'wordnet_party_110402824' in mappings.get(label, set()):
-            yield 'wordnet_party_110402824'
+            yield 'wordnet_party'
         else:
             yield 'O'
 

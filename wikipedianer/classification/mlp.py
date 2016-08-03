@@ -237,7 +237,7 @@ class MultilayerPerceptron(BaseClassifier):
                                   file=sys.stderr)
                             break
 
-                    if accuracy == 1:
+                    if accuracy >= 0.999:
                         print('Validation accuracy maxed: {:.2f}'.format(accuracy), file=sys.stderr)
                         break
 

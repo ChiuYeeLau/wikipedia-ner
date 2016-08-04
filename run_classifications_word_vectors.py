@@ -28,6 +28,8 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=2000)
     parser.add_argument("--loss_report", type=int, default=50)
     parser.add_argument("--layers", type=lambda x: map(int, x.split(',')), nargs='+', default=[[12000, 9000]])
+    parser.add_argument("--dynamic_layers", type=int, nargs='+', default=None)
+    parser.add_argument("--dropout_ratios", type=float, default=None, nargs='+')
 
     args = parser.parse_args()
 
@@ -49,6 +51,14 @@ if __name__ == "__main__":
     print('Loading class mappings from file {}'.format(args.mappings), file=sys.stderr)
     with open(args.mappings, 'rb') as f:
         class_mappings = pickle.load(f)
+
+    args.dynamic_layers = [args.dynamic_layers] if isinstance(args.dynamic_layers, int) else args.dynamic_layers
+
+    if args.dynamic_layers is not None and len(args.dynamic_layers) != len(args.layers) - 1:
+        print('The number of dynamic layers must be one less than the number of layers', file=sys.stderr)
+        sys.exit(1)
+
+    args.dropout_ratios = [args.dropout_ratios] if isinstance(args.dropout_ratios, int) else args.dropout_ratios
 
     experiments_name = []
 
@@ -82,6 +92,9 @@ if __name__ == "__main__":
             pre_weights = None
             pre_biases = None
 
+        dynamic_layer = args.dynamic_layers.pop(0) \
+            if args.dynamic_layers is not None and len(args.dynamic_layers) > 0 else None
+
         save_model = True if idx >= len(args.mappings_kind) - 2 else False
 
         with tf.Graph().as_default() as g:
@@ -95,7 +108,8 @@ if __name__ == "__main__":
                                        layers=args.layers[idx], learning_rate=args.learning_rate,
                                        training_epochs=args.epochs, batch_size=args.batch_size,
                                        loss_report=args.loss_report, pre_weights=pre_weights, pre_biases=pre_biases,
-                                       save_model=save_model)
+                                       save_model=save_model, dropout_ratios=args.dropout_ratios,
+                                       dynamic_layer=dynamic_layer)
             del experiment_dataset
             del experiment_labels
 

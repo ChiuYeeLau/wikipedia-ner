@@ -99,7 +99,8 @@ if __name__ == "__main__":
             pre_weights = None
             pre_biases = None
 
-        dynamic_layer = args.dynamic_layers.pop(0) if len(args.dynamic_layers) > 0 else None
+        dynamic_layer = args.dynamic_layers.pop(0) \
+            if args.dynamic_layers is not None and len(args.dynamic_layers) > 0 else None
 
         save_model = True if idx >= len(args.mappings_kind) - 2 else False
 

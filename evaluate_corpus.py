@@ -51,8 +51,6 @@ if __name__ == "__main__":
     with tf.Graph().as_default() as g:
         X = tf.placeholder(tf.float32, shape=(None, input_size), name='X')
         layers = [X]
-        weights = []
-        biases = []
 
         print('Building neural network with architecture: {}'
               .format(' -> '.join(map(str, [input_size] + layers_size + [output_size]))),
@@ -69,10 +67,9 @@ if __name__ == "__main__":
                 biases_variable = tf.Variable(tf.zeros([size_current], dtype=tf.float32), name=biases_names)
 
                 layer = tf.nn.relu(tf.matmul(layers[-1], weights_variable) + biases_variable)
-
-                weights.append(weights_variable)
-                biases.append(biases_variable)
-                layers.append(layer)
+                mean, var = tf.nn.moments(layer, axes=[0])
+                normalized_layer = tf.nn.batch_normalization(layer, mean, var, None, None, 1e-10)
+                layers.append(normalized_layer)
 
         # The last layer is softmax
         with tf.name_scope('softmax_layer'):

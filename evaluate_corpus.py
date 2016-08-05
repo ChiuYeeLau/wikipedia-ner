@@ -23,7 +23,6 @@ if __name__ == "__main__":
     parser.add_argument('--layers', type=int, nargs='+')
     parser.add_argument('--batch_size', type=int, default=2000)
     parser.add_argument('--word_vectors', action='store_true')
-    parser.add_argument('--has_biases_names', action='store_true')
 
     args = parser.parse_args()
 
@@ -42,7 +41,6 @@ if __name__ == "__main__":
         classes = np.array(cPickle.load(f))
 
     layers_size = [args.layers] if isinstance(args.layers, int) else args.layers
-    biases_names = "biases" if os.path.basename(args.model).startswith("NEU") or args.has_biases_names else None
 
     input_size = dataset.shape[1]
     output_size = classes.shape[0]
@@ -64,7 +62,7 @@ if __name__ == "__main__":
 
             with tf.name_scope(layer_name):
                 weights_variable = tf.Variable(tf.zeros((size_prev, size_current), dtype=tf.float32), name='weights')
-                biases_variable = tf.Variable(tf.zeros([size_current], dtype=tf.float32), name=biases_names)
+                biases_variable = tf.Variable(tf.zeros([size_current], dtype=tf.float32), name="biases")
 
                 layer = tf.nn.relu(tf.matmul(layers[-1], weights_variable) + biases_variable)
                 mean, var = tf.nn.moments(layer, axes=[0])

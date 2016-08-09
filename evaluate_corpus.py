@@ -5,7 +5,6 @@ from __future__ import absolute_import, print_function, unicode_literals
 import argparse
 import cPickle
 import numpy as np
-import os
 import sys
 import tensorflow as tf
 from scipy.sparse import csr_matrix

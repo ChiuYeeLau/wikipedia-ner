@@ -115,7 +115,7 @@ if __name__ == "__main__":
                                        layers=args.layers[idx], learning_rate=args.learning_rate,
                                        training_epochs=args.epochs, batch_size=args.batch_size,
                                        loss_report=args.loss_report, pre_weights=pre_weights, pre_biases=pre_biases,
-                                       save_model=save_model, dropout_ratios=args.dropout_ratios,
+                                       save_model=save_model, dropout_ratios=args.dropout_ratios[:],
                                        dynamic_layer=dynamic_layer)
 
             print('Training the classifier', file=sys.stderr)

@@ -10,7 +10,6 @@ my $classes_file = shift @ARGV;
 my $evaluation_words = shift @ARGV;
 my $results_dir = shift @ARGV;
 my $word_vectors = shift @ARGV;
-my $has_biases_names = shift @ARGV;
 
 my @models = `find $models_dir -type f -name "*NEU*.model"`;
 chomp @models;
@@ -27,7 +26,7 @@ foreach my $model(@models) {
     print "echo \"Running experiment $experiment_name\"\n";
     my $cmd = "python evaluate_corpus.py $evaluation_dataset $classes_file $model ";
     $cmd = $cmd . "$evaluation_words $results_dir/$experiment_name.txt --layers $layers ";
-    $cmd = $cmd . "$word_vectors $has_biases_names &> logs/experiments/evaluation/$experiment_name.log\n";
+    $cmd = $cmd . "$word_vectors &> logs/experiments/evaluation/$experiment_name.log\n";
 
     print $cmd;
     print "echo \"Finished experiment $experiment_name\"\necho\n\n";

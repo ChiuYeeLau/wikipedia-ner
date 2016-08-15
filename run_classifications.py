@@ -107,6 +107,8 @@ if __name__ == "__main__":
         with tf.Graph().as_default() as g:
             tf.set_random_seed(1234)
 
+            do_ratios = args.dropout_ratios[:] if args.dropout_ratios is not None else None
+
             print('Creating multilayer perceptron', file=sys.stderr)
             mlp = MultilayerPerceptron(dataset=experiment_dataset, labels=experiment_labels,
                                        train_indices=indices['train_indices'], test_indices=indices['test_indices'],
@@ -115,7 +117,7 @@ if __name__ == "__main__":
                                        layers=args.layers[idx], learning_rate=args.learning_rate,
                                        training_epochs=args.epochs, batch_size=args.batch_size,
                                        loss_report=args.loss_report, pre_weights=pre_weights, pre_biases=pre_biases,
-                                       save_model=save_model, dropout_ratios=args.dropout_ratios[:],
+                                       save_model=save_model, dropout_ratios=do_ratios,
                                        dynamic_layer=dynamic_layer)
 
             print('Training the classifier', file=sys.stderr)

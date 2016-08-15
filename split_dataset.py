@@ -24,6 +24,7 @@ if __name__ == "__main__":
     parser.add_argument("--test_size", type=float, default=0.1)
     parser.add_argument("--validation_size", type=float, default=0.1)
     parser.add_argument("--min_count", type=int, default=10)
+    parser.add_argument("--classes_save_path", type=unicode, default=None)
 
     args = parser.parse_args()
 
@@ -53,6 +54,12 @@ if __name__ == "__main__":
         filtered_indices = np.array([i for i, l in enumerate(replaced_labels)
                                      if (l != 'O' and l in filtered_classes) or (l == 'O')],
                                     dtype=np.int32)
+
+        if category_name == 'NEU' and args.classes_save_path is not None:
+            experiment_labels = np.asarray(replaced_labels)[filtered_indices]
+            classes = np.unique(experiment_labels)
+            with open(args.classes_save_path, "wb") as f:
+                pickle.dump(list(classes), f)
 
         strat_split = StratifiedSplitter(np.array(replaced_labels), filtered_indices)
 

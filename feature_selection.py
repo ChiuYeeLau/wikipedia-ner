@@ -4,7 +4,9 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 import argparse
+import cPickle
 import numpy as np
+import os
 import sys
 from scipy.sparse import csr_matrix, csc_matrix
 
@@ -14,6 +16,7 @@ if __name__ == "__main__":
     parser.add_argument("input_file", type=unicode)
     parser.add_argument("output_file", type=unicode)
     parser.add_argument("--min_variance", type=float, default=2e-4)
+    parser.add_argument("--features_names", type=unicode, default=None)
 
     args = parser.parse_args()
 
@@ -37,5 +40,13 @@ if __name__ == "__main__":
     print('Saving dataset to file {}'.format(args.output_file), file=sys.stderr)
     np.savez_compressed(args.output_file, data=dataset.data, indices=dataset.indices,
                         indptr=dataset.indptr, shape=dataset.shape)
+
+    if args.features_names is not None:
+        print('Saving filtered features names', file=sys.stderr)
+        features_names = np.array(np.load(args.features_names))
+        filtered_features_names = features_names[valid_indices]
+
+        with open(os.path.join(os.path.dirname(args.features_names), "filtered_features_names.pickle"), "wb") as f:
+            cPickle.dump(filtered_features_names, f)
 
     print('All operations finished')

@@ -70,3 +70,6 @@ logs/
 
 # VIM
 .*.swp
+
+# helper scripts
+run*.sh

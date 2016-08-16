@@ -14,7 +14,7 @@ my $word_vectors = shift @ARGV;
 my @models = `find $models_dir -type f -name "*NEU*.model"`;
 chomp @models;
 
-print "#!/usr/bin/env bash\n\n";
+print "#!/usr/bin/env bash\nset -e\n\n";
 
 foreach my $model(@models) {
     my ($filename, $dirname, undef) = fileparse($model, qr/\.model/);
@@ -29,5 +29,7 @@ foreach my $model(@models) {
     $cmd = $cmd . "$word_vectors &> logs/experiments/evaluation/$experiment_name.log\n";
 
     print $cmd;
-    print "echo \"Finished experiment $experiment_name\"\necho\n\n";
+    print "echo \"Finished experiment $experiment_name\"\n\n";
 }
+
+print "echo \"All experiments finished\"\n";

@@ -22,6 +22,7 @@ if __name__ == "__main__":
     parser.add_argument('--layers', type=int, nargs='+')
     parser.add_argument('--batch_size', type=int, default=2000)
     parser.add_argument('--word_vectors', action='store_true')
+    parser.add_argument("--batch_normalization", action='store_true')
 
     args = parser.parse_args()
 
@@ -64,9 +65,12 @@ if __name__ == "__main__":
                 biases_variable = tf.Variable(tf.zeros([size_current], dtype=tf.float32), name="biases")
 
                 layer = tf.nn.relu(tf.matmul(layers[-1], weights_variable) + biases_variable)
-                mean, var = tf.nn.moments(layer, axes=[0])
-                normalized_layer = tf.nn.batch_normalization(layer, mean, var, None, None, 1e-10)
-                layers.append(normalized_layer)
+
+                if args.batch_normalization:
+                    mean, var = tf.nn.moments(layer, axes=[0])
+                    layer = tf.nn.batch_normalization(layer, mean, var, None, None, 1e-10)
+
+                layers.append(layer)
 
         # The last layer is softmax
         with tf.name_scope('softmax_layer'):

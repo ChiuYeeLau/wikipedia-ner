@@ -32,6 +32,7 @@ if __name__ == "__main__":
     parser.add_argument("--layers", type=lambda x: map(int, x.split(',')), nargs='+', default=[[12000, 9000]])
     parser.add_argument("--dynamic_layers", type=int, nargs='+', default=None)
     parser.add_argument("--dropout_ratios", type=float, default=None, nargs='+')
+    parser.add_argument("--batch_normalization", action='store_true')
 
     args = parser.parse_args()
 
@@ -118,7 +119,7 @@ if __name__ == "__main__":
                                        training_epochs=args.epochs, batch_size=args.batch_size,
                                        loss_report=args.loss_report, pre_weights=pre_weights, pre_biases=pre_biases,
                                        save_model=save_model, dropout_ratios=do_ratios,
-                                       dynamic_layer=dynamic_layer)
+                                       dynamic_layer=dynamic_layer, batch_normalization=args.batch_normalization)
 
             print('Training the classifier', file=sys.stderr)
             mlp.train()

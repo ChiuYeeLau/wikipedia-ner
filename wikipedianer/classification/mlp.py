@@ -14,7 +14,8 @@ from .base import BaseClassifier
 class MultilayerPerceptron(BaseClassifier):
     def __init__(self, dataset, labels, train_indices, test_indices, validation_indices, saves_dir, results_dir,
                  experiment_name, layers, learning_rate=0.01, training_epochs=1500, batch_size=2000, loss_report=50,
-                 pre_weights=None, pre_biases=None, save_model=False, dropout_ratios=None, dynamic_layer=None):
+                 pre_weights=None, pre_biases=None, save_model=False, dropout_ratios=None, dynamic_layer=None,
+                 batch_normalization=False):
         super(MultilayerPerceptron, self).__init__(dataset, labels, train_indices, test_indices, validation_indices)
 
         assert batch_size <= self.train_dataset.shape[0]
@@ -62,9 +63,12 @@ class MultilayerPerceptron(BaseClassifier):
 
                 keep_prob = tf.placeholder(tf.float32, name='keep_prob')
                 layer = tf.nn.relu(tf.matmul(self.layers[-1], weights) + biases)
-                mean, var = tf.nn.moments(layer, axes=[0])
-                normalized_layer = tf.nn.batch_normalization(layer, mean, var, None, None, 1e-10)
-                regularized_layer = tf.nn.dropout(normalized_layer, keep_prob)
+
+                if batch_normalization:
+                    mean, var = tf.nn.moments(layer, axes=[0])
+                    layer = tf.nn.batch_normalization(layer, mean, var, None, None, 1e-10)
+
+                regularized_layer = tf.nn.dropout(layer, keep_prob)
                 self.layers.append(regularized_layer)
                 self.weights.append(weights)
                 self.biases.append(biases)

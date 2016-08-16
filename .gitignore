@@ -60,6 +60,16 @@ target/
 
 #Ipython Notebook
 .ipynb_checkpoints
+test.ipynb
 
 # PyCharm
 .idea/
+
+# Logs
+logs/
+
+# VIM
+.*.swp
+
+# helper scripts
+run*.sh

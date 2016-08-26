@@ -28,6 +28,31 @@ def ne_person_label_replace(labels, mappings):
 def ne_category_label_replace_legal(labels, mappings):
     for label in labels:
         label = re.sub(r'^[BI]-', '', label)
+        if 'Code' in mappings.get(label, set()):
+            yield 'Code'
+        elif 'Decree' in mappings.get(label, set()):
+            yield 'Decree'
+        elif 'Legal_Document' in mappings.get(label, set()):
+            yield 'Legal_Document'
+        elif 'Legal_Role' in mappings.get(label, set()):
+            yield 'Legal_Role'
+        elif 'Legal_Speech_Act' in mappings.get(label, set()):
+            yield 'Legal_Speech_Act'
+        elif 'Legislative_Body' in mappings.get(label, set()):
+            yield 'Legislative_Body'
+        elif 'Potestative_Expression' in mappings.get(label, set()):
+            yield 'Potestative_Expression'
+        elif 'Professional_Legal_Role' in mappings.get(label, set()):
+            yield 'Professional_Legal_Role'
+        elif 'Regulation' in mappings.get(label, set()):
+            yield 'Regulation'
+        else:
+            yield 'O'
+
+
+def ne_category_label_replace_legal_wordnet(labels, mappings):
+    for label in labels:
+        label = re.sub(r'^[BI]-', '', label)
         if 'wordnet_law_108441203' in mappings.get(label, set()):
             yield 'wordnet_law'
         elif 'wordnet_law_100611143' in mappings.get(label, set()):

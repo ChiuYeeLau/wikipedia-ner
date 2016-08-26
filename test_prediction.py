@@ -15,7 +15,7 @@ from tqdm import tqdm
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('dataset', type=unicode)
-    parser.add_argument('labels', type=unicode)
+    parser.add_argument('classes', type=unicode)
     parser.add_argument('indices', type=unicode)
     parser.add_argument('model', type=unicode)
     parser.add_argument('results', type=unicode)
@@ -36,21 +36,21 @@ if __name__ == "__main__":
         print('Normalizing dataset', file=sys.stderr)
         dataset = normalize(dataset.astype(np.float32), norm='max', axis=0)
 
-    print('Loading labels from file {}'.format(args.labels), file=sys.stderr)
-    with open(args.labels, 'rb') as f:
-        labels = np.array(cPickle.load(f))
+    print('Loading classes from file {}'.format(args.classes), file=sys.stderr)
+    with open(args.classes, 'rb') as f:
+        classes = np.array(cPickle.load(f))
 
     print('Loading indices from file {}'.format(args.indices), file=sys.stderr)
     indices = np.load(args.indices)
 
     print('Getting test dataset', file=sys.stderr)
-    dataset = dataset[indices['filtered_indices']]['test_indices']
-    labels = labels[indices['filtered_indices']]['test_indices']
+    dataset = dataset[indices['filtered_indices']]
+    dataset = dataset[indices['test_indices']]
 
     layers_size = [args.layers] if isinstance(args.layers, int) else args.layers
 
     input_size = dataset.shape[1]
-    output_size = np.unique(labels).shape[0]
+    output_size = classes.shape[0]
     y_pred = np.zeros(dataset.shape[0], dtype=np.int32)
 
     with tf.Graph().as_default() as g:

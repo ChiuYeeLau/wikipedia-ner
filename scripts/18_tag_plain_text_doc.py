@@ -42,6 +42,6 @@ if __name__ == "__main__":
 
                 for sentence in tagged_sentences:
                     for token_idx, (token, pos_tag) in enumerate(sentence, start=1):
-                        print('{} {} {} O _ _'.format(token_idx, token, pos_tag).encode('utf-8'), file=fo)
+                        print('{} {} {} O 0 _'.format(token_idx, token, pos_tag).encode('utf-8'), file=fo)
 
                     print('', file=fo)

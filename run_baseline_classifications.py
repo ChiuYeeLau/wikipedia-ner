@@ -111,7 +111,10 @@ if __name__ == "__main__":
     for model_name, model_class in MODELS:
         print('Running handcrafted features dataset with {} classifier'.format(model_name), file=sys.stderr)
 
-        run_classifier(model_name, model_class, 'handcrafted', dataset, labels, classes, indices)
+        try:
+            run_classifier(model_name, model_class, 'handcrafted', dataset, labels, classes, indices)
+        except Exception as e:
+            print('The classifier {} throw an exception with message {}'.format(model_name, e.message), file=sys.stderr)
 
         print('Finished handcrafted experiments with {} classifier'.format(model_name), file=sys.stderr)
 
@@ -142,7 +145,10 @@ if __name__ == "__main__":
 
         print('Running word vectors dataset with {} classifier'.format(model_name), file=sys.stderr)
 
-        run_classifier(model_name, model_class, 'wordvectors', dataset, labels, classes, indices)
+        try:
+            run_classifier(model_name, model_class, 'wordvectors', dataset, labels, classes, indices)
+        except Exception as e:
+            print('The classifier {} throw an exception with message {}'.format(model_name, e.message), file=sys.stderr)
 
         print('Finished word vectors experiments with {} classifier'.format(model_name), file=sys.stderr)
 

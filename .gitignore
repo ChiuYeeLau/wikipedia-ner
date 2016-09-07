@@ -72,4 +72,5 @@ logs/
 .*.swp
 
 # helper scripts
-run*.sh
+/*.sh
+/*.pl

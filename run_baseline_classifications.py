@@ -95,7 +95,7 @@ if __name__ == "__main__":
         labels = pickle.load(f)
 
     print('Replacing the labels', file=sys.stderr)
-    labels = ne_uri_label_replace(labels, None)
+    labels = list(ne_uri_label_replace(labels, None))
 
     print('Loading indices for train, test and validation', file=sys.stderr)
     indices = np.load(args.indices)
@@ -127,7 +127,7 @@ if __name__ == "__main__":
         labels = pickle.load(f)
 
     print('Replacing the labels', file=sys.stderr)
-    labels = ne_uri_label_replace(labels, None)
+    labels = list(ne_uri_label_replace(labels, None))
 
     print('Loading indices for train, test and validation', file=sys.stderr)
     indices = np.load(args.indices)

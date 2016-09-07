@@ -26,7 +26,7 @@ foreach my $model(@models) {
     print "echo \"Running experiment $experiment_name\"\n";
     my $cmd = "python evaluate_corpus.py $evaluation_dataset $classes_file $model ";
     $cmd = $cmd . "$evaluation_words $results_dir/$experiment_name.txt --layers $layers ";
-    $cmd = $cmd . "$word_vectors &> logs/experiments/evaluation/$experiment_name.log\n";
+    $cmd = $cmd . "$word_vectors\n";
 
     print $cmd;
     print "echo \"Finished experiment $experiment_name\"\n\n";

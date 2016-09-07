@@ -76,13 +76,15 @@ class MultilayerPerceptron(BaseClassifier):
 
         # The last layer is for the classifier
         with tf.name_scope('softmax_layer'):
-            print('Creating softmax layer: {} -> {}'.format(layers[-1], self.output_size), file=sys.stderr)
+            if len(layers) == 0:
+                last_layer = self.input_size
+            print('Creating softmax layer: {} -> {}'.format(last_layer, self.output_size), file=sys.stderr)
             if pre_weights and 'softmax_layer' in pre_weights:
                 weights = tf.Variable(pre_weights['softmax_layer'], name='weights')
             else:
                 weights = tf.Variable(
-                    tf.truncated_normal([layers[-1], self.output_size],
-                                        stddev=1.0 / np.sqrt(layers[-1])),
+                    tf.truncated_normal([last_layer, self.output_size],
+                                        stddev=1.0 / np.sqrt(last_layer)),
                     name='weights'
                 )
 

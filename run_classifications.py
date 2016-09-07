@@ -29,7 +29,7 @@ if __name__ == "__main__":
     parser.add_argument("--epochs", type=int, default=1500)
     parser.add_argument("--batch_size", type=int, default=2000)
     parser.add_argument("--loss_report", type=int, default=50)
-    parser.add_argument("--layers", type=lambda x: map(int, x.split(',')), nargs='+', default=[[12000, 9000]])
+    parser.add_argument("--layers", type=lambda x: map(int, x.split(',')), nargs='+', default=[[]])
     parser.add_argument("--dynamic_layers", type=int, nargs='+', default=None)
     parser.add_argument("--dropout_ratios", type=float, default=None, nargs='+')
     parser.add_argument("--batch_normalization", action='store_true')

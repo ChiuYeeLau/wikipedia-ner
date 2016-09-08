@@ -4,15 +4,17 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 import argparse
 import cPickle as pickle
+import gc
 import numpy as np
 import os
 import shutil
 import sys
 
 from scipy.sparse import csr_matrix
-from sklearn.metrics import accuracy_score, precision_score, recall_score
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.externals import joblib
 from sklearn.linear_model import SGDClassifier
+from sklearn.metrics import accuracy_score, precision_score, recall_score
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.preprocessing import normalize
 from utils import ne_uri_label_replace
@@ -66,16 +68,19 @@ def run_classifier(model_name, model_class, features_type, dataset, labels, clas
     np.savetxt(os.path.join(save_dir, 'test_recall_NEU.txt'), np.array([recall], dtype=np.float32),
                fmt='%.3f'.encode('utf-8'), delimiter=','.encode('utf-8'), header=header)
 
+    print('Saving model', file=sys.stderr)
+    joblib.dump(model, os.path.join(save_dir, '{}_model.pkl'.format(model_name)))
+
     print('Finished handcrafted experiment for classifier {}'.format(model_name), file=sys.stderr)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("dataset", type=unicode)
-    parser.add_argument("wvdataset", type=unicode)
     parser.add_argument("labels", type=unicode)
-    parser.add_argument("wvlabels", type=unicode)
     parser.add_argument("indices", type=unicode)
     parser.add_argument("results_dir", type=unicode)
+    parser.add_argument("--wvdataset", type=unicode, default=None)
+    parser.add_argument("--wvlabels", type=unicode, default=None)
     parser.add_argument("--experiment_kind", type=unicode, default='legal')
 
     args = parser.parse_args()
@@ -111,10 +116,16 @@ if __name__ == "__main__":
             run_classifier(model_name, model_class, 'handcrafted', dataset, integer_labels, classes, indices)
         except Exception as e:
             print('The classifier {} throw an exception with message {}'.format(model_name, e.message), file=sys.stderr)
+        finally:  # Release memory
+            gc.collect()
 
         print('Finished handcrafted experiments with {} classifier'.format(model_name), file=sys.stderr)
 
-    print('Finished all handcrafted experiments', file=sys.stderr)
+    if args.wvdataset is None or args.wvlabels is None:
+        print('Finished all experiments', file=sys.stderr)
+        sys.exit(os.EX_OK)
+    else:
+        print('Finished all handcrafted experiments', file=sys.stderr)
 
     print('Loading dataset from file {}. Filtering dataset according to indices'.format(args.wvdataset),
           file=sys.stderr)

@@ -152,7 +152,7 @@ if __name__ == "__main__":
         parse_to_feature_matrix(args.input_file, args.output_dir, args.resources, args.total_sentences)
 
     if args.wordvectors is not None:
-        print('Parsing to handcrafted features matrix', file=sys.stderr)
+        print('Parsing to word vectors', file=sys.stderr)
         parse_to_word_vectors(args.input_file, args.output_dir, args.wordvectors, args.window,
                               args.total_sentences, args.debug)
 

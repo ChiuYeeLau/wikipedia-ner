@@ -20,8 +20,8 @@ from utils import ne_uri_label_replace
 
 MODELS = [
     ("MNB", MultinomialNB),
-    ("SVM", SGDClassifier),
     ("RF", RandomForestClassifier),
+    ("SVM", SGDClassifier),
 ]
 
 
@@ -58,12 +58,12 @@ def run_classifier(model_name, model_class, features_type, dataset, labels, clas
 
     # Precision
     precision = precision_score(y_true, y_pred, average=None, labels=np.arange(classes.shape[0]))
-    np.savetxt(os.path.join(save_dir, 'test_precision_NEU.txt'), precision.astype(np.float32),
+    np.savetxt(os.path.join(save_dir, 'test_precision_NEU.txt'), np.array([precision], dtype=np.float32),
                fmt='%.3f'.encode('utf-8'), delimiter=','.encode('utf-8'), header=header)
 
     # Recall
     recall = recall_score(y_true, y_pred, average=None, labels=np.arange(classes.shape[0]))
-    np.savetxt(os.path.join(save_dir, 'test_recall_NEU.txt'), recall.astype(np.float32),
+    np.savetxt(os.path.join(save_dir, 'test_recall_NEU.txt'), np.array([recall], dtype=np.float32),
                fmt='%.3f'.encode('utf-8'), delimiter=','.encode('utf-8'), header=header)
 
     print('Finished handcrafted experiment for classifier {}'.format(model_name), file=sys.stderr)

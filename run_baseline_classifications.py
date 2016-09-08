@@ -15,31 +15,30 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.externals import joblib
 from sklearn.linear_model import SGDClassifier
 from sklearn.metrics import accuracy_score, precision_score, recall_score
-from sklearn.naive_bayes import MultinomialNB
 from sklearn.preprocessing import normalize
 from utils import ne_uri_label_replace
 
 
 MODELS = [
-    ("MNB", MultinomialNB),
     ("RF", RandomForestClassifier),
     ("SVM", SGDClassifier),
+    ("LR", SGDClassifier)
 ]
 
 
 def run_classifier(model_name, model_class, features_type, dataset, labels, classes, indices):
     configs = {}
 
-    if model_name in {"SVM", "RF"}:
-        configs["verbose"] = 1
+    configs["verbose"] = 1
+    configs["n_jobs"] = -1
 
-    if model_name in {"SVM", "RF"}:
-        configs["n_jobs"] = -1
+    if model_name == 'LR':
+        configs['loss'] = 'log'
 
     model = model_class(**configs)
 
     print('Fitting model', file=sys.stderr)
-    model.fit(dataset[indices['train_indices']], integer_labels[indices['train_indices']])
+    model.fit(dataset[indices['train_indices']], labels[indices['train_indices']])
 
     print('Classifying test set', file=sys.stderr)
     y_true = labels[indices['test_indices']]
@@ -115,7 +114,7 @@ if __name__ == "__main__":
         try:
             run_classifier(model_name, model_class, 'handcrafted', dataset, integer_labels, classes, indices)
         except Exception as e:
-            print('The classifier {} throw an exception with message {}'.format(model_name, e.message), file=sys.stderr)
+            print('The classifier {} throw an exception: {}'.format(model_name, e), file=sys.stderr)
         finally:  # Release memory
             gc.collect()
 

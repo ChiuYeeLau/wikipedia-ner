@@ -108,7 +108,7 @@ if __name__ == "__main__":
         print('Running handcrafted features dataset with {} classifier'.format(model_name), file=sys.stderr)
 
         try:
-            run_classifier(model_name, model_class, 'handcrafted', dataset, labels, classes, indices)
+            run_classifier(model_name, model_class, 'handcrafted', dataset, integer_labels, classes, indices)
         except Exception as e:
             print('The classifier {} throw an exception with message {}'.format(model_name, e.message), file=sys.stderr)
 

@@ -12,30 +12,26 @@ import sys
 from scipy.sparse import csr_matrix
 from sklearn.metrics import accuracy_score, precision_score, recall_score
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import SGDClassifier
 from sklearn.naive_bayes import MultinomialNB
-from sklearn.svm import LinearSVC
-from sklearn.tree import DecisionTreeClassifier
 from sklearn.preprocessing import normalize
 from utils import ne_uri_label_replace
 
 
 MODELS = [
-    ("LR", LogisticRegression),
-    ("SVM", LinearSVC),
     ("MNB", MultinomialNB),
+    ("SVM", SGDClassifier),
     ("RF", RandomForestClassifier),
-    ("DT", DecisionTreeClassifier)
 ]
 
 
 def run_classifier(model_name, model_class, features_type, dataset, labels, classes, indices):
     configs = {}
 
-    if model_name in {"LR", "SVM", "RF"}:
+    if model_name in {"SVM", "RF"}:
         configs["verbose"] = 1
 
-    if model_name in {"LR", "RF"}:
+    if model_name in {"SVM", "RF"}:
         configs["n_jobs"] = -1
 
     model = model_class(**configs)

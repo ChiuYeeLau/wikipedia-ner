@@ -78,6 +78,8 @@ class MultilayerPerceptron(BaseClassifier):
         with tf.name_scope('softmax_layer'):
             if len(layers) == 0:
                 last_layer = self.input_size
+            else:
+                last_layer = layers[-1]
             print('Creating softmax layer: {} -> {}'.format(last_layer, self.output_size), file=sys.stderr)
             if pre_weights and 'softmax_layer' in pre_weights:
                 weights = tf.Variable(pre_weights['softmax_layer'], name='weights')

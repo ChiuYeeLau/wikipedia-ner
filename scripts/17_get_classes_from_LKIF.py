@@ -98,10 +98,10 @@ def add_entities_from_list(pair_list, class_name, current_result):
 
     for entity, _ in pair_list[1:]:  # Ignore the first entry
         entity = entity.replace(URI_YAGO, '')
-        current_result[entity].update(class_name)
+        current_result[entity].add(class_name)
 
         if class_name in PERSON_MAPPINGS:
-            current_result[entity].update(PERSON_MAPPINGS[class_name])
+            current_result[entity].add(PERSON_MAPPINGS[class_name])
 
         if class_name in YAGO_TO_LKIF_MAPPING:
             current_result[entity].update(YAGO_TO_LKIF_MAPPING[class_name])

@@ -79,6 +79,7 @@ if __name__ == "__main__":
     parser.add_argument("--wvdataset", type=unicode, default=None)
     parser.add_argument("--wvlabels", type=unicode, default=None)
     parser.add_argument("--mapping_kind", type=unicode, default='NEU')
+    parser.add_argument("--mappings", type=unicode, default=None)
     parser.add_argument("--experiment_kind", type=unicode, default='legal')
 
     args = parser.parse_args()
@@ -94,9 +95,10 @@ if __name__ == "__main__":
         labels = pickle.load(f)
 
     replacement_function = LABELS_REPLACEMENT[args.experiment_kind][args.mapping_kind]
+    mappings = np.load(args.mappings) if args.mappings is not None else None
 
     print('Replacing the labels', file=sys.stderr)
-    labels = list(replacement_function(labels, None))
+    labels = list(replacement_function(labels, mappings))
 
     print('Loading indices for train, test and validation', file=sys.stderr)
     indices = np.load(args.indices)
@@ -137,7 +139,7 @@ if __name__ == "__main__":
         labels = pickle.load(f)
 
     print('Replacing the labels', file=sys.stderr)
-    labels = list(replacement_function(labels, None))
+    labels = list(replacement_function(labels, mappings))
 
     print('Loading indices for train, test and validation', file=sys.stderr)
     indices = np.load(args.indices)

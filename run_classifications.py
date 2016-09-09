@@ -71,9 +71,12 @@ if __name__ == "__main__":
     experiments_name = []
 
     for idx, mapping_kind in enumerate(args.mappings_kind):
-        experiment_name = "{}_{}".format("{}".format(
-            "_".join(args.mappings_kind[:idx+1])), "_".join([unicode(l) for l in args.layers[idx]])
-        )
+        if len(args.layers) > 0:
+            experiment_name = "{}_{}".format("{}".format(
+                "_".join(args.mappings_kind[:idx+1])), "_".join([unicode(l) for l in args.layers[idx]])
+            )
+        else:
+            experiment_name = "{}".format("{}".format("_".join(args.mappings_kind[:idx+1])))
         experiments_name.append(experiment_name)
 
         print('Running experiment: {}'.format(experiment_name), file=sys.stderr)

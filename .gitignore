@@ -74,3 +74,4 @@ logs/
 # helper scripts
 /*.sh
 /*.pl
+run_*.sh

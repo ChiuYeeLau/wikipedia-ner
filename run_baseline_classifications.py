@@ -11,26 +11,24 @@ import shutil
 import sys
 
 from scipy.sparse import csr_matrix
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.externals import joblib
 from sklearn.linear_model import SGDClassifier
 from sklearn.metrics import accuracy_score, precision_score, recall_score
 from sklearn.preprocessing import normalize
-from utils import ne_uri_label_replace
+from utils import LABELS_REPLACEMENT
 
 
 MODELS = [
-    ("RF", RandomForestClassifier),
-    ("SVM", SGDClassifier),
-    ("LR", SGDClassifier)
+    ("LR", SGDClassifier),
+    ("SVM", SGDClassifier)
 ]
 
 
 def run_classifier(model_name, model_class, features_type, dataset, labels, classes, indices):
-    configs = {}
-
-    configs["verbose"] = 1
-    configs["n_jobs"] = -1
+    configs = {
+        "verbose": 1,
+        "n_jobs": 12
+    }
 
     if model_name == 'LR':
         configs['loss'] = 'log'
@@ -80,6 +78,7 @@ if __name__ == "__main__":
     parser.add_argument("results_dir", type=unicode)
     parser.add_argument("--wvdataset", type=unicode, default=None)
     parser.add_argument("--wvlabels", type=unicode, default=None)
+    parser.add_argument("--mapping_kind", type=unicode, default='NEU')
     parser.add_argument("--experiment_kind", type=unicode, default='legal')
 
     args = parser.parse_args()
@@ -94,8 +93,10 @@ if __name__ == "__main__":
     with open(args.labels, 'rb') as f:
         labels = pickle.load(f)
 
+    replacement_function = LABELS_REPLACEMENT[args.experiment_kind][args.mapping_kind]
+
     print('Replacing the labels', file=sys.stderr)
-    labels = list(ne_uri_label_replace(labels, None))
+    labels = list(replacement_function(labels, None))
 
     print('Loading indices for train, test and validation', file=sys.stderr)
     indices = np.load(args.indices)
@@ -136,7 +137,7 @@ if __name__ == "__main__":
         labels = pickle.load(f)
 
     print('Replacing the labels', file=sys.stderr)
-    labels = list(ne_uri_label_replace(labels, None))
+    labels = list(replacement_function(labels, None))
 
     print('Loading indices for train, test and validation', file=sys.stderr)
     indices = np.load(args.indices)

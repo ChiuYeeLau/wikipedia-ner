@@ -11,6 +11,8 @@ The result will be a dictionary mapping the name of the entity to the
 LKIF corresponding class in a pickled file.
 """
 
+from __future__ import absolute_import, print_function, unicode_literals
+
 import argparse
 import pickle
 
@@ -18,6 +20,26 @@ from collections import defaultdict
 from os import listdir
 from os.path import isfile, join
 
+
+URI_YAGO = 'http://yago-knowledge.org/resource/'
+PERSON_MAPPINGS = {
+    'wordnet_legal_document_106479665': 'no_person',
+    'wordnet_due_process_101181475': 'no_person',
+    'wordnet_law_108441203': 'no_person',
+    'wordnet_law_100611143': 'no_person',
+    'wordnet_law_106532330': 'no_person',
+    'wordnet_legal_code_106667792': 'no_person',
+    'wordnet_criminal_record_106490173': 'no_person',
+    'wordnet_legal_power_105198427': 'no_person',
+    'wordnet_jurisdiction_108590369': 'no_person',
+    'wordnet_judiciary_108166318': 'no_person',
+    'wordnet_pleading_106559365': 'no_person',
+    'wordnet_court_108329453': 'no_person',
+    'wordnet_lawyer_110249950': 'wordnet_person_100007846',
+    'wordnet_judge_110225219': 'wordnet_person_100007846',
+    'wordnet_adjudicator_109769636': 'wordnet_person_100007846',
+    'wordnet_party_110402824': 'wordnet_person_100007846'
+}
 # Mapping from YAGO categories to LKIF cathegories
 # Based in the work of Laura Alonso
 # Includes only the first level of the hierarchy. Each LKIF class has
@@ -73,9 +95,18 @@ def add_entities_from_list(pair_list, class_name, current_result):
 
     The format of the pair_list is the same as the result of the script
     dowload_class_ids"""
+
     for entity, _ in pair_list[1:]:  # Ignore the first entry
-        current_result[entity].update(YAGO_TO_LKIF_MAPPING[class_name])
-    print 'Adding %d entities for class %s' % (len(pair_list), class_name)
+        entity = entity.replace(URI_YAGO, '')
+        current_result[entity].update(class_name)
+
+        if class_name in PERSON_MAPPINGS:
+            current_result[entity].update(PERSON_MAPPINGS[class_name])
+
+        if class_name in YAGO_TO_LKIF_MAPPING:
+            current_result[entity].update(YAGO_TO_LKIF_MAPPING[class_name])
+
+    print('Adding %d entities for class %s' % (len(pair_list), class_name))
 
 
 def add_entities_from_directory(input_dirname, current_result):
@@ -89,9 +120,6 @@ def add_entities_from_directory(input_dirname, current_result):
             # Not a pickle file
             continue
         class_name = filename[:-7].split('-')[0]
-        if not class_name in YAGO_TO_LKIF_MAPPING:
-            print 'Class %s not in mapping' % class_name
-            continue
         with open(join(input_dirname, filename), 'r') as input_file:
             add_entities_from_list(pickle.load(input_file), class_name,
                                    current_result)

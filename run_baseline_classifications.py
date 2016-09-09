@@ -19,7 +19,6 @@ from utils import LABELS_REPLACEMENT
 
 
 MODELS = [
-    ("LR", SGDClassifier),
     ("SVM", SGDClassifier)
 ]
 
@@ -69,6 +68,7 @@ def run_classifier(model_name, model_class, features_type, dataset, labels, clas
     joblib.dump(model, os.path.join(save_dir, '{}_model.pkl'.format(model_name)))
 
     print('Finished handcrafted experiment for classifier {}'.format(model_name), file=sys.stderr)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -147,9 +147,6 @@ if __name__ == "__main__":
     classes, integer_labels = np.unique(labels, return_inverse=True)
 
     for model_name, model_class in MODELS:
-        if model_name == "MNB":
-            continue
-
         print('Running word vectors dataset with {} classifier'.format(model_name), file=sys.stderr)
 
         try:

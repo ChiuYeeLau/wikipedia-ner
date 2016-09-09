@@ -18,7 +18,7 @@ if __name__ == "__main__":
     parser.add_argument("labels_path", type=unicode)
     parser.add_argument("save_path", type=unicode)
     parser.add_argument("mappings", type=unicode)
-    parser.add_argument("--mapping_kind", type=unicode, default=['NER', 'NEP', 'NEC', 'NEU'], nargs='+')
+    parser.add_argument("--mapping_kind", type=unicode, default=['NER', 'NEP', 'LKIF', 'NEC', 'NEU'], nargs='+')
     parser.add_argument("--experiment_kind", type=unicode, default='legal')
     parser.add_argument("--train_size", type=float, default=0.8)
     parser.add_argument("--test_size", type=float, default=0.1)

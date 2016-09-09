@@ -25,23 +25,19 @@ def ne_person_label_replace(labels, mappings):
             yield 'O'
 
 
-def ne_category_label_replace_legal(labels, mappings):
+def ne_category_label_replace_legal_lkif(labels, mappings):
     for label in labels:
         label = re.sub(r'^[BI]-', '', label)
         if 'Code' in mappings.get(label, set()):
             yield 'Code'
-        elif 'Decree' in mappings.get(label, set()):
-            yield 'Decree'
+        elif 'Hohfeldian_Power' in mappings.get(label, set()):
+            yield 'Hohfeldian_Power'
         elif 'Legal_Document' in mappings.get(label, set()):
             yield 'Legal_Document'
-        elif 'Legal_Role' in mappings.get(label, set()):
-            yield 'Legal_Role'
         elif 'Legal_Speech_Act' in mappings.get(label, set()):
             yield 'Legal_Speech_Act'
         elif 'Legislative_Body' in mappings.get(label, set()):
             yield 'Legislative_Body'
-        elif 'Potestative_Expression' in mappings.get(label, set()):
-            yield 'Potestative_Expression'
         elif 'Professional_Legal_Role' in mappings.get(label, set()):
             yield 'Professional_Legal_Role'
         elif 'Regulation' in mappings.get(label, set()):
@@ -115,7 +111,8 @@ LABELS_REPLACEMENT = {
     'legal': OrderedDict([
         ("NER", ner_label_replace),
         ("NEP", ne_person_label_replace),
-        ("NEC", ne_category_label_replace_legal),
+        ("NEC", ne_category_label_replace_legal_wordnet),
+        ("LKIF", ne_category_label_replace_legal_lkif),
         ("NEU", ne_uri_label_replace)
     ]),
     'movies': OrderedDict([

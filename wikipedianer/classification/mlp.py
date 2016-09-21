@@ -123,7 +123,8 @@ class MultilayerPerceptron(BaseClassifier):
             test_precision=[],
             validation_precision=[],
             test_recall=[],
-            validation_recall=[]
+            validation_recall=[],
+            test_predictions=[]
         )
         self.loss_report = loss_report
         self.saver = tf.train.Saver() if save_model else None
@@ -149,7 +150,7 @@ class MultilayerPerceptron(BaseClassifier):
         else:
             return self.train_dataset[start:end], one_hot_labels
 
-    def _evaluate(self, sess, dataset, labels, dataset_name):
+    def _evaluate(self, sess, dataset, labels, dataset_name, return_predictions=False):
         y_pred = np.zeros(dataset.shape[0], dtype=np.int32)
 
         print('Running evaluation for dataset {}'.format(dataset_name), file=sys.stderr)
@@ -164,15 +165,26 @@ class MultilayerPerceptron(BaseClassifier):
 
             y_pred[step:min(step+self.batch_size, dataset.shape[0])] = sess.run(self.y_pred, feed_dict=feed_dict)
 
-        return accuracy_score(labels, y_pred.astype(labels.dtype)), \
-            precision_score(labels, y_pred.astype(labels.dtype), average=None,
-                            labels=np.arange(self.classes.shape[0])), \
-            recall_score(labels, y_pred.astype(labels.dtype), average=None, labels=np.arange(self.classes.shape[0]))
+        if not return_predictions:
+            return accuracy_score(labels, y_pred.astype(labels.dtype)), \
+                precision_score(labels, y_pred.astype(labels.dtype), average=None,
+                                labels=np.arange(self.classes.shape[0])), \
+                recall_score(labels, y_pred.astype(labels.dtype), average=None, labels=np.arange(self.classes.shape[0]))
+        else:
+            return accuracy_score(labels, y_pred.astype(labels.dtype)), \
+                precision_score(labels, y_pred.astype(labels.dtype), average=None,
+                                labels=np.arange(self.classes.shape[0])), \
+                recall_score(labels, y_pred.astype(labels.dtype), average=None,
+                             labels=np.arange(self.classes.shape[0])), \
+                y_pred
 
-    def _add_results(self, dataset, accuracy, precision, recall):
+    def _add_results(self, dataset, accuracy, precision, recall, predictions=None):
         self.results['{}_accuracy'.format(dataset)].append(accuracy)
         self.results['{}_precision'.format(dataset)].append(precision)
         self.results['{}_recall'.format(dataset)].append(recall)
+
+        if predictions is not None:
+            self.results['{}_predictions'.format(predictions)] = predictions
 
     def _save_results(self):
         header = ','.join(self.classes).encode('utf-8')
@@ -194,6 +206,12 @@ class MultilayerPerceptron(BaseClassifier):
                    np.array(self.results['test_recall'], dtype=np.float32),
                    fmt='%.3f'.encode('utf-8'), delimiter=','.encode('utf-8'),
                    header=header)
+
+        with open(os.path.join(self.results_dir, 'test_predictions_{}.txt'.format(self.experiment_name)), 'w') as f:
+            for idx, pred_label in enumerate(self.results['test_predictions']):
+                print("{},{},{},{}".format(pred_label, self.classes[pred_label],
+                                           self.test_labels[idx], self.classes[self.test_labels[idx]]).encode("utf-8"),
+                      file=f)
 
         # Validation
         np.savetxt(os.path.join(self.results_dir, 'validation_accuracy_{}.txt'.format(self.experiment_name)),
@@ -251,9 +269,10 @@ class MultilayerPerceptron(BaseClassifier):
 
             print('Finished training', file=sys.stderr)
 
-            accuracy, precision, recall = self._evaluate(sess, self.test_dataset, self.test_labels, 'Test')
+            accuracy, precision, recall, predictions = self._evaluate(sess, self.test_dataset,
+                                                                      self.test_labels, 'Test', True)
             print('Testing accuracy: {:.3f}'.format(accuracy), file=sys.stderr)
-            self._add_results('test', accuracy, precision, recall)
+            self._add_results('test', accuracy, precision, recall, predictions)
 
             print('Saving weights and biases', file=sys.stderr)
             file_name_weights = os.path.join(self.saves_dir, "{}_weights.npz".format(self.experiment_name))

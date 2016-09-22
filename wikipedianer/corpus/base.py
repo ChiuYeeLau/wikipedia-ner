@@ -125,7 +125,7 @@ class Word(object):
             self.token.capitalize(),
             self.token.upper()
         ]
-    
+
 
 class NamedEntity(object):
     name = "NamedEntity"
@@ -136,7 +136,7 @@ class NamedEntity(object):
     def __iter__(self):
         for word in self._words:
             yield word
-        
+
     @property
     def entity_gazette(self):
         return ' '.join([word.token for word in self._words])
@@ -195,6 +195,20 @@ class Sentence(object):
             named_entities[-1].append(word)
 
         return named_entities
+
+    def get_unique_properties(self, property_name):
+        """Returns a set of values of property_name in all words in sentence"""
+        result = set()
+        for word in self._words:
+            if not hasattr(word, property_name):
+                continue
+            target = getattr(word, property_name)
+            if isinstance(target, list):
+                if len(target) > 0:
+                    result.add(target[0])
+            else:
+                result.add(target)
+        return result
 
     def get_words_and_entities(self):
         named_entity = []

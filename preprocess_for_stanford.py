@@ -50,6 +50,7 @@ def write_document(document, output_file, target_field):
         output_file.write(new_line.encode("utf-8"))
     output_file.write('\n')
 
+
 def main():
     """Preprocess the dataset"""
     args = read_arguments()
@@ -57,7 +58,8 @@ def main():
     filename = os.path.basename(args.input_path)
     with open(os.path.join(args.output_dirname, filename), 'w') as output_file:
         for document in parser:
-            write_document(document, output_file, args.target_field)
+            if document.has_named_entity:
+                write_document(document, output_file, args.target_field)
 
 
 if __name__ == '__main__':

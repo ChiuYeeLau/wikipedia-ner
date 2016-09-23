@@ -78,14 +78,14 @@ def read_arguments():
                         'are ner, categories or person.')
     parser.add_argument('--output_dirname', '-o', type=unicode,
                         help='Name of the directory to save the output file')
-    parser.add_argument('--splits', type=float, nargs=3,
+    parser.add_argument('--splits', '-s', type=float, nargs=3,
                         help='Proportions of entities to include in training, '
                              'testing and evaluation partitions. For example '
                              '0.70 0.20 0.10')
-    parser.add_argument('--mappings_filepath', type=unicode,
+    parser.add_argument('--mappings_filepath', '-m', type=unicode,
                         help='Pickled file with mappings to use to process'
                              'the labels.')
-    parser.add_argument('--use_filtered', type=bool,
+    parser.add_argument('--use_filtered', '-f', action='store_true',
                         help='Use the filtered versions of the file, located'
                              'in the folder named filtered. If there are not'
                              'present, create them.')
@@ -113,7 +113,12 @@ class DocumentsFilter(object):
 
     def is_filtered(self):
         """Checks if the filtered files exist."""
-        pass
+        try:
+            for filename in self.output_filepaths:
+                os.stat(filename)
+        except OSError:
+            return False
+        return True
 
     @staticmethod
     def write_file(input_filepath, output_filepath):
@@ -131,10 +136,11 @@ class DocumentsFilter(object):
     def filter_documents(self):
         """Read documents from input_dir, filter and write into a filtered dir.
         """
+        print 'Filtering documents'
         utils.safe_mkdir(self.output_dirpath)
         for input_filepath, output_filepath in zip(
             self.input_filepaths, self.output_filepaths):
-            print "Reading file: {}".format(input_filepath)
+            print 'Reading file: {}'.format(input_filepath)
             self.write_file(input_filepath, output_filepath)
 
 
@@ -304,7 +310,16 @@ def main():
     """Preprocess the dataset"""
     # TODO(mili) Filter O occurrences?
     args = read_arguments()
-    processer = StanfordPreprocesser(args.input_dirname, args.task_name,
+    if args.use_filtered:
+        document_filter = DocumentsFilter(args.input_dirname)
+        if not document_filter.is_filtered():
+            # Filter the corpus
+            document_filter.filter_documents()
+        input_dirname = os.path.join(args.input_dirname,
+                                     DocumentsFilter.OUTPUT_DIRNAME)
+    else:
+        input_dirname = args.input_dirname
+    processer = StanfordPreprocesser(input_dirname, args.task_name,
                                      args.output_dirname, args.splits,
                                      args.mappings_filepath)
 

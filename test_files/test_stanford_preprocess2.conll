@@ -1,0 +1,22 @@
+1	car	NN	O	0	null
+2	.	.	O	17	punct
+					
+1	the	DT	O	8	det
+2	Brabham	NNP	B-Brabham#Brabham#wordnet_adjudicator_109769636	8	nn
+3	Racing	NNP	I-Brabham#Brabham#wordnet_adjudicator_109769636	8	nn
+4	Organisation	NNP	I-Brabham#Brabham#wordnet_adjudicator_109769636	4	pobj
+					
+1	such	JJ	O	16	dep
+2	as	IN	O	14	prep
+3	Rob	NNP	B-Rob_Walker_Racing_Team#Rob_Walker_Racing_Team#wordnet_criminal_record_106490173	18	nn
+4	Walker	NNP	I-Rob_Walker_Racing_Team#Rob_Walker_Racing_Team#wordnet_criminal_record_106490173	16	pobj
+5	or	CC	O	18	cc
+6	Jo	NNP	O	21	nn
+7	Siffert	NNP	O	18	conj
+8	.	.	O	2	punct
+					
+1	the	DT	O	8	det
+2	Brabham	NNP	B-Brabham#Brabham#wordnet_adjudicator_109769636	8	nn
+3	Racing	NNP	I-Brabham#Brabham#wordnet_adjudicator_109769636	8	nn
+4	Organisation	NNP	I-Brabham#Brabham#wordnet_adjudicator_109769636	4	pobj
+					

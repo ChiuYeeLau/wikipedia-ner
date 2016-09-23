@@ -15,6 +15,7 @@ If the target attribute is multiple, them the first target will be selected
 """
 
 import argparse
+import numpy
 import pickle
 import os
 
@@ -22,22 +23,27 @@ from operator import itemgetter
 
 from wikipedianer.corpus.base import Word
 from wikipedianer.corpus.parser import WikipediaCorpusColumnParser
+from wikipedianer.dataset.preprocess import labels_filterer
 from wikipedianer.dataset.preprocess import StratifiedSplitter
 
 DEFAULT_TARGET = 'O'
 
+TAG_PROCESS_FUNCTIONS = {
+    # Merge tags I and B
+    'ner_tag': lambda tag: 'I' if not tag.startswith('O') else DEFAULT_TARGET
+}
 
 def read_arguments():
     """Parses the arguments from the stdin and returns an object."""
     parser = argparse.ArgumentParser()
     parser.add_argument('input_dirname', type=unicode,
                         help='Path of directory with the files to preprocess')
-    parser.add_argument('output_dirname', type=unicode,
-                        help='Name of the directory to save the output file')
     parser.add_argument('target_field', type=unicode,
                         help='Name of the attibute of the'
                              'wikipedianer.corpus.base.Word to use as third'
                              'column of the output')
+    parser.add_argument('--output_dirname', '-o', type=unicode,
+                        help='Name of the directory to save the output file')
     parser.add_argument('--splits', type=float, nargs=3,
                         help='Proportions of entities to include in training, '
                              'testing and evaluation partitions. For example '
@@ -46,18 +52,25 @@ def read_arguments():
     return parser.parse_args()
 
 
+def get_target(word, target_field):
+    """Returns a processed target for the word."""
+    target = getattr(word, target_field)
+    if isinstance(target, list):
+        target = target[0] if len(target) > 0 else DEFAULT_TARGET
+    if target is None or target == u'':
+        target = DEFAULT_TARGET
+    if target_field in TAG_PROCESS_FUNCTIONS:
+        target = TAG_PROCESS_FUNCTIONS[target_field](target)
+    return target
+
+
 def write_document(document, output_file, target_field):
     """Writes the document into the output file with proper format."""
     for word in document:
         if not hasattr(word, target_field):
             print 'Warning: skipping word {} without target field'.format(word)
             continue
-        target = getattr(word, target_field)
-        if isinstance(target, list):
-            target = target[0] if len(target) > 0 else DEFAULT_TARGET
-        if target is None or target == u'':
-            target = DEFAULT_TARGET
-        # TODO(mili) add exception to merge B- and I- classes
+        target = get_target(word, target_field)
         new_line = u'{}\t{}\t{}\n'.format(word.token, word.tag, target)
         output_file.write(new_line.encode("utf-8"))
     output_file.write('\n')
@@ -77,9 +90,9 @@ def add_label(document, labels, target_field):
     labels.append(labels_in_document.pop())  # TODO(mili) do something better
 
 
-def read_documents_from_file(input_dirname, labels, documents, target_field):
+def read_documents_from_file(input_path, labels, documents, target_field):
     """Adds all documents and labels to the inputs labels and documents."""
-    parser = WikipediaCorpusColumnParser(file_path=input_dirname)
+    parser = WikipediaCorpusColumnParser(file_path=input_path)
     for document in parser:
         if document.has_named_entity:
             documents.append(document)
@@ -88,30 +101,36 @@ def read_documents_from_file(input_dirname, labels, documents, target_field):
 
 def split_corpus(labels, documents, target_field, splits, output_dirname):
     """Splits dataset into train, test and validation. Saves into files."""
-    splitter = StratifiedSplitter(labels)
-    # TODO(mili) do not ignore warnings, filter classes with few instances
+    filtered_indices = labels_filterer(labels)
+    splitter = StratifiedSplitter(numpy.array(labels),
+                                  filtered_indices=filtered_indices)
     train_index, test_index, val_index = splitter.get_splitted_dataset_indices(
-        *splits, ignore_warnings=True)
+        *splits)
 
-    if not len(train_index) or not len(test_index) or not len(val_index):
+    if not len(train_index) or not len(test_index):
         print "ERROR not enough instances to split"
         return
 
-    write_documents(documents, train_index,
-                    os.path.join(output_dirname, 'train'),
-                    target_field)
-    write_documents(documents, test_index,
-                    os.path.join(output_dirname, 'test'),
-                    target_field)
-    write_documents(documents, val_index,
-                    os.path.join(output_dirname, 'validation'),
-                    target_field)
+    # Filter documents
+    documents = [document for index, document in enumerate(documents)
+                 if index in filtered_indices]
+    if output_dirname is not None:
+        write_documents(documents, train_index,
+                        os.path.join(output_dirname, 'train.conll'),
+                        target_field)
+        write_documents(documents, test_index,
+                        os.path.join(output_dirname, 'test.conll'),
+                        target_field)
+        if len(val_index):
+            write_documents(documents, val_index,
+                            os.path.join(output_dirname, 'validation.conll'),
+                            target_field)
 
-    # Save indices to file
-    indices_filename = os.path.join(output_dirname,
-                                    'split_indices.pickle')
-    with open(indices_filename, 'w') as indices_file:
-        pickle.dump((train_index, test_index, val_index), indices_file)
+        # Save indices to file
+        indices_filename = os.path.join(output_dirname,
+                                        'split_indices.pickle')
+        with open(indices_filename, 'w') as indices_file:
+            pickle.dump((train_index, test_index, val_index), indices_file)
 
 
 def main():
@@ -127,7 +146,6 @@ def main():
     filenames = filter(
         lambda f: os.path.isfile(os.path.join(args.input_dirname, f)),
         os.listdir(args.input_dirname))
-    print filenames
     for filename in sorted(filenames):
         file_path = os.path.join(args.input_dirname, filename)
         read_documents_from_file(file_path, labels, documents_to_write,

@@ -75,3 +75,6 @@ logs/
 /*.sh
 /*.pl
 run_*.sh
+
+# generated test files
+test_files/generated

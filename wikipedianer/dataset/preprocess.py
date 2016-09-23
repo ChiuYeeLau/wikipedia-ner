@@ -7,6 +7,7 @@ from collections import Counter
 
 
 def labels_filterer(labels, min_occurrences=3):
+    """Returns the indices of the labels that are not filtered out."""
     filtered_classes = {l for l, v in Counter(labels).iteritems() if v >= min_occurrences}
 
     return np.array([i for i, l in enumerate(labels) if l in filtered_classes], dtype=np.int32)
@@ -21,7 +22,7 @@ class StratifiedSplitter(object):
             filtered_indices: list with index of labels to split. If value is
                 None, all labels will be used.
         """
-        if filtered_indices:
+        if filtered_indices is not None:
             labels = labels[filtered_indices]
         self._classes, self._y_indices = np.unique(labels, return_inverse=True)
         self._filtered_indices = filtered_indices
@@ -31,6 +32,9 @@ class StratifiedSplitter(object):
 
     def split_dataset(self, train_size=0.8, test_size=0.1, validation_size=0.1,
                       ignore_warnings=False):
+        """
+        Get indices of filtered indices of the train/test/validation portion.
+        """
         assert train_size + test_size + validation_size == 1.
 
         y_counts = np.bincount(self._y_indices)

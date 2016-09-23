@@ -2,7 +2,10 @@
 
 from __future__ import absolute_import, print_function, unicode_literals
 
+import os
 import re
+import shutil
+
 from collections import OrderedDict
 
 
@@ -182,3 +185,20 @@ LINES = {
     "legal": LEGAL_LINES,
     "movies": MOVIES_LINES
 }
+
+
+def safe_mkdir(dir_path):
+    """Checks if a directory exists, and if it doesn't, creates one."""
+    try:
+        os.stat(dir_path)
+    except OSError:
+        os.mkdir(dir_path)
+
+
+def safe_rmdir(dir_path):
+    """Checks if a directory exists, and if it does, removes it."""
+    try:
+        os.stat(dir_path)
+        shutil.rmtree(dir_path)
+    except OSError:
+        pass

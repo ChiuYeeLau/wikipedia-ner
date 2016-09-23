@@ -114,6 +114,9 @@ def split_corpus(labels, documents, target_field, splits, output_dirname):
     # Filter documents
     documents = [document for index, document in enumerate(documents)
                  if index in filtered_indices]
+    print "Writing {} documents".format(len(documents))
+    print "Train dataset size {}".format(len(train_index))
+    print "Test dataset size {}".format(len(test_index))
     if output_dirname is not None:
         write_documents(documents, train_index,
                         os.path.join(output_dirname, 'train.conll'),
@@ -147,12 +150,14 @@ def main():
         lambda f: os.path.isfile(os.path.join(args.input_dirname, f)),
         os.listdir(args.input_dirname))
     for filename in sorted(filenames):
+        print "Reading file: {}".format(filename)
         file_path = os.path.join(args.input_dirname, filename)
         read_documents_from_file(file_path, labels, documents_to_write,
                                  args.target_field)
 
     if not args.splits:
         args.splits = []
+    print "Splitting and saving dataset."
     split_corpus(labels, documents_to_write, args.target_field, args.splits,
                  args.output_dirname)
 

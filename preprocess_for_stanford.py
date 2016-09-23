@@ -30,8 +30,8 @@ DEFAULT_TARGET = 'O'
 def read_arguments():
     """Parses the arguments from the stdin and returns an object."""
     parser = argparse.ArgumentParser()
-    parser.add_argument('input_path', type=unicode,
-                        help='Path of file to preprocess')
+    parser.add_argument('input_dirname', type=unicode,
+                        help='Path of directory with the files to preprocess')
     parser.add_argument('output_dirname', type=unicode,
                         help='Name of the directory to save the output file')
     parser.add_argument('target_field', type=unicode,
@@ -77,19 +77,19 @@ def add_label(document, labels, target_field):
     labels.append(labels_in_document.pop())  # TODO(mili) do something better
 
 
-def read_documents_from_file(input_path, labels, documents, target_field):
+def read_documents_from_file(input_dirname, labels, documents, target_field):
     """Adds all documents and labels to the inputs labels and documents."""
-    parser = WikipediaCorpusColumnParser(file_path=input_path)
+    parser = WikipediaCorpusColumnParser(file_path=input_dirname)
     for document in parser:
         if document.has_named_entity:
             documents.append(document)
             add_label(document, labels, target_field)
 
 
-def split_corpus(labels, documents, target_field,
-                 splits, output_dirname, filename):
+def split_corpus(labels, documents, target_field, splits, output_dirname):
     """Splits dataset into train, test and validation. Saves into files."""
     splitter = StratifiedSplitter(labels)
+    # TODO(mili) do not ignore warnings, filter classes with few instances
     train_index, test_index, val_index = splitter.get_splitted_dataset_indices(
         *splits, ignore_warnings=True)
 
@@ -98,41 +98,45 @@ def split_corpus(labels, documents, target_field,
         return
 
     write_documents(documents, train_index,
-                    os.path.join(output_dirname, filename) + '-train',
+                    os.path.join(output_dirname, 'train'),
                     target_field)
     write_documents(documents, test_index,
-                    os.path.join(output_dirname, filename) + '-test',
+                    os.path.join(output_dirname, 'test'),
                     target_field)
     write_documents(documents, val_index,
-                    os.path.join(output_dirname, filename) + '-validation',
+                    os.path.join(output_dirname, 'validation'),
                     target_field)
 
     # Save indices to file
     indices_filename = os.path.join(output_dirname,
-                                    filename + '-split_indices.pickle')
+                                    'split_indices.pickle')
     with open(indices_filename, 'w') as indices_file:
         pickle.dump((train_index, test_index, val_index), indices_file)
 
 
 def main():
     """Preprocess the dataset"""
-    # TODO(mili) Read files from directory
     # TODO(mili) Filter O occurrences?
     args = read_arguments()
-    filename = os.path.basename(args.input_path)
 
     # Lists with the sorted filtered documents and their corresponding labels.
     # If a document has multiple labels, one is selected randomly.
     labels = []
     documents_to_write = []
 
-    read_documents_from_file(args.input_path, labels, documents_to_write,
-                             args.target_field)
+    filenames = filter(
+        lambda f: os.path.isfile(os.path.join(args.input_dirname, f)),
+        os.listdir(args.input_dirname))
+    print filenames
+    for filename in sorted(filenames):
+        file_path = os.path.join(args.input_dirname, filename)
+        read_documents_from_file(file_path, labels, documents_to_write,
+                                 args.target_field)
 
     if not args.splits:
         args.splits = []
     split_corpus(labels, documents_to_write, args.target_field, args.splits,
-                 args.output_dirname, filename)
+                 args.output_dirname)
 
 
 if __name__ == '__main__':

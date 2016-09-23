@@ -49,43 +49,55 @@ def ne_category_label_replace_legal_lkif(labels, mappings):
             yield 'O'
 
 
+NE_CATEGORY_LABEL_LEGAL_MAP = {
+    'wordnet_law_108441203': 'wordnet_law',
+    'wordnet_law_100611143': 'wordnet_law',
+    'wordnet_law_106532330': 'wordnet_law',
+    'wordnet_legal_document_106479665': 'wordnet_legal_document',
+    'wordnet_due_process_101181475': 'wordnet_due_process',
+    'wordnet_legal_code_106667792': 'wordnet_legal_code',
+    'wordnet_criminal_record_106490173': 'wordnet_criminal_record',
+    'wordnet_legal_power_105198427': 'wordnet_legal_power',
+    'wordnet_jurisdiction_108590369': 'wordnet_jurisdiction',
+    'wordnet_judiciary_108166318': 'wordnet_judiciary',
+    'wordnet_pleading_106559365': 'wordnet_pleading',
+    'wordnet_court_108329453': 'wordnet_court',
+    'wordnet_judge_110225219': 'wordnet_judge',
+    'wordnet_adjudicator_109769636': 'wordnet_adjudicator',
+    'wordnet_lawyer_110249950': 'wordnet_lawyer',
+    'wordnet_party_110402824': 'wordnet_party',
+}
+
+
+NE_CATEGORY_PERSON_LEGAL_MAP = {
+    'wordnet_law_108441203': 'not_person',
+    'wordnet_law_100611143': 'not_person',
+    'wordnet_law_106532330': 'not_person',
+    'wordnet_legal_document_106479665': 'not_person',
+    'wordnet_due_process_101181475': 'not_person',
+    'wordnet_legal_code_106667792': 'not_person',
+    'wordnet_criminal_record_106490173': 'not_person',
+    'wordnet_legal_power_105198427': 'not_person',
+    'wordnet_jurisdiction_108590369': 'not_person',
+    'wordnet_judiciary_108166318': 'not_person',
+    'wordnet_pleading_106559365': 'not_person',
+    'wordnet_court_108329453': 'not_person',
+    'wordnet_judge_110225219': 'person',
+    'wordnet_adjudicator_109769636': 'person',
+    'wordnet_lawyer_110249950': 'person',
+    'wordnet_party_110402824': 'not_person',
+}
+
+
 def ne_category_label_replace_legal_wordnet(labels, mappings):
     for label in labels:
         label = re.sub(r'^[BI]-', '', label)
-        if 'wordnet_law_108441203' in mappings.get(label, set()):
-            yield 'wordnet_law'
-        elif 'wordnet_law_100611143' in mappings.get(label, set()):
-            yield 'wordnet_law'
-        elif 'wordnet_law_106532330' in mappings.get(label, set()):
-            yield 'wordnet_law'
-        elif 'wordnet_legal_document_106479665' in mappings.get(label, set()):
-            yield 'wordnet_legal_document'
-        elif 'wordnet_due_process_101181475' in mappings.get(label, set()):
-            yield 'wordnet_due_process'
-        elif 'wordnet_legal_code_106667792' in mappings.get(label, set()):
-            yield 'wordnet_legal_code'
-        elif 'wordnet_criminal_record_106490173' in mappings.get(label, set()):
-            yield 'wordnet_criminal_record'
-        elif 'wordnet_legal_power_105198427' in mappings.get(label, set()):
-            yield 'wordnet_legal_power'
-        elif 'wordnet_jurisdiction_108590369' in mappings.get(label, set()):
-            yield 'wordnet_jurisdiction'
-        elif 'wordnet_judiciary_108166318' in mappings.get(label, set()):
-            yield 'wordnet_judiciary'
-        elif 'wordnet_pleading_106559365' in mappings.get(label, set()):
-            yield 'wordnet_pleading'
-        elif 'wordnet_court_108329453' in mappings.get(label, set()):
-            yield 'wordnet_court'
-        elif 'wordnet_judge_110225219' in mappings.get(label, set()):
-            yield 'wordnet_judge'
-        elif 'wordnet_adjudicator_109769636' in mappings.get(label, set()):
-            yield 'wordnet_adjudicator'
-        elif 'wordnet_lawyer_110249950' in mappings.get(label, set()):
-            yield 'wordnet_lawyer'
-        elif 'wordnet_party_110402824' in mappings.get(label, set()):
-            yield 'wordnet_party'
-        else:
-            yield 'O'
+        mapping = mappings.get(label, set())
+        result = None
+        for key, value in NE_CATEGORY_LABEL_LEGAL_MAP.iteritems():
+            if key in mapping:
+                result = value
+        yield result if result else 'O'
 
 
 def ne_category_label_replace_movies(labels, mappings):

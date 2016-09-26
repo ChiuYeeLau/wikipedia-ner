@@ -61,7 +61,7 @@ class StanfordEvaluator(object):
             return {'O': 2, 'person': 0, 'not_person': 1}
         return {}
 
-    def get_predictions(self, input_filepath, output_filepath, split_max_size):
+    def get_predictions(self, input_filepath, output_filepath):
         """Run the classifier to evaluate the file in input_filepath.
 
         Waits until the process has finished. Saves the predictions into
@@ -119,37 +119,31 @@ class StanfordEvaluator(object):
                 if lines_read >= test_size:
                     break
 
-    def transform_prediction(self, truth, prediction):
+    def transform_prediction(self, prediction):
         """Adds the prediction to the confusion matrix according to self.task
 
         Predictions is the list with the parsed prediction. The first element
-        is the named entitiy, the second the I/O tag, the third the
+        is the named entitiy, the second the true tag, the third the
         person/organization/etc. tag.
         """
-        if truth == 'O':
+        if prediction[1] == 'O':
             return 'O'
         if self.task == 'ner':
-            return 'I' if prediction[1] != 'O' else prediction[1]
+            return 'I' if prediction[2] != 'O' else prediction[2]
         elif self.task == 'person':
-            return 'person' if prediction[2] == 'person' else 'not_person'
+            return 'person' if prediction[2] == 'PERSON' else 'not_person'
         elif self.task == 'categories':
             return prediction[2]
         return 'O'
 
-    def read_predictions(self, input_filepath, output_filepath,
-                         y_true, y_predicted):
+    def read_predictions(self, output_filepath, y_true, y_predicted):
         """Reads and transform predictions according to self.task."""
-        with nested(open(input_filepath, 'r'),
-                    open(output_filepath, 'r')) as (input_file, output_file):
-            reference_reader = csv.reader(input_file, delimiter='\t')
+        with open(output_filepath, 'r') as output_file:
             prediction_reader = csv.reader(output_file, delimiter='\t')
-            for truth, prediction in zip(reference_reader, prediction_reader):
-                if not len(truth):
-                    continue
-                assert truth[0] == prediction[0]
-                y_true.append(self._target_indices[truth[1]])
+            for prediction in prediction_reader:
+                y_true.append(self._target_indices[prediction[1]])
                 y_predicted.append(self._target_indices[
-                    self.transform_prediction(truth[1], prediction)])
+                    self.transform_prediction(prediction)])
 
     def get_metric(self, input_filepath, output_dirpath):
         """Compares the ground truth in files to the output prediction."""
@@ -158,8 +152,7 @@ class StanfordEvaluator(object):
         for input_filepath in self.splitted_input_filepaths:
             output_filepath = os.path.join(output_dirpath,
                                            os.path.basename(input_filepath))
-            self.read_predictions(input_filepath, output_filepath,
-                                  y_true, y_predicted)
+            self.read_predictions(output_filepath, y_true, y_predicted)
         print classification_report(
             y_true, y_predicted,
             target_names=sorted(self._target_indices.keys()))
@@ -174,8 +167,7 @@ class StanfordEvaluator(object):
         for input_filepath in self.splitted_input_filepaths:
             output_filepath = os.path.join(output_dirpath,
                                            os.path.basename(input_filepath))
-            if not self.get_predictions(input_filepath, output_filepath,
-                                        split_max_size):
+            if not self.get_predictions(input_filepath, output_filepath):
                 return
 
         self.get_metric(self.input_filepath, output_dirpath)
@@ -188,7 +180,6 @@ def main():
 
     evaluator = StanfordEvaluator(args.test_filepath, args.stanford_libs_path,
                                   args.classifier_path, args.task)
-    print args.__dict__
     evaluator.evaluate(args.output_dirpath, args.split_size)
 
 

@@ -89,6 +89,8 @@ def read_arguments():
                         help='Use the filtered versions of the file, located'
                              'in the folder named filtered. If there are not'
                              'present, create them.')
+    parser.add_argument('--indices', type=unicode,
+                        help='File with pickled documents indices to use.')
 
     return parser.parse_args()
 
@@ -157,7 +159,7 @@ class StanfordPreprocesser(object):
     """
 
     def __init__(self, input_dirname, task_name, output_dirname, splits,
-                 mappings_filepath):
+                 mappings_filepath, indices_filepath):
         self.input_dirname = input_dirname
         if not task_name in TASKS_MAP:
             raise ValueError('The name of the task is incorrect.')
@@ -189,11 +191,18 @@ class StanfordPreprocesser(object):
         self.test_doc_index = None
         self.validation_doc_index = None
 
+        self.indices_filepath = indices_filepath
+        if self.indices_filepath:
+            with open(self.indices_filepath) as indices_file:
+                (self.train_doc_index, self.test_doc_index,
+                    self.validation_doc_index) = pickle.load(indices_file)
+
     def preprocess(self):
         """Runs all the preprocess tasks."""
-        self.read_documents()
-        self.filter_labels()
-        self.split_corpus()
+        if not self.indices_filepath:
+            self.read_documents()
+            self.filter_labels()
+            self.split_corpus()
         self.write_splits()
 
     def add_label(self, document):
@@ -258,7 +267,7 @@ class StanfordPreprocesser(object):
             doc_index for index, doc_index in enumerate(self.documents)
             if index in validation_index]
 
-    def write_document(self, document, output_file, for_test=False):
+    def write_document(self, document, output_file):
         """Writes the document into the output file with proper format."""
         for word in document:
             if not hasattr(word, self.target_field):
@@ -266,10 +275,7 @@ class StanfordPreprocesser(object):
                     word)
                 continue
             target = self.process_target(getattr(word, self.target_field))
-            if not for_test:
-                new_line = u'{}\t{}\t{}\n'.format(word.token, word.tag, target)
-            else:
-                new_line = u'{}\t{}\n'.format(word.token, target)
+            new_line = u'{}\t{}\t{}\n'.format(word.token, word.tag, target)
             output_file.write(new_line.encode("utf-8"))
         output_file.write('\n')
 
@@ -284,12 +290,13 @@ class StanfordPreprocesser(object):
         print "Validation dataset size {}".format(len(self.validation_doc_index))
         current_document_index = 0
 
-        print "Saving absolute indices"
-        indices_filename = os.path.join(self.output_dirname,
-                                        'split_indices.pickle')
-        with open(indices_filename, 'w') as indices_file:
-            pickle.dump((self.train_doc_index, self.test_doc_index,
-                         self.validation_doc_index), indices_file)
+        if not self.indices_filepath:
+            print "Saving absolute indices"
+            indices_filename = os.path.join(self.output_dirname,
+                                            'split_indices.pickle')
+            with open(indices_filename, 'w') as indices_file:
+                pickle.dump((self.train_doc_index, self.test_doc_index,
+                             self.validation_doc_index), indices_file)
 
         train_filename = os.path.join(self.output_dirname, 'train.conll')
         test_filename = os.path.join(self.output_dirname, 'test.conll')
@@ -303,9 +310,9 @@ class StanfordPreprocesser(object):
                     if current_document_index in self.train_doc_index:
                         self.write_document(document, train_f)
                     elif current_document_index in self.test_doc_index:
-                        self.write_document(document, test_f, for_test=True)
+                        self.write_document(document, test_f)
                     elif current_document_index in self.validation_doc_index:
-                        self.write_document(document, val_f, for_test=True)
+                        self.write_document(document, val_f)
                     current_document_index += 1
 
 
@@ -323,7 +330,7 @@ def main():
         input_dirname = args.input_dirname
     processer = StanfordPreprocesser(input_dirname, args.task_name,
                                      args.output_dirname, args.splits,
-                                     args.mappings_filepath)
+                                     args.mappings_filepath, args.indices)
 
     processer.preprocess()
 

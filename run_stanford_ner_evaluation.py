@@ -58,7 +58,7 @@ class StanfordEvaluator(object):
         if task == 'ner':
             return {'I': 0, 'O': 1}
         elif task == 'person':
-            return {'O': 2, 'person': 0, 'not_person': 1}
+            return {'not_person': 0, 'O': 1, 'person': 2}
         return {}
 
     def get_predictions(self, input_filepath, output_filepath):
@@ -131,7 +131,10 @@ class StanfordEvaluator(object):
         if self.task == 'ner':
             return 'I' if prediction[2] != 'O' else prediction[2]
         elif self.task == 'person':
-            return 'person' if prediction[2] == 'PERSON' else 'not_person'
+            if prediction[2] == 'PERSON':
+                return 'person'
+            elif prediction[2] != 'O':
+                return 'not_person'
         elif self.task == 'categories':
             return prediction[2]
         return 'O'
@@ -141,6 +144,8 @@ class StanfordEvaluator(object):
         with open(output_filepath, 'r') as output_file:
             prediction_reader = csv.reader(output_file, delimiter='\t')
             for prediction in prediction_reader:
+                if len(prediction) == 0:
+                    continue
                 y_true.append(self._target_indices[prediction[1]])
                 y_predicted.append(self._target_indices[
                     self.transform_prediction(prediction)])

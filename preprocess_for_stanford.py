@@ -258,7 +258,7 @@ class StanfordPreprocesser(object):
             doc_index for index, doc_index in enumerate(self.documents)
             if index in validation_index]
 
-    def write_document(self, document, output_file):
+    def write_document(self, document, output_file, for_test=False):
         """Writes the document into the output file with proper format."""
         for word in document:
             if not hasattr(word, self.target_field):
@@ -266,7 +266,10 @@ class StanfordPreprocesser(object):
                     word)
                 continue
             target = self.process_target(getattr(word, self.target_field))
-            new_line = u'{}\t{}\t{}\n'.format(word.token, word.tag, target)
+            if not for_test:
+                new_line = u'{}\t{}\t{}\n'.format(word.token, word.tag, target)
+            else:
+                new_line = u'{}\t{}\n'.format(word.token, target)
             output_file.write(new_line.encode("utf-8"))
         output_file.write('\n')
 
@@ -300,15 +303,14 @@ class StanfordPreprocesser(object):
                     if current_document_index in self.train_doc_index:
                         self.write_document(document, train_f)
                     elif current_document_index in self.test_doc_index:
-                        self.write_document(document, test_f)
+                        self.write_document(document, test_f, for_test=True)
                     elif current_document_index in self.validation_doc_index:
-                        self.write_document(document, val_f)
+                        self.write_document(document, val_f, for_test=True)
                     current_document_index += 1
 
 
 def main():
     """Preprocess the dataset"""
-    # TODO(mili) Filter O occurrences?
     args = read_arguments()
     if args.use_filtered:
         document_filter = DocumentsFilter(args.input_dirname)

@@ -5,6 +5,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 import os
 import re
 import shutil
+import subprocess
 
 from collections import OrderedDict
 
@@ -214,3 +215,10 @@ def safe_rmdir(dir_path):
         shutil.rmtree(dir_path)
     except OSError:
         pass
+
+
+def count_lines_in_file(filepath):
+    """Return the number of lines in a file obtained with the command wc -l"""
+    args = ['wc', '-l', filepath]
+    output = subprocess.Popen(args, stdout=subprocess.PIPE).communicate()[0]
+    return int(output.split()[0])

@@ -50,7 +50,8 @@ class StanfordEvaluator(object):
                                    for lib_name in java_lib_names])
         self.classifier_path = classifier_path
         self.task = task
-        self._target_indices = self._build_target_indices(task)
+        self._target_indices = {} # self._build_target_indices(task)
+        self._classes = []
 
     @staticmethod
     def _build_target_indices(task):
@@ -148,9 +149,16 @@ class StanfordEvaluator(object):
             for prediction in prediction_reader:
                 if len(prediction) == 0:
                     continue
-                y_true.append(self._target_indices[prediction[1]])
-                y_predicted.append(self._target_indices[
-                    self.transform_prediction(prediction)])
+                true = prediction[1]
+                if not true in self._target_indices:
+                    self._target_indices[true] = len(self._target_indices)
+                    self._classes.append(true)
+                y_true.append(self._target_indices[true])
+                predicted = self.transform_prediction(prediction)
+                if not predicted in self._target_indices:
+                    self._target_indices[predicted] = len(self._target_indices)
+                    self._classes.append(predicted)
+                y_predicted.append(self._target_indices[predicted])
 
     def get_metric(self, output_dirpath):
         """Compares the ground truth in files to the output prediction."""
@@ -162,9 +170,8 @@ class StanfordEvaluator(object):
             output_filepath = os.path.join(output_dirpath,
                                            os.path.basename(input_filepath))
             self.read_predictions(output_filepath, y_true, y_predicted)
-        print classification_report(
-            y_true, y_predicted, labels=[0, 1, 2],
-            target_names=sorted(self._target_indices.keys()))
+        print classification_report(y_true, y_predicted,
+                                    target_names=self._classes)
 
     def predict(self, output_dirpath):
         """Applies the classifier to the test file"""

@@ -32,6 +32,8 @@ def parse_arguments():
                         help='Split the test corpus into parts.')
     parser.add_argument('--task', type=unicode, default='ner',
                         help='Name of the task to evaluate.')
+    parser.add_argument('--evaluate_only', action='store_true',
+                        help='Skip classification step.')
 
     return parser.parse_args()
 
@@ -150,32 +152,29 @@ class StanfordEvaluator(object):
                 y_predicted.append(self._target_indices[
                     self.transform_prediction(prediction)])
 
-    def get_metric(self, input_filepath, output_dirpath):
+    def get_metric(self, output_dirpath):
         """Compares the ground truth in files to the output prediction."""
         y_true = []
         y_predicted = []
+        if not len(self.splitted_input_filepaths):
+            self.splitted_input_filepaths = self.input_filepath
         for input_filepath in self.splitted_input_filepaths:
             output_filepath = os.path.join(output_dirpath,
                                            os.path.basename(input_filepath))
             self.read_predictions(output_filepath, y_true, y_predicted)
         print classification_report(
-            y_true, y_predicted,
+            y_true, y_predicted, labels=[0, 1, 2],
             target_names=sorted(self._target_indices.keys()))
 
-    def evaluate(self, output_dirpath, split_max_size):
-        """
-        Applies the classifier
-        Reads the input and the output
-        Calculates the metric
-        """
-        self.split(split_max_size)
+    def predict(self, output_dirpath):
+        """Applies the classifier to the test file"""
+        if not len(self.splitted_input_filepaths):
+            self.splitted_input_filepaths = self.input_filepath
         for input_filepath in self.splitted_input_filepaths:
             output_filepath = os.path.join(output_dirpath,
                                            os.path.basename(input_filepath))
             if not self.get_predictions(input_filepath, output_filepath):
                 return
-
-        self.get_metric(self.input_filepath, output_dirpath)
 
 
 def main():
@@ -185,7 +184,10 @@ def main():
 
     evaluator = StanfordEvaluator(args.test_filepath, args.stanford_libs_path,
                                   args.classifier_path, args.task)
-    evaluator.evaluate(args.output_dirpath, args.split_size)
+    evaluator.split(args.split_size)
+    if not args.evaluate_only:
+        evaluator.predict(args.output_dirpath)
+    evaluator.get_metric(args.output_dirpath)
 
 
 if __name__ == '__main__':

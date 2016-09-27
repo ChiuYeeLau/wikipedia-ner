@@ -50,19 +50,8 @@ class StanfordEvaluator(object):
                                    for lib_name in java_lib_names])
         self.classifier_path = classifier_path
         self.task = task
-        self._target_indices = {} # self._build_target_indices(task)
+        self._target_indices = {}
         self._classes = []
-
-    @staticmethod
-    def _build_target_indices(task):
-        """Map the possible class names to indices according to self.task
-
-        Applicable to ner and person tasks only."""
-        if task == 'ner':
-            return {'I': 0, 'O': 1}
-        elif task == 'person':
-            return {'not_person': 0, 'O': 1, 'person': 2}
-        return {}
 
     def get_predictions(self, input_filepath, output_filepath):
         """Run the classifier to evaluate the file in input_filepath.
@@ -80,7 +69,6 @@ class StanfordEvaluator(object):
         process = subprocess.Popen(shlex.split(evaluation_command.format(
             self.java_libs, self.classifier_path, input_filepath,
             output_filepath)), stdout=output_file)
-
 
         # Finish all process and show the promp again. Optional.
         process.wait()
@@ -134,7 +122,7 @@ class StanfordEvaluator(object):
         if self.task == 'ner':
             return 'I' if prediction[2] != 'O' else prediction[2]
         elif self.task == 'person':
-            if prediction[2] == 'PERSON':
+            if prediction[2].lower() == 'PERSON':
                 return 'person'
             elif prediction[2] != 'O':
                 return 'not_person'

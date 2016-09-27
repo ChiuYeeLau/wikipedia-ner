@@ -33,11 +33,20 @@ DEFAULT_TARGET = 'O'
 
 
 def get_person_from_map(uri, mapping):
-    if uri in mapping:
+    if uri != DEFAULT_TARGET and uri in mapping:
         maps = mapping[uri]
         if 'wordnet_person_100007846' in maps:
             return 'person'
         return 'not_person'
+    return DEFAULT_TARGET
+
+
+def get_lkif_class(uri, mapping):
+    if uri != DEFAULT_TARGET and uri in mapping:
+        maps = mapping[uri]
+        for lkif_class in utils.LKIF_CLASSES:
+            if lkif_class in maps:
+                return lkif_class
     return DEFAULT_TARGET
 
 
@@ -64,6 +73,10 @@ TASKS_MAP = {
     'person_mapped': {
         'target': 'yago_uri',
         'funct': get_person_from_map
+    },
+    'lkif_mapped' : {
+        'target': 'yago_uri',
+        'funct': get_lkif_class
     }
 }
 
@@ -169,7 +182,7 @@ class StanfordPreprocesser(object):
         self.splits = splits if splits else []
         self.mappings_filepath = mappings_filepath
         self.mapping = None
-        if self.mappings_filepath and self.task_name == 'person_mapped':
+        if self.mappings_filepath and self.task_name.endswith('mapped'):
             with open(self.mappings_filepath, 'r') as mappings_file:
                 self.mapping = pickle.load(mappings_file)
 

@@ -28,6 +28,16 @@ def ne_person_label_replace(labels, mappings):
         else:
             yield 'O'
 
+LKIF_CLASSES = [
+    'Code',
+    'Hohfeldian_Power',
+    'Legal_Document',
+    'Legal_Speech_Act',
+    'Legislative_Body',
+    'Professional_Legal_Role',
+    'Regulation',
+]
+
 
 def ne_category_label_replace_legal_lkif(labels, mappings):
     for label in labels:

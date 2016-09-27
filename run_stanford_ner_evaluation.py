@@ -122,7 +122,7 @@ class StanfordEvaluator(object):
         if self.task == 'ner':
             return 'I' if prediction[2] != 'O' else prediction[2]
         elif self.task == 'person':
-            if prediction[2].lower() == 'PERSON':
+            if prediction[2].lower() == 'person':
                 return 'person'
             elif prediction[2] != 'O':
                 return 'not_person'

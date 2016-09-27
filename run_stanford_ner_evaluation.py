@@ -117,12 +117,14 @@ class StanfordEvaluator(object):
         is the named entitiy, the second the true tag, the third the
         person/organization/etc. tag.
         """
+        if self.task != 'retrained':
+            return prediction[2]
         if prediction[1] == 'O':
             return 'O'
         if self.task == 'ner':
             return 'I' if prediction[2] != 'O' else prediction[2]
         elif self.task == 'person':
-            if prediction[2].lower() == 'person':
+            if prediction[2].lower() == 'PERSON':
                 return 'person'
             elif prediction[2] != 'O':
                 return 'not_person'

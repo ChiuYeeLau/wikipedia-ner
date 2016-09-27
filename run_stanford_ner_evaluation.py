@@ -13,7 +13,7 @@ import os
 import utils
 
 from contextlib import nested
-from sklearn.metrics import classification_report
+from sklearn import metrics 
 
 
 def parse_arguments():
@@ -117,7 +117,7 @@ class StanfordEvaluator(object):
         is the named entitiy, the second the true tag, the third the
         person/organization/etc. tag.
         """
-        if self.task != 'retrained':
+        if self.task == 'retrained':
             return prediction[2]
         if prediction[1] == 'O':
             return 'O'
@@ -160,8 +160,9 @@ class StanfordEvaluator(object):
             output_filepath = os.path.join(output_dirpath,
                                            os.path.basename(input_filepath))
             self.read_predictions(output_filepath, y_true, y_predicted)
-        print classification_report(y_true, y_predicted,
-                                    target_names=self._classes)
+        print metrics.classification_report(y_true, y_predicted,
+                                            target_names=self._classes)
+        print metrics.confusion_matrix(y_true, y_predicted)
 
     def predict(self, output_dirpath):
         """Applies the classifier to the test file"""

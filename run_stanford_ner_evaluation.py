@@ -160,9 +160,10 @@ class StanfordEvaluator(object):
             output_filepath = os.path.join(output_dirpath,
                                            os.path.basename(input_filepath))
             self.read_predictions(output_filepath, y_true, y_predicted)
-        print metrics.classification_report(y_true, y_predicted,
-                                            target_names=self._classes)
-        print metrics.confusion_matrix(y_true, y_predicted)
+        print metrics.classification_report(
+            y_true, y_predicted, target_names=self._classes, digits=3)
+        for row in metrics.confusion_matrix(y_true, y_predicted):
+            print '\t'.join([str(x) for x in row])
 
     def predict(self, output_dirpath):
         """Applies the classifier to the test file"""

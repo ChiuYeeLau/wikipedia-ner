@@ -184,7 +184,7 @@ class MultilayerPerceptron(BaseClassifier):
         self.results['{}_recall'.format(dataset)].append(recall)
 
         if predictions is not None:
-            self.results['{}_predictions'.format(predictions)] = predictions
+            self.results['{}_predictions'.format(dataset)] = predictions
 
     def _save_results(self):
         header = ','.join(self.classes).encode('utf-8')

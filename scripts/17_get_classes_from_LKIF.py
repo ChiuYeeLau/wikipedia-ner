@@ -40,9 +40,8 @@ PERSON_MAPPINGS = {
     'wordnet_adjudicator_109769636': 'wordnet_person_100007846',
     'wordnet_party_110402824': 'wordnet_person_100007846'
 }
-# Mapping from YAGO categories to LKIF cathegories
+# Mapping from YAGO categories to LKIF categories
 # Based in the work of Laura Alonso
-# Includes only the first level of the hierarchy. Each LKIF class has
 YAGO_TO_LKIF_MAPPING = {
     'wordnet_legal_power_105198427': ['Hohfeldian_Power'],
     'wordnet_right_113341756': ['Potestative_Right'],

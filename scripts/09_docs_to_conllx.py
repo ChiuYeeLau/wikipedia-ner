@@ -78,21 +78,8 @@ def create_directory(resources_dir):
         if os.path.isfile(fpath):
             os.unlink(fpath)
 
-
-def write_link_token(token_idx, doc_links, url_entities, uris_urls,
-                     output_file):
+def write_link_token(token_idx, entity, token_tag, output_file):
     """Writes to output file the LINK_CHANGE_TOKEN in conll format."""
-    token_tag = doc_links.pop(0)
-
-    try:
-        entity = url_entities[uris_urls[token_tag["href"]]]
-    except KeyError:
-        entity = None
-    except BaseException as e:
-        print("Document {} had unexpected exception for token {}: {}".format(
-            doc_url, token_idx, e), file=sys.stderr)
-        entity = None
-
     for subtoken_idx, subtoken in enumerate(word_tokenize(token_tag.text)):
         token_idx += 1
         if entity is not None and subtoken_idx == 0:
@@ -110,13 +97,8 @@ def write_link_token(token_idx, doc_links, url_entities, uris_urls,
     return token_idx
 
 
-def write_title_token(token_idx, doc_url, url_entities, uris_urls, output_file):
+def write_title_token(token_idx, doc_title, entity, output_file):
     """Writes to output file the TITLE_CHANGE_TOKEN in conll format."""
-    if doc_url in url_entities:
-        entity = url_entities[doc_url]
-    else:
-        entity = None
-
     for subtoken_idx, subtoken in enumerate(word_tokenize(doc_title.text)):
         token_idx += 1
         if entity is not None and subtoken_idx == 0:
@@ -154,11 +136,25 @@ def transform_document(output_file, url_entities, uris_urls, line_doc):
             "{}.".format(TITLE_CHANGE_TOKEN), TITLE_CHANGE_TOKEN)
         for token in word_tokenize(sentence):
             if token == LINK_CHANGE_TOKEN:
-                token_idx = write_link_token(token_idx, doc_links, url_entities,
-                                             uris_urls, output_file)
+                token_tag = doc_links.pop(0)
+
+                try:
+                    entity = url_entities[uris_urls[token_tag["href"]]]
+                except KeyError:
+                    entity = None
+                except BaseException as e:
+                    print("Document {} had unexpected exception for token {}: {}".format(
+                        doc_url, token_idx, e), file=sys.stderr)
+                entity = None
+
+                token_idx = write_link_token(token_idx, entity, token_tag,
+                                             output_file)
             elif token == TITLE_CHANGE_TOKEN:
-                token_idx = write_title_token(token_idx, doc_url, url_entities,
-                                              uris_urls, output_file)
+                entity = None
+                if doc_url in url_entities:
+                    entity = url_entities[doc_url]
+                token_idx = write_title_token(token_idx, doc_title, entity,
+                                              output_file)
             else:
                 token_idx += 1
                 print("{} {}\t{}\tO".format(

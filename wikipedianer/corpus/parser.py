@@ -227,13 +227,16 @@ class WordVectorsExtractor(object):
 
 
 class WikipediaCorpusColumnParser(object):
-    def __init__(self, file_path, remove_stop_words=False):
+    def __init__(self, file_path, remove_stop_words=False,
+                 keep_originals=False):
         self.file_path = file_path
         self.remove_stop_words = remove_stop_words
+        self.keep_originals = keep_originals
 
     def __iter__(self):
         words = []
         has_named_entity = False
+        original_line = ''
 
         with open(self.file_path, 'r') as f:
             for line in f:
@@ -245,6 +248,8 @@ class WikipediaCorpusColumnParser(object):
                     has_named_entity = False
                     yield s
                 else:
+                    if self.keep_originals:
+                        original_line = line
                     _, token, tag, class_string, head, dep = line.split()
 
                     widx = len(words)
@@ -263,8 +268,11 @@ class WikipediaCorpusColumnParser(object):
                                           if yr.split('-', 1)[0] in YAGO_RELATIONS_MOVIES]
 
                         words.append(Word(widx, token, tag, dep, head, ner_tag, yago_uri, wiki_uri,
-                                          wordnet_categories, yago_relations, is_doc_start))
+                                          wordnet_categories, yago_relations, is_doc_start,
+                                          original_string=original_line))
                     elif self.remove_stop_words and token in STOPWORDS_SET:
                         continue
                     else:
-                        words.append(Word(widx, token, tag, dep, head, 'O', is_doc_start=is_doc_start))
+                        words.append(Word(widx, token, tag, dep, head, 'O',
+                                          is_doc_start=is_doc_start,
+                                          original_string=original_line))

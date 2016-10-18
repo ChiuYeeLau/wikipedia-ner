@@ -42,8 +42,9 @@ YAGO_RELATIONS_MOVIES = {
 class Word(object):
     name = "Word"
 
-    def __init__(self, idx, token, tag, dep, head, ner_tag, yago_uri='', wiki_uri='',
-                 wordnet_categories=None, yago_relations=None, is_doc_start=False):
+    def __init__(self, idx, token, tag, dep, head, ner_tag, yago_uri='',
+                 wiki_uri='', wordnet_categories=None, yago_relations=None,
+                 is_doc_start=False, original_string=''):
         self.idx = int(idx)
         self.token = token
         self.tag = tag.upper()
@@ -55,6 +56,7 @@ class Word(object):
         self.wordnet_categories = wordnet_categories if wordnet_categories is not None else []
         self.yago_relations = yago_relations if yago_relations is not None else []
         self.is_doc_start = is_doc_start
+        self.original_string = original_string
 
     def __to_string__(self):
         return '{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}'.format(
@@ -77,6 +79,9 @@ class Word(object):
 
     def __repr__(self):
         return str(self)
+
+    def __eq__(self, other):
+        return (self.original_string == other.original_string)
 
     @property
     def label(self):
@@ -125,7 +130,7 @@ class Word(object):
             self.token.capitalize(),
             self.token.upper()
         ]
-    
+
 
 class NamedEntity(object):
     name = "NamedEntity"
@@ -136,7 +141,7 @@ class NamedEntity(object):
     def __iter__(self):
         for word in self._words:
             yield word
-        
+
     @property
     def entity_gazette(self):
         return ' '.join([word.token for word in self._words])
@@ -169,6 +174,14 @@ class Sentence(object):
     def __len__(self):
         return len(self._words)
 
+    def __eq__(self, other):
+        if len(self._words) != len(other._words):
+            return False
+        for word1, word2 in zip(self._words, other._words):
+            if not word1 == word2:
+                return False
+        return True
+
     @property
     def labels(self):
         return [word.short_label for word in self]
@@ -196,6 +209,20 @@ class Sentence(object):
 
         return named_entities
 
+    def get_unique_properties(self, property_name):
+        """Returns a set of values of property_name in all words in sentence"""
+        result = set()
+        for word in self._words:
+            if not hasattr(word, property_name):
+                continue
+            target = getattr(word, property_name)
+            if isinstance(target, list):
+                if len(target) > 0:
+                    result.add(target[0])
+            else:
+                result.add(target)
+        return result
+
     def get_words_and_entities(self):
         named_entity = []
 
@@ -220,3 +247,7 @@ class Sentence(object):
 
     def get_right_window(self, loc, window_size):
         return self._words[loc+1:loc+window_size+1]
+
+    def get_original_strings(self):
+        """Returns a list with the original_lines of every word, in order."""
+        return [word.original_string for word in self._words]

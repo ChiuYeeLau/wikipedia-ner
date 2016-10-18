@@ -7,20 +7,34 @@ from collections import Counter
 
 
 def labels_filterer(labels, min_occurrences=3):
+    """Returns the indices of the labels that are not filtered out."""
     filtered_classes = {l for l, v in Counter(labels).iteritems() if v >= min_occurrences}
 
     return np.array([i for i, l in enumerate(labels) if l in filtered_classes], dtype=np.int32)
 
 
 class StratifiedSplitter(object):
-    def __init__(self, labels, filtered_indices):
-        self._classes, self._y_indices = np.unique(labels[filtered_indices], return_inverse=True)
+    def __init__(self, labels, filtered_indices=None):
+        """Create a new StratifiedSplitter
+
+        Args:
+            labels: numpy.array with the ordered labels to split.
+            filtered_indices: list with index of labels to split. If value is
+                None, all labels will be used.
+        """
+        if filtered_indices is not None:
+            labels = labels[filtered_indices]
+        self._classes, self._y_indices = np.unique(labels, return_inverse=True)
         self._filtered_indices = filtered_indices
         self._train_indices = np.array([])
         self._test_indices = np.array([])
         self._validation_indices = np.array([])
 
-    def split_dataset(self, train_size=0.8, test_size=0.1, validation_size=0.1):
+    def split_dataset(self, train_size=0.8, test_size=0.1, validation_size=0.1,
+                      ignore_warnings=False):
+        """
+        Get indices of filtered indices of the train/test/validation portion.
+        """
         assert train_size + test_size + validation_size == 1.
 
         y_counts = np.bincount(self._y_indices)
@@ -29,19 +43,23 @@ class StratifiedSplitter(object):
         n_test = self._y_indices.shape[0] * test_size
         n_validation = self._y_indices.shape[0] * validation_size
 
-        if (validation_size > 0. and np.min(y_counts) < 3) or (validation_size == 0. and np.min(y_counts) < 2):
-            raise ValueError("The least populated class needs to have more than 2 occurrences" +
-                             " if you want to split with validation or more than 1 occurrence otherwise.")
+        if (((validation_size > 0. and np.min(y_counts) < 3) or
+            (validation_size == 0. and np.min(y_counts) < 2)) and
+            not ignore_warnings):
+            raise ValueError(
+                'The least populated class needs to have more than 2'
+                ' occurrences if you want to split with validation or more than'
+                ' 1 occurrence otherwise.')
 
-        if n_train < n_cls:
+        if n_train < n_cls and not ignore_warnings:
             raise ValueError('The train_size = %d should be greater or '
                              'equal to the number of classes = %d' %
                              (n_train, n_cls))
-        if n_test < n_cls:
+        if n_test < n_cls and not ignore_warnings:
             raise ValueError('The test_size = %d should be greater or '
                              'equal to the number of classes = %d' %
                              (n_test, n_cls))
-        if validation_size > 0 and n_validation < n_cls:
+        if validation_size > 0 and n_validation < n_cls and not ignore_warnings:
             raise ValueError('The validation_size = %d should be greater or '
                              'equal to the number of classes = %d' %
                              (n_validation, n_cls))
@@ -69,9 +87,18 @@ class StratifiedSplitter(object):
         self._test_indices = np.random.permutation(np.array(test_indices, dtype=np.int32))
         self._validation_indices = np.random.permutation(np.array(validation_indices, dtype=np.int32))
 
-    def save_splitted_dataset_indices(self, path, train_size=0.8, test_size=0.2, validation_size=0.2):
+    def save_splitted_dataset_indices(self, path, train_size=0.8, test_size=0.1, validation_size=0.1):
         if self._train_indices.shape == 0:
             self.split_dataset(train_size, test_size, validation_size)
 
         np.savez_compressed(path, train_indices=self._train_indices, test_indices=self._test_indices,
                             validation_indices=self._validation_indices, filtered_indices=self._filtered_indices)
+
+    def get_splitted_dataset_indices(self, train_size=0.8, test_size=0.1,
+                                     validation_size=0.1,
+                                     ignore_warnings=False):
+        """Returns a 3-upla with the indices for each split."""
+        if self._train_indices.shape == 0 or self._train_indices.shape[0] == 0:
+            self.split_dataset(train_size, test_size, validation_size,
+                               ignore_warnings)
+        return self._train_indices, self._test_indices, self._validation_indices

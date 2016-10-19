@@ -1,5 +1,5 @@
 # location of the training file
-trainFile = ../data/docs_for_stanford_NER/train.conll.sample
+trainFile = ../data/docs_for_stanford_NER/train.conll
 # location where you would like to save (serialize) your
 # classifier; adding .gz at the end automatically gzips the file,
 # making it smaller, and faster to load

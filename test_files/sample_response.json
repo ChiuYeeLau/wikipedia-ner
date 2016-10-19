@@ -1,0 +1,189 @@
+[
+  {
+    "BabelNetURL": "http://babelnet.org/rdf/s02081619n",
+    "DBpediaURL": "http://dbpedia.org/resource/Bantu_Investment_Corporation_Act,_1959",
+    "babelSynsetID": "bn:02081619n",
+    "charFragment": {
+      "end": 35,
+      "start": 4
+    },
+    "coherenceScore": 0.18032786885245902,
+    "globalScore": 0.00043035218354829495,
+    "score": 1.0,
+    "source": "BABELFY",
+    "tokenFragment": {
+      "end": 4,
+      "start": 1
+    }
+  },
+  {
+    "BabelNetURL": "http://babelnet.org/rdf/s02636272n",
+    "DBpediaURL": "http://dbpedia.org/resource/Corporation_Act_1661",
+    "babelSynsetID": "bn:02636272n",
+    "charFragment": {
+      "end": 35,
+      "start": 21
+    },
+    "coherenceScore": 0.09836065573770492,
+    "globalScore": 0.00009265956105106828,
+    "score": 1.0,
+    "source": "BABELFY",
+    "tokenFragment": {
+      "end": 4,
+      "start": 3
+    }
+  },
+  {
+    "BabelNetURL": "http://babelnet.org/rdf/s00067231n",
+    "DBpediaURL": "http://dbpedia.org/resource/South_Africa",
+    "babelSynsetID": "bn:00067231n",
+    "charFragment": {
+      "end": 224,
+      "start": 212
+    },
+    "coherenceScore": 0.5655737704918032,
+    "globalScore": 0.01726247622381402,
+    "score": 0.7121105943810919,
+    "source": "BABELFY",
+    "tokenFragment": {
+      "end": 40,
+      "start": 39
+    }
+  },
+  {
+    "BabelNetURL": "http://babelnet.org/rdf/s00754661n",
+    "DBpediaURL": "http://dbpedia.org/resource/Government_of_South_Africa",
+    "babelSynsetID": "bn:00754661n",
+    "charFragment": {
+      "end": 235,
+      "start": 212
+    },
+    "coherenceScore": 0.1721311475409836,
+    "globalScore": 0.0004540318491502346,
+    "score": 1.0,
+    "source": "BABELFY",
+    "tokenFragment": {
+      "end": 41,
+      "start": 39
+    }
+  },
+  {
+    "BabelNetURL": "http://babelnet.org/rdf/s01373566n",
+    "DBpediaURL": "http://dbpedia.org/resource/Bantustan",
+    "babelSynsetID": "bn:01373566n",
+    "charFragment": {
+      "end": 294,
+      "start": 285
+    },
+    "coherenceScore": 0.21311475409836064,
+    "globalScore": 0.0012447267701193507,
+    "score": 1.0,
+    "source": "BABELFY",
+    "tokenFragment": {
+      "end": 49,
+      "start": 49
+    }
+  },
+  {
+    "BabelNetURL": "http://babelnet.org/rdf/s01373566n",
+    "DBpediaURL": "http://dbpedia.org/resource/Bantustan",
+    "babelSynsetID": "bn:01373566n",
+    "charFragment": {
+      "end": 358,
+      "start": 349
+    },
+    "coherenceScore": 0.21311475409836064,
+    "globalScore": 0.0012447267701193507,
+    "score": 1.0,
+    "source": "BABELFY",
+    "tokenFragment": {
+      "end": 60,
+      "start": 60
+    }
+  },
+  {
+    "BabelNetURL": "http://babelnet.org/rdf/s02452503n",
+    "DBpediaURL": "http://dbpedia.org/resource/Yves_Bot",
+    "babelSynsetID": "bn:02452503n",
+    "charFragment": {
+      "end": 616,
+      "start": 609
+    },
+    "coherenceScore": 0.12295081967213115,
+    "globalScore": 0.00023164890262767073,
+    "score": 1.0,
+    "source": "BABELFY",
+    "tokenFragment": {
+      "end": 112,
+      "start": 111
+    }
+  },
+  {
+    "BabelNetURL": "http://babelnet.org/rdf/s00019840n",
+    "DBpediaURL": "http://dbpedia.org/resource/Hillary_Rodham_Clinton",
+    "babelSynsetID": "bn:00019840n",
+    "charFragment": {
+      "end": 752,
+      "start": 749
+    },
+    "coherenceScore": 0.20491803278688525,
+    "globalScore": 0.0009008568435520528,
+    "score": 0.854075158613958,
+    "source": "BABELFY",
+    "tokenFragment": {
+      "end": 139,
+      "start": 139
+    }
+  },
+  {
+    "BabelNetURL": "http://babelnet.org/rdf/s00858424n",
+    "DBpediaURL": "http://dbpedia.org/resource/Judiciary_of_France",
+    "babelSynsetID": "bn:00858424n",
+    "charFragment": {
+      "end": 1100,
+      "start": 1084
+    },
+    "coherenceScore": 0.19672131147540983,
+    "globalScore": 0.0005806665825866946,
+    "score": 1.0,
+    "source": "BABELFY",
+    "tokenFragment": {
+      "end": 200,
+      "start": 198
+    }
+  },
+  {
+    "BabelNetURL": "http://babelnet.org/rdf/s01601560n",
+    "DBpediaURL": "http://dbpedia.org/resource/French_National_School_for_the_Judiciary",
+    "babelSynsetID": "bn:01601560n",
+    "charFragment": {
+      "end": 1214,
+      "start": 1181
+    },
+    "coherenceScore": 0.12295081967213115,
+    "globalScore": 0.00021620564245249268,
+    "score": 1.0,
+    "source": "BABELFY",
+    "tokenFragment": {
+      "end": 223,
+      "start": 219
+    }
+  },
+  {
+    "BabelNetURL": "http://babelnet.org/rdf/s03288045n",
+    "DBpediaURL": "http://dbpedia.org/resource/Nationale_(Paris_Métro)",
+    "babelSynsetID": "bn:03288045n",
+    "charFragment": {
+      "end": 1195,
+      "start": 1187
+    },
+    "coherenceScore": 0.040983606557377046,
+    "globalScore": 0.00003603427374208211,
+    "score": 1.0,
+    "source": "BABELFY",
+    "tokenFragment": {
+      "end": 220,
+      "start": 220
+    }
+  }
+]

@@ -1,0 +1,50 @@
+0	Nicholas	NNP	O	DOCUMENT START
+1	Academic	NNP	O	DOCUMENT START
+2	Centers	NNP	O	DOCUMENT START
+
+0	The	DT	O	
+1	Nicholas	NNP	O	
+2	Academic	NNP	O	
+3	Centers	NNP	O	
+4	provide	VB	O	
+5	after‐school	JJ	O	
+6	tutoring	NN	O	
+7	and	CC	O	
+8	mentoring	VBG	O	
+9	for	IN	O	
+10	high	JJ	O	
+11	school	NN	O	
+12	students	NNS	O	
+13	in	IN	O	
+14	the	DT	O	
+15	Santa	NNP	O	
+16	Ana	NNP	O	
+17	Unified	NNP	O	
+18	School	NNP	O	
+19	District	NNP	O	
+20	.	.	O	
+
+0	The	DT	O	
+1	two	CD	O	
+2	Centers—NAC	JJ	O	
+3	I	PRP	O	
+4	in	IN	O	
+5	downtown	NN	O	
+6	Santa	NNP	O	
+7	Ana	NNP	O	
+8	(	NNP	O	
+9	412	CD	O	
+10	W.	NNP	O	
+11	4th	CD	O	
+12	Street	NNP	O	
+13	)	NNP	O	
+14	,	,	O	
+15	and	CC	O	
+16	NAC	NNP	O	
+17	II	NNP	O	
+18	on	IN	O	
+19	the	DT	O	
+20	campus	NN	O	
+21	of	IN	O	
+22	Valley	NNP	O	
+23	High	NNP	O	

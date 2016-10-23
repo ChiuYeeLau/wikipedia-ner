@@ -6,7 +6,9 @@
 import unittest
 import json
 
+import prediction_document
 import query_babelfy
+
 import StringIO
 
 
@@ -54,20 +56,37 @@ class EvaluateFromBabelfyResponseTests(unittest.TestCase):
         self.assertEqual(set(expected), classes)
 
 
-class SimpleDocumentTests(unittest.TestCase):
-    """Tests for SimpleDocument class"""
+class PredictionDocumentTests(unittest.TestCase):
+    """Tests for PredictionDocument class"""
     TEST_FILEPATH = 'test_files/sample_document.txt'
+
+    EXPECTED_TEXT = (
+        u'The Nicholas Academic Centers provide after‐school tutoring and'
+        u' mentoring for high school students in the Santa Ana Unified School '
+        u'District. The two Centers—NAC I in downtown Santa Ana ( 412 W. 4th '
+        u'Street ), and NAC II on the campus of Valley High'
+    )
+
+    def setUp(self):
+        with open(self.TEST_FILEPATH, 'r') as test_file:
+            self.raw_text = test_file.read()
+
+        self.simple_document = prediction_document.PredictionDocument()
+        self.simple_document.loads(self.raw_text)
 
     def test_load_and_dump(self):
         """Test a dumped file is equal to the original loaded file."""
-        with open(self.TEST_FILEPATH, 'r') as test_file:
-            raw_text = test_file.read()
-
-        simple_document = query_babelfy.SimpleDocument()
-        simple_document.loads(raw_text)
         output = StringIO.StringIO()
-        simple_document.dumps(output)
-        self.assertEqual(raw_text, output)
+        self.simple_document.dump(output)
+        output.seek(0)
+        new_content = output.read().split('\n')
+        raw_text = self.raw_text.split('\n')
+        # The last element is added by the buffer.
+        self.assertEqual(raw_text, new_content[:-1])
+
+    def test_generated_text(self):
+        """Test if the generated text string is correct."""
+        self.assertEqual(self.EXPECTED_TEXT, self.simple_document.text)
 
 
 if __name__ == '__main__':

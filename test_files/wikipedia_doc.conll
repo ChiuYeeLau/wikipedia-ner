@@ -1,0 +1,21 @@
+1       Anarchism       NNP     O-DOC   0       null
+
+1       Anarchism       NNP     O       5       nsubj
+2       is      VBZ     O       5       cop
+3       a       DT      O       5       det
+4       political       JJ      O       5       amod
+5       philosophy      NN      O       0       null
+6       that    WDT     O       7       nsubj
+7       advocates       VBZ     O       5       rcmod
+8       self-governed   JJ      O       9       amod
+9       societies       NNS     O       7       dobj
+10      based   VBN     O       9       partmod
+11      on      IN      O       10      prep
+12      voluntary       JJ      O       13      amod
+13      institutions    NNS     O       11      pobj
+14      .       .       O       5       punct
+
+1       These   DT      O       4       nsubjpass
+2       are     VBP     O       4       auxpass
+3       often   RB      O       4       advmod
+

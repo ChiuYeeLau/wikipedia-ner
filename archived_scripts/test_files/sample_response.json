@@ -1,0 +1,53 @@
+[
+  {
+    "coherenceScore": 0.55555555555556,
+    "DBpediaURL": "http:\/\/dbpedia.org\/resource\/Bantu_Investment_Corporation_Act,_1959",
+    "score": 1,
+    "charFragment": {
+      "start": 4,
+      "end": 35
+    },
+    "globalScore": 0.020265003897116,
+    "source": "BABELFY",
+    "tokenFragment": {
+      "start": 1,
+      "end": 4
+    },
+    "BabelNetURL": "http:\/\/babelnet.org\/rdf\/s02081619n",
+    "babelSynsetID": "bn:02081619n"
+  },
+  {
+    "coherenceScore": 0.11111111111111,
+    "DBpediaURL": "http:\/\/dbpedia.org\/resource\/Corporation_Act_1661",
+    "score": 1,
+    "charFragment": {
+      "start": 21,
+      "end": 35
+    },
+    "globalScore": 0.00062353858144973,
+    "source": "BABELFY",
+    "tokenFragment": {
+      "start": 3,
+      "end": 4
+    },
+    "BabelNetURL": "http:\/\/babelnet.org\/rdf\/s02636272n",
+    "babelSynsetID": "bn:02636272n"
+  },
+  {
+    "tokenFragment": {
+      "start": 23,
+      "end": 23
+    },
+    "charFragment": {
+      "start": 124,
+      "end": 129
+    },
+    "babelSynsetID": "bn:00001816n",
+    "DBpediaURL": "http:\/\/dbpedia.org\/resource\/Africa",
+    "BabelNetURL": "http:\/\/babelnet.org\/rdf\/s00001816n",
+    "score": 0.98445595854922,
+    "coherenceScore": 0.9375,
+    "globalScore": 0.2961038961039,
+    "source": "BABELFY"
+  }
+]

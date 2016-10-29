@@ -53,17 +53,17 @@ def parse_to_feature_matrix(input_file, output_dir, resources_dir,
     print('Loading resources', file=sys.stderr)
 
     with open(os.path.join(resources_dir, "gazetteer.pickle"),
-              "rb") as input_file:
-        gazetteer = cPickle.load(input_file)
+              "rb") as gazetteer_file:
+        gazetteer = cPickle.load(gazetteer_file)
 
     with open(os.path.join(resources_dir, "sloppy_gazetteer.pickle"),
-              "rb") as input_file:
-        sloppy_gazetteer = cPickle.load(input_file)
+              "rb") as sloppy_gazetteer_file:
+        sloppy_gazetteer = cPickle.load(sloppy_gazetteer_file)
 
     with open(os.path.join(resources_dir, "filtered_features_names.pickle"),
-              "rb") as input_file:
+              "rb") as features_file:
         features = {feature: idx
-                    for idx, feature in enumerate(cPickle.load(input_file))}
+                    for idx, feature in enumerate(cPickle.load(features_file))}
 
     instance_extractor = InstanceExtractor(
         token=True,

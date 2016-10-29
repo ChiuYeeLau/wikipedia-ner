@@ -17,11 +17,11 @@
 12	students	NNS	O	
 13	in	IN	O	
 14	the	DT	O	
-15	Santa	NNP	O	
-16	Ana	NNP	O	
-17	Unified	NNP	O	
-18	School	NNP	O	
-19	District	NNP	O	
+15	Santa	NNP	I	
+16	Ana	NNP	I	
+17	Unified	NNP	I	
+18	School	NNP	I	
+19	District	NNP	I	
 20	.	.	O	
 
 0	The	DT	O	

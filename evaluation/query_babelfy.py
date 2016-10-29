@@ -10,16 +10,20 @@ import argparse
 import csv
 import gzip
 import json
+import logging
+logging.basicConfig(level=logging.INFO)
+import tqdm
 import urllib2
 import urllib
 
+from prediction_document import PredictionDocument
 from SPARQLWrapper import SPARQLWrapper, JSON
 from StringIO import StringIO
 
 
 BABELFY_ENDPOINT_URL = 'https://babelfy.io/v1/disambiguate'
 YAGO_ENPOINT_URL = 'https://linkeddata1.calcul.u-psud.fr/sparql'
-DOCUMENT_SEPARATOR = '-' * 100
+DOCUMENT_SEPARATOR = u'-' * 100
 
 
 # TODO(mili) use this from utils.py
@@ -52,8 +56,10 @@ def read_arguments():
                         help='Path to save the predictions')
     parser.add_argument('--key', type=unicode,
                         help='Key for babelfy.')
-    parser.add_argument('--task', type=unicode,
+    parser.add_argument('--task', type=unicode, default='NEU',
                         help='Name of the task to evaluate. Can be NEC or NEU')
+    parser.add_argument('--docs', type=int, default='10',
+                        help='Number of docs to process.')
 
     return parser.parse_args()
 
@@ -123,21 +129,22 @@ def get_yago_uri(labels):
             # Get yago uri and class from wikipage
             info = query_yago(dbpedia_url)
             if len(info) <= 1:
-                print 'No yago entity for dbpedia page {}', dbpedia_url
+                logging.info(
+                    'No yago entity for dbpedia page {}'.format(dbpedia_url))
                 mapped_labels[dbpedia_url] = {
                     'entity': None, 'yago_class': None}
-                continue
-            yago_class = None
-            for _, class_name in info[1:]:
-                class_name = class_name.split('/')[-1]
-                if class_name in NE_CATEGORY_LABEL_LEGAL_MAP:
-                    # We select the first result.
-                    yago_class = NE_CATEGORY_LABEL_LEGAL_MAP[class_name]
-                    break
-            mapped_labels[dbpedia_url] = {
-                'entity': info[1][0].split('/')[-1],
-                'yago_class': yago_class
-            }
+            else:
+                yago_class = None
+                for _, class_name in info[1:]:
+                    class_name = class_name.split('/')[-1]
+                    if class_name in NE_CATEGORY_LABEL_LEGAL_MAP:
+                        # We select the first result.
+                        yago_class = NE_CATEGORY_LABEL_LEGAL_MAP[class_name]
+                        break
+                mapped_labels[dbpedia_url] = {
+                    'entity': u'I-{}'.format(info[1][0].split('/')[-1]),
+                    'yago_class': yago_class
+                }
         entity_names.append(mapped_labels[dbpedia_url]['entity'])
         yago_classes.append(mapped_labels[dbpedia_url]['yago_class'])
     return entity_names, yago_classes
@@ -173,80 +180,15 @@ def process_prediction(data, char_map):
     return predictions, classes
 
 
-class SimpleDocument(object):
-    def __init__(self):
-        # List of sentences. Each sentence is a list of pairs (word, postag)
-        self.sentences = []
-        # List with original labels. One label per word in sentences.
-        self.tags = []
-        # Representation of document as continous text.
-        self.text = ''
-        # First rows of document (without processing) that are tagged as title.
-        self.title = []
-        # Map from indices in self.raw text to indices in self.tags
-        self.char_map = []
-        self.start_sentence()
-
-    def loads(self, text):
-        """Construct document from raw text in column format."""
-        lines = text.split('\n')
-        # Read title
-        for line in lines:
-            if len(line.split('\t')) == 5 and line.endswith('DOCUMENT START'):
-                self.title.append(line)
-            else:
-                break
-        # Read words
-        for line in lines[len(self.title) + 1:]:
-            if line == '\n':
-                self.start_sentence()
-            else:
-                word, pos_tag, tag = line.split('\t')[1:4]
-                self.add_word(word, pos_tag, tag)
-                if word not in ['.', '?', '!', ',', '"', '\'']:
-                    self.text += ' '
-                self.char_map.append(
-                    (len(self.text), len(self.text) + len(word) - 1))
-                self.text += word
-
-    def dumps(self, output_file, new_tags=None):
-        """Write document in original format to output_file.
-
-        Appends document to output_file."""
-        # Write title
-        for title_line in self.title:
-            output_file.write(title_line + '\n')
-        output_file.write('\n')
-        # Write content
-        if not new_tags:
-            new_tags = self.tags
-        tag_index = 0
-        for sentence in self.sentences:
-            for word_index, word in enumerate(sentence):
-                output_file.write('{}\t{}\t{}\t{}\n'.format(
-                    word_index, word[0], word[1], new_tags[tag_index]))
-                tag_index += 1
-            output_file.write('\n')
-
-    def start_sentence(self):
-        """Records the start of a new sentence in document"""
-        self.sentences.append([])
-
-    def add_word(self, word, pos_tag, tag):
-        """Add word to document."""
-        self.sentences[-1].append((word, pos_tag))
-        self.tags.append(tag)
-
-
 def read_input_file(filename):
-    """Reads the input file and generates SimpleDocument instances"""
+    """Reads the input file and generates PredictionDocument instances"""
     with open(filename, 'r') as input_file:
         content = input_file.read()
-    documents = content.split(DOCUMENT_SEPARATOR)
+    documents = content.split(DOCUMENT_SEPARATOR.encode('utf-8'))
     for document in documents:
-        if document != '\n':
-            new_doc = SimpleDocument()
-            new_doc.read_from_text(document)
+        if document != '\n' and document != '':
+            new_doc = PredictionDocument()
+            new_doc.loads(document)
             yield new_doc
 
 
@@ -255,7 +197,7 @@ def evaluate_prediction(predictions, document):
 
     Args:
         prediction: list of assigned labels.
-        document: an instance of SimpleDocument.
+        document: an instance of PredictionDocument.
     """
     # We are going to match word by word.
 
@@ -268,21 +210,25 @@ def main():
     """Main function of script"""
     args = read_arguments()
 
-    # text = [u'The Bantu Investment Corporation Act, Act No 34 of 1959, formed part of the apartheid system of racial segregation in South Africa. In combination with the Bantu Homelands Development Act of 1965, it allowed the South African government to capitalize on entrepreneurs operating in the Bantustans. It created a Development Corporation in each of the Bantustans.',
-    #     u'At the end of the trial, the prosecutor asked for the acquittal of all of the accused persons. The defence renounced its right to plead, preferring to observe a minute of silence in favor of François Mourmand, who had died in prison during remand. Yves Bot, general prosecutor of Paris, came to the trial on its last day, without previously notifying the president of the Cour d\'assises, Mrs. Mondineu-Hederer; while there, Bot presented his apologies to the defendants on behalf of the legal system—he did this before the verdict was delivered, taking for granted a "not guilty" ruling, for which some magistrates reproached him afterwards.',
-    #     u'The affair caused public indignation and questions about the general workings of justice in France. The role of an inexperienced magistrate, Fabrice Burgaud,[5] fresh out of the Ecole Nationale de la Magistrature was underscored, as well as the undue weight given to children\'s words and to psychiatric expertise, both of which were revealed to have been wrong.'
-    #     ]
-    # result = send_query_to_babelfy('\n'.join(text), args.key)
-
-
-    import ipdb; ipdb.set_trace()
-
-    print get_yago_uri([
-        'http://dbpedia.org/resource/Bantu_Investment_Corporation_Act,_1959',
-        'http://dbpedia.org/resource/BabelNet',
-        'http://dbpedia.org/resource/Gun_laws_in_Virginia',
-        'http://dbpedia.org/resource/Mauricio_Macri'])
-
+    with open(args.output_filepath, 'w') as output_file:
+        for doc_index, document in tqdm.tqdm(enumerate(
+                read_input_file(args.input_filepath)), total=args.docs):
+            result = send_query_to_babelfy(document.text, args.key)
+            predictions = process_prediction(result, document.char_map)
+            neu_labels, nec_labels = get_yago_uri(predictions[0])
+            if len(set([len(neu_labels), len(document.tags),
+                        len(nec_labels), len(predictions[0])])) != 1:
+                import ipdb; ipdb.set_trace()
+                logging.error('Predictions have different sizes!')
+                return
+            if args.task == 'NEU':
+                document.dump(output_file, new_tags=neu_labels)
+            else:
+                document.dump(output_file, new_tags=nec_labels)
+            output_file.write(DOCUMENT_SEPARATOR + u'\n')
+            output_file.write(DOCUMENT_SEPARATOR + u'\n')
+            if doc_index == args.docs - 1:
+                break
 
 
 if __name__ == '__main__':

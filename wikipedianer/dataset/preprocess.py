@@ -8,7 +8,7 @@ from collections import Counter
 
 def labels_filterer(labels, min_occurrences=3):
     """Returns the indices of the labels that are not filtered out."""
-    filtered_classes = {l for l, v in Counter(labels).iteritems() if v >= min_occurrences}
+    filtered_classes = {l for l, v in Counter(labels).items() if v >= min_occurrences}
 
     return np.array([i for i, l in enumerate(labels) if l in filtered_classes], dtype=np.int32)
 
@@ -94,9 +94,7 @@ class StratifiedSplitter(object):
         np.savez_compressed(path, train_indices=self._train_indices, test_indices=self._test_indices,
                             validation_indices=self._validation_indices, filtered_indices=self._filtered_indices)
 
-    def get_splitted_dataset_indices(self, train_size=0.8, test_size=0.1,
-                                     validation_size=0.1,
-                                     ignore_warnings=False):
+    def get_splitted_dataset_indices(self, train_size=0.8, test_size=0.1, validation_size=0.1, ignore_warnings=False):
         """Returns a 3-upla with the indices for each split."""
         if self._train_indices.shape == 0 or self._train_indices.shape[0] == 0:
             self.split_dataset(train_size, test_size, validation_size,

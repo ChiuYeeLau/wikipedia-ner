@@ -69,7 +69,7 @@ def feature_selection(dataset, features_names, matrix_file_path, features_file_p
 
     print('Saving filtered features names', file=sys.stderr)
     features_names = np.array(features_names)
-    filtered_features_names = features_names[valid_indices]
+    filtered_features_names = list(features_names[valid_indices])
 
     with open(features_file_path, 'wb') as f:
         pickle.dump(filtered_features_names, f)
@@ -113,16 +113,19 @@ def parse_corpus_to_handcrafted_features(path, matrix_file_path, labels_file_pat
                     uri_label, yago_labels, lkif_labels, entity_labels, ner_label = sentence_label
                     ner_tag = uri_label.split('-', 1)[0]
 
-                    # Randomize the selection of labels in higher levels
-                    label_item = np.random.randint(len(yago_labels))
+                    if ner_tag != 'O':
+                        # Randomize the selection of labels in higher levels
+                        label_item = np.random.randint(len(yago_labels))
 
-                    labels.append((
-                        '%s' % uri_label,
-                        '%s-%s' % (ner_tag, yago_labels[label_item]),
-                        '%s-%s' % (ner_tag, lkif_labels[label_item]),
-                        '%s-%s' % (ner_tag, entity_labels[label_item]),
-                        '%s' % ner_label
-                    ))
+                        labels.append((
+                            '%s' % uri_label,
+                            '%s-%s' % (ner_tag, yago_labels[label_item]),
+                            '%s-%s' % (ner_tag, lkif_labels[label_item]),
+                            '%s-%s' % (ner_tag, entity_labels[label_item]),
+                            '%s' % ner_label
+                        ))
+                    else:
+                        labels.append(('O', 'O', 'O', 'O', 'O'))
 
         if fidx % 3 == 0 and fidx < 27:
             print('Saving partial matrix and labels', file=sys.stderr)
@@ -191,16 +194,19 @@ def parse_corpus_to_word_vectors(path, matrix_file_path, word_vectors_file, labe
                     uri_label, yago_labels, lkif_labels, entity_labels, ner_label = sentence_labels
                     ner_tag = uri_label.split('-', 1)[0]
 
-                    # Randomize the selection of labels in higher levels
-                    label_item = np.random.randint(len(yago_labels))
+                    if ner_tag != 'O':
+                        # Randomize the selection of labels in higher levels
+                        label_item = np.random.randint(len(yago_labels))
 
-                    labels.extend((
-                        '%s' % uri_label,
-                        '%s-%s' % (ner_tag, yago_labels[label_item]),
-                        '%s-%s' % (ner_tag, lkif_labels[label_item]),
-                        '%s-%s' % (ner_tag, entity_labels[label_item]),
-                        '%s' % ner_label
-                    ))
+                        labels.append((
+                            '%s' % uri_label,
+                            '%s-%s' % (ner_tag, yago_labels[label_item]),
+                            '%s-%s' % (ner_tag, lkif_labels[label_item]),
+                            '%s-%s' % (ner_tag, entity_labels[label_item]),
+                            '%s' % ner_label
+                        ))
+                    else:
+                        labels.append(('O', 'O', 'O', 'O', 'O'))
 
         if fidx % 3 == 0 and fidx < 27:
             print('Saving partial matrix and labels', file=sys.stderr)
@@ -224,41 +230,35 @@ def parse_corpus_to_word_vectors(path, matrix_file_path, word_vectors_file, labe
 def split_dataset(labels, indices_save_path, classes_save_path, train_size=0.8,
                   test_size=0.1, validation_size=0.1, min_count=10):
     classes = {}
-    indices = {}
+
+    print('Getting uri labels', file=sys.stderr)
+    uri_labels = [label[0] for label in labels]
+
+    print('Getting filtered classes', file=sys.stderr)
+    filtered_classes = {l for l, v in Counter(uri_labels).items() if v >= min_count}
+
+    print('Getting filtered indices', file=sys.stderr)
+    filtered_indices = np.array([i for i, l in enumerate(uri_labels)
+                                 if (l != 'O' and l in filtered_classes) or (l == 'O')], dtype=np.int32)
+
+    strat_split = StratifiedSplitter(np.array(uri_labels), filtered_indices)
+
+    print('Splitting the dataset', file=sys.stderr)
+    train_indices, test_indices, validation_indices = strat_split.get_splitted_dataset_indices(
+        train_size=train_size, test_size=test_size, validation_size=validation_size)
+
+    print('Saving indices to file %s' % indices_save_path, file=sys.stderr)
+    np.savez_compressed(indices_save_path, train_indices=train_indices, test_indices=test_indices,
+                        validation_indices=validation_indices, filtered_indices=filtered_indices)
 
     for idx, iteration in enumerate(CL_ITERATIONS):
-        print('Getting replaced labels for iteration {}'.format(iteration), file=sys.stderr)
+        print('Getting classes for iteration %s' % iteration, file=sys.stderr)
         replaced_labels = [label[idx] for label in labels]
+        classes[iteration] = np.unique(np.array(replaced_labels)[filtered_indices], return_counts=True)
 
-        print('Getting filtered classes for iteration {}'.format(iteration), file=sys.stderr)
-        filtered_classes = {l for l, v in Counter(replaced_labels).items() if v >= min_count}
-
-        print('Getting filtered indices for iteration {}'.format(iteration), file=sys.stderr)
-        filtered_indices = np.array([i for i, l in enumerate(replaced_labels)
-                                     if (l != 'O' and l in filtered_classes) or (l == 'O')],
-                                    dtype=np.int32)
-
-        classes[iteration] = np.unique(np.array(replaced_labels)[filtered_indices])
-
-        strat_split = StratifiedSplitter(np.array(replaced_labels), filtered_indices)
-
-        print('Splitting the dataset for iteration %s' % iteration, file=sys.stderr)
-        train_indices, test_indices, validation_indices = strat_split.get_splitted_dataset_indices(
-            train_size=train_size, test_size=test_size, validation_size=validation_size)
-
-        indices[iteration] = {
-            'train_indices': train_indices,
-            'test_indices': test_indices,
-            'validation_indices': validation_indices
-        }
-
-    print('Saving classes to file %s' % classes_save_path)
+    print('Saving classes to file %s' % classes_save_path, file=sys.stderr)
     with open(classes_save_path, 'wb') as f:
         pickle.dump(classes, f)
-
-    print('Saving indices to file %s' % indices_save_path)
-    with open(indices_save_path, 'wb') as f:
-        pickle.dump(indices, f)
 
 
 def subsample_non_entities(path, output_file_path, file_pattern='*.conll', remove_stopwords=False):

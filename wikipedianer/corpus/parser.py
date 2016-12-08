@@ -3,6 +3,7 @@
 from __future__ import absolute_import, unicode_literals
 
 import numpy as np
+import re
 from collections import defaultdict
 from nltk.corpus import stopwords
 from .base import Sentence, Word
@@ -186,25 +187,23 @@ class WikipediaCorpusColumnParser(object):
                         _, token, tag, uri_label, yago_labels, lkif_labels, entity_labels = line.split()
                     except ValueError:
                         _, token, tag, uri_label, yago_labels, lkif_labels = line.split()
-                        entity_labels = ""
+                        # TODO: Copy lkif labels until final entity labels are ready to go
+                        entity_labels = lkif_labels
 
                     widx = len(words)
                     is_doc_start = uri_label.endswith('-DOC')
 
                     if not uri_label.strip().startswith('O'):
                         has_named_entity = True
-                        uri_label = uri_label.split('-DOC', 1)[0]
-                        yago_labels = yago_labels.split('-DOC', 1)[0]
-                        lkif_labels = lkif_labels.split('-DOC', 1)[0]
-                        entity_labels = entity_labels.split('-DOC', 1)[0]
+                        uri_label = re.sub(r'-DOC$', '', uri_label)
+                        yago_labels = re.sub(r'-DOC$', '', yago_labels)
+                        lkif_labels = re.sub(r'-DOC$', '', lkif_labels)
+                        entity_labels = re.sub(r'-DOC$', '', entity_labels)
 
                         ner_tag, uri_label = uri_label.split('-', 1)
                         yago_labels = yago_labels.split('-', 1)[1].split('|')
                         lkif_labels = lkif_labels.split('-', 1)[1].split('|')
-
-                        # TODO: Copy lkif labels until final entity labels are ready to go
-                        entity_labels = entity_labels.split('-', 1)[1].split('|') \
-                            if entity_labels != "" else lkif_labels
+                        entity_labels = entity_labels.split('-', 1)[1].split('|')
 
                         words.append(Word(widx, token, tag, ner_tag, uri_label, yago_labels, lkif_labels,
                                           entity_labels, is_doc_start, original_string=original_line))

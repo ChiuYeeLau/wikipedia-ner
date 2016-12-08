@@ -201,12 +201,16 @@ class WikipediaCorpusColumnParser(object):
                         entity_labels = re.sub(r'-DOC$', '', entity_labels)
 
                         ner_tag, uri_label = uri_label.split('-', 1)
-                        yago_labels = yago_labels.split('-', 1)[1].split('|')
-                        lkif_labels = lkif_labels.split('-', 1)[1].split('|')
-                        entity_labels = entity_labels.split('-', 1)[1].split('|')
+                        yago_labels = re.sub(r'^[BI]-', '', yago_labels).split('|')
+                        lkif_labels = re.sub(r'^[BI]-', '', lkif_labels).split('|')
+                        entity_labels = re.sub(r'^[BI]-', '', entity_labels).split('|')
 
-                        words.append(Word(widx, token, tag, ner_tag, uri_label, yago_labels, lkif_labels,
-                                          entity_labels, is_doc_start, original_string=original_line))
+                        if yago_labels[0] == '' or lkif_labels[0] == '' or entity_labels[0] == '':
+                            words.append(Word(widx, token, tag, 'O', is_doc_start=is_doc_start,
+                                              original_string=original_line))
+                        else:
+                            words.append(Word(widx, token, tag, ner_tag, uri_label, yago_labels, lkif_labels,
+                                              entity_labels, is_doc_start, original_string=original_line))
                     elif self.remove_stop_words and token in STOPWORDS_SET:
                         continue
                     else:

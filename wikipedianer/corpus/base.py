@@ -143,7 +143,7 @@ class Sentence(object):
         self.has_named_entity = has_named_entity
 
     def __to_string__(self):
-        return '\n'.join(map(lambda i, w: '%s\t%s' % (i, w), enumerate(self, start=1)))
+        return '\n'.join(map(lambda w: '%s\t%s' % (w[0], w[1]), enumerate(self, start=1)))
 
     def __iter__(self):
         for word in self._words:

@@ -2,11 +2,10 @@
 
 from __future__ import absolute_import, unicode_literals
 
-import cPickle
 import numpy as np
 from collections import defaultdict
 from nltk.corpus import stopwords
-from .base import Sentence, Word, WORDNET_CATEGORIES_LEGAL, WORDNET_CATEGORIES_MOVIES, YAGO_RELATIONS_MOVIES
+from .base import Sentence, Word
 
 
 STOPWORDS_SET = set(stopwords.words())
@@ -24,7 +23,7 @@ class InstanceExtractor(object):
         self.disjunctive_right_window = int(kwargs.get('disjunctive_right_window', 0))
         self.tag_sequence_window = int(kwargs.get('tag_sequence_window', 0))
         self.gazetteer = kwargs.get('gazetteer', set())
-        self.sloppy_gazetteer = kwargs.get('sloppy_gazetteer', {})
+        self.sloppy_gazetteer = kwargs.get('sloppy_gazetteer', set())
         self.valid_indices = kwargs.get('valid_indices', set())
 
     def _features_for_word(self, word, sentence, named_entity=None):
@@ -84,6 +83,7 @@ class InstanceExtractor(object):
 
     def get_instances_for_sentence(self, sentence, word_idx):
         """
+        Return an instance and all its labels
         :param sentence: wikipedianer.corpus.base.Sentence
         :param word_idx: int
         """
@@ -94,13 +94,13 @@ class InstanceExtractor(object):
             if unit.name == "Word":
                 if not self.valid_indices or word_idx in self.valid_indices:
                     instances.append(self._features_for_word(unit, sentence))
-                    labels.append(unit.short_label)
+                    labels.append(unit.labels)
                 word_idx += 1
             else:
                 for word in unit:
                     if not self.valid_indices or word_idx in self.valid_indices:
                         instances.append(self._features_for_word(word, sentence, unit))
-                        labels.append(word.short_label)
+                        labels.append(word.labels)
                     word_idx += 1
 
         return instances, labels, word_idx
@@ -152,7 +152,7 @@ class WordVectorsExtractor(object):
         for word in sentence:
             if not self.valid_indices or word_idx in self.valid_indices:
                 instances.append(self._vectors_for_word(word, sentence))
-                labels.append(word.short_label)
+                labels.append(word.labels)
             word_idx += 1
 
         return instances, labels, word_idx
@@ -172,39 +172,44 @@ class WikipediaCorpusColumnParser(object):
 
         with open(self.file_path, 'r') as f:
             for line in f:
-                line = line.decode('utf-8').strip()
+                line = line.strip()
 
                 if line == "":
-                    s = Sentence(words[:], has_named_entity)
+                    yield Sentence(words[:], has_named_entity)
                     words = []
                     has_named_entity = False
-                    yield s
                 else:
                     if self.keep_originals:
                         original_line = line
-                    _, token, tag, class_string, head, dep = line.split()
+
+                    try:
+                        _, token, tag, uri_label, yago_labels, lkif_labels, entity_labels = line.split()
+                    except ValueError:
+                        _, token, tag, uri_label, yago_labels, lkif_labels = line.split()
+                        entity_labels = ""
 
                     widx = len(words)
-                    is_doc_start = class_string.endswith('-DOC')
+                    is_doc_start = uri_label.endswith('-DOC')
 
-                    if not class_string.strip().startswith('O'):
+                    if not uri_label.strip().startswith('O'):
                         has_named_entity = True
-                        class_string = class_string.split('-DOC', 1)[0]
-                        ner_tag, resources = class_string.split('-', 1)
-                        wiki_uri, yago_uri, categories = resources.split('#', 3)
-                        categories = categories.split('|')
-                        wordnet_categories = [wc.split('-', 1)[0] for wc in categories
-                                              if wc.split('-', 1)[0] in WORDNET_CATEGORIES_MOVIES or
-                                              wc.split('-', 1)[0] in WORDNET_CATEGORIES_LEGAL]
-                        yago_relations = [yr.split('-', 1)[0] for yr in categories
-                                          if yr.split('-', 1)[0] in YAGO_RELATIONS_MOVIES]
+                        uri_label = uri_label.split('-DOC', 1)[0]
+                        yago_labels = yago_labels.split('-DOC', 1)[0]
+                        lkif_labels = lkif_labels.split('-DOC', 1)[0]
+                        entity_labels = entity_labels.split('-DOC', 1)[0]
 
-                        words.append(Word(widx, token, tag, dep, head, ner_tag, yago_uri, wiki_uri,
-                                          wordnet_categories, yago_relations, is_doc_start,
-                                          original_string=original_line))
+                        ner_tag, uri_label = uri_label.split('-', 1)
+                        yago_labels = yago_labels.split('-', 1)[1].split('|')
+                        lkif_labels = lkif_labels.split('-', 1)[1].split('|')
+
+                        # TODO: Copy lkif labels until final entity labels are ready to go
+                        entity_labels = entity_labels.split('-', 1)[1].split('|') \
+                            if entity_labels != "" else lkif_labels
+
+                        words.append(Word(widx, token, tag, ner_tag, uri_label, yago_labels, lkif_labels,
+                                          entity_labels, is_doc_start, original_string=original_line))
                     elif self.remove_stop_words and token in STOPWORDS_SET:
                         continue
                     else:
-                        words.append(Word(widx, token, tag, dep, head, 'O',
-                                          is_doc_start=is_doc_start,
+                        words.append(Word(widx, token, tag, 'O', is_doc_start=is_doc_start,
                                           original_string=original_line))

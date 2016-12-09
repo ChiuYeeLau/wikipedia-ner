@@ -107,6 +107,45 @@ class InstanceExtractor(object):
         return instances, labels, word_idx
 
 
+class WindowWordExtractor(object):
+    _filler_tag = "<W>"
+    _filler_quantity = 2
+
+    def __init__(self, window_size=5, valid_indices=None):
+        self.window_size = window_size
+        self.valid_indices = valid_indices if valid_indices is not None else set()
+
+    def _window_for_word(self, word, sentence):
+        full_word_window = sentence.get_left_window(word.idx, self.window_size) + [word] + \
+                           sentence.get_right_window(word.idx, self.window_size)
+
+        word_window_tokens = [word.tokens for word in full_word_window]
+
+        # Padding the window vector in case the predicate is located near the start or end of the sentence
+        if word.idx - self.window_size < 0:  # Pad to left if the predicate is near to the start
+            for _ in range(abs(word.idx - self.window_size)):
+                word_window_tokens.insert(0, (self._filler_tag,) * self._filler_quantity)
+
+        if word.idx + self.window_size + 1 > len(sentence):
+            # Pad to right if the predicate is near to the end
+            for _ in range(word.idx + self.window_size + 1 - len(sentence)):
+                word_window_tokens.append((self._filler_tag,) * self._filler_quantity)
+
+        return word_window_tokens
+
+    def get_instances_for_sentence(self, sentence, word_idx):
+        instances = []
+        labels = []
+
+        for word in sentence:
+            if not self.valid_indices or word_idx in self.valid_indices:
+                instances.append(self._window_for_word(word, sentence))
+                labels.append(word.labels)
+            word_idx += 1
+
+        return instances, labels, word_idx
+
+
 class WordVectorsExtractor(object):
     def __init__(self, model, window_size=5, valid_indices=None):
         self.model = model

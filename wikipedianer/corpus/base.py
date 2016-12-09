@@ -114,12 +114,13 @@ class Word(object):
         :return: A list of all possible combinations of a token or a lemma, ordered by importance
         """
 
-        return [
+        return (
             self.token,
             self.token.lower(),
-            self.token.capitalize(),
-            self.token.upper()
-        ]
+            # FIXME: Is it better to add the following?
+            # self.token.capitalize(),
+            # self.token.upper()
+        )
 
 
 class NamedEntity(object):

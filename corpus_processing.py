@@ -12,9 +12,9 @@ except ImportError:
 import sys
 
 from scipy.sparse import csr_matrix
-from wikipedianer.pipeline.processing import (collect_gazeteers, feature_selection,
-                                              parse_corpus_to_handcrafted_features, parse_corpus_to_word_vectors,
-                                              split_dataset, subsample_non_entities)
+from wikipedianer.pipeline.processing import (collect_gazeteers_and_subsample_non_entities, feature_selection,
+                                              parse_corpus_to_handcrafted_features, parse_corpus_to_word_windows,
+                                              parse_corpus_to_word_vectors, split_dataset, subsample_non_entities)
 
 if sys.version_info.major == 3:
     unicode = str
@@ -25,7 +25,7 @@ if __name__ == '__main__':
     parser.add_argument('corpus_path',
                         type=unicode,
                         help='Path to the corpus files (should be in column format).')
-    parser.add_argument('--subsampled_indices_path',
+    parser.add_argument('--valid_indices_path',
                         type=unicode,
                         default=None,
                         help='Path to the valid indices obtained by subsampling the non entities. ' + \
@@ -38,6 +38,10 @@ if __name__ == '__main__':
                         type=unicode,
                         default=None,
                         help='Path to store the word vectors matrix.')
+    parser.add_argument('--word_window_file_path',
+                        type=unicode,
+                        default=None,
+                        help='Path to store the list of word tokens (to query the word2vec model).')
     parser.add_argument('--labels_file_path',
                         type=unicode,
                         default=None,
@@ -111,21 +115,24 @@ if __name__ == '__main__':
     if args.labels_file_path is None:
         print('You must provide a path for the labels file', file=sys.stderr)
         sys.exit(os.EX_USAGE)
+    elif os.path.isfile(args.labels_file_path):
+        with open(args.labels_file_path, 'rb') as f:
+            labels = pickle.load(f)
 
     if args.indices_save_path is None or args.classes_save_path is None:
         print('You must provide a valid path for the indices and classes file', file=sys.stderr)
         sys.exit(os.EX_USAGE)
 
-    if args.subsampled_indices_path is None:
+    if args.valid_indices_path is None:
         print('You must provide a path for the valid indices file.', file=sys.stderr)
         sys.exit(os.EX_USAGE)
 
     print('Getting valid indices', file=sys.stderr)
-    if os.path.isfile(args.subsampled_indices_path):
-        with open(args.subsampled_indices_path, 'rb') as f:
+    if os.path.isfile(args.valid_indices_path):
+        with open(args.valid_indices_path, 'rb') as f:
             valid_indices = pickle.load(f)
-    else:
-        valid_indices = subsample_non_entities(args.corpus_path, args.subsampled_indices_path,
+    elif args.gazetteer_file_path is not None and os.path.isfile(args.gazetteer_file_path):
+        valid_indices = subsample_non_entities(args.corpus_path, args.valid_indices_path,
                                                remove_stopwords=args.remove_stopwords)
 
     if args.handcrafted_matrix_path is not None:
@@ -148,7 +155,9 @@ if __name__ == '__main__':
             with open(args.gazetteer_file_path, 'rb') as f:
                 gazetteer, sloppy_gazetteer = pickle.load(f)
         else:
-            gazetteer, sloppy_gazetteer = collect_gazeteers(args.corpus_path, args.gazetteer_file_path)
+            gazetteer, sloppy_gazetteer, valid_indices = \
+                collect_gazeteers_and_subsample_non_entities(args.corpus_path, args.gazetteer_file_path,
+                                                             args.valid_indices_path, args.remove_stopwords)
 
         print('Getting handcrafted features matrix, labels and features names', file=sys.stderr)
         if os.path.isfile(args.handcrafted_matrix_path) and os.path.isfile(args.labels_file_path) and \
@@ -179,7 +188,7 @@ if __name__ == '__main__':
         del dataset, feature_names
 
     if args.word_vectors_matrix_path is not None:
-        labels_file_path = None if labels is not None else args.labels_file_path
+        labels_file_path = args.labels_file_path if labels is None else None
 
         print('Getting word vectors matrix and labels', file=sys.stderr)
         word_vectors_labels = \
@@ -190,9 +199,16 @@ if __name__ == '__main__':
 
         labels = word_vectors_labels if labels is None else labels
 
-    if labels is None:
-        with open(args.labels_file_path, 'rb') as f:
-            labels = pickle.load(args.labels_file_path)
+    if args.word_window_file_path is not None:
+        labels_file_path = args.labels_file_path if labels is None else None
+
+        print('Getting word windows and labels', file=sys.stderr)
+        word_vectors_labels = \
+            parse_corpus_to_word_windows(args.corpus_path, args.word_window_file_path, labels_file_path,
+                                         remove_stopwords=args.remove_stopwords, valid_indices=valid_indices,
+                                         window=args.word_vectors_window)
+
+        labels = word_vectors_labels if labels is None else labels
 
     split_dataset(labels, args.indices_save_path, args.classes_save_path, train_size=args.train_size,
                   test_size=args.test_size, validation_size=args.validation_size, min_count=args.min_count)

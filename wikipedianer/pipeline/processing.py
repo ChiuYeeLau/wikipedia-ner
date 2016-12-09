@@ -11,21 +11,25 @@ from collections import Counter, defaultdict
 from scipy.sparse import csc_matrix, csr_matrix
 from sklearn.feature_extraction import DictVectorizer
 from tqdm import tqdm
-from wikipedianer.corpus.parser import InstanceExtractor, WikipediaCorpusColumnParser, WordVectorsExtractor
+from wikipedianer.corpus.parser import (InstanceExtractor, WikipediaCorpusColumnParser,
+                                        WindowWordExtractor, WordVectorsExtractor)
 from wikipedianer.dataset.preprocess import StratifiedSplitter
 from wikipedianer.pipeline.util import CL_ITERATIONS, traverse_directory
 
 
-def collect_gazeteers(path, output_file_path, file_pattern='*.conll'):
+def collect_gazeteers_and_subsample_non_entities(path, gazetteer_file_path, valid_indices_file_path,
+                                                 remove_stopwords=False, file_pattern='*.conll'):
     gazetteer = defaultdict(int)
+    labels = []
 
     for file_path in sorted(traverse_directory(path, file_pattern)):
-        print('Getting gazetteer for file {}'.format(file_path), file=sys.stderr)
+        print('Parsing %s' % file_path, file=sys.stderr)
 
-        parser = WikipediaCorpusColumnParser(file_path)
+        parser = WikipediaCorpusColumnParser(file_path, remove_stop_words=remove_stopwords)
 
         for sentence in tqdm(parser):
             if sentence.has_named_entity:
+                labels.extend(sentence.labels)
                 for gazette, value in sentence.get_gazettes().items():
                     gazetteer[gazette] += value
 
@@ -36,12 +40,27 @@ def collect_gazeteers(path, output_file_path, file_pattern='*.conll'):
         for word in gazette.split():
             sloppy_gazetteer[word].add(gazette)
 
-    print('Saving gazetteers', file=sys.stderr)
+    print('Saving gazetteers to %s' % gazetteer_file_path, file=sys.stderr)
 
-    with open(output_file_path, 'wb') as f:
+    with open(gazetteer_file_path, 'wb') as f:
         pickle.dump((gazetteer, sloppy_gazetteer), f)
 
-    return gazetteer, sloppy_gazetteer
+    print('Counting labels', file=sys.stderr)
+
+    unique_labels, inverse_indices, counts = np.unique(labels, return_inverse=True, return_counts=True)
+    counts.sort()
+    subsample_count = min(counts[:-1].sum(), counts[-1])
+    nne_index = np.where(unique_labels == 'O')[0][0]
+    nne_instances = np.random.permutation(np.where(inverse_indices == nne_index)[0])[:subsample_count]
+    ne_instances = np.where(inverse_indices != nne_index)[0]
+
+    valid_indices = set(nne_instances).union(set(ne_instances))
+
+    print('Saving indices to %s' % valid_indices_file_path, file=sys.stderr)
+    with open(valid_indices_file_path, 'wb') as f:
+        pickle.dump(valid_indices, f)
+
+    return gazetteer, sloppy_gazetteer, valid_indices
 
 
 def feature_selection(dataset, features_names, matrix_file_path, features_file_path, max_features=12000):
@@ -58,7 +77,7 @@ def feature_selection(dataset, features_names, matrix_file_path, features_file_p
     print('Min variance: %.2e. Getting features over min variance.' % min_variance, file=sys.stderr)
     valid_indices = np.where(variance > min_variance)[0]
 
-    print('Final features count: %d/%d' % (valid_indices.shape[0], dataset.shape[1]))
+    print('Final features count: %d/%d' % (valid_indices.shape[0], dataset.shape[1]), file=sys.stderr)
 
     print('Filtering features', file=sys.stderr)
     dataset = csr_matrix(dataset[:, valid_indices])
@@ -159,6 +178,65 @@ def parse_corpus_to_handcrafted_features(path, matrix_file_path, labels_file_pat
         pickle.dump(labels, f)
 
     return dataset_matrix, labels, features_names
+
+
+def parse_corpus_to_word_windows(path, word_window_file_path, labels_file_path=None, file_pattern='*.conll',
+                                 remove_stopwords=False, valid_indices=set(), window=3):
+    instance_extractor = WindowWordExtractor(window, valid_indices)
+
+    window_words = []
+    labels = []
+    word_index = 0
+
+    for fidx, file_path in enumerate(sorted(traverse_directory(path, file_pattern)), start=1):
+        print('Getting instances from corpus {}'.format(file_path), file=sys.stderr)
+
+        parser = WikipediaCorpusColumnParser(file_path, remove_stopwords)
+
+        for sentence in tqdm(parser):
+            if sentence.has_named_entity:
+                sentence_words, sentence_labels, word_index = \
+                    instance_extractor.get_instances_for_sentence(sentence, word_index)
+
+                window_words.extend(sentence_words)
+
+                if labels_file_path is not None:
+                    uri_label, yago_labels, lkif_labels, entity_labels, ner_label = sentence_labels
+                    ner_tag = uri_label.split('-', 1)[0]
+
+                    if ner_tag != 'O':
+                        # Randomize the selection of labels in higher levels
+                        label_item = np.random.randint(len(yago_labels))
+
+                        labels.append((
+                            '%s' % uri_label,
+                            '%s-%s' % (ner_tag, yago_labels[label_item]),
+                            '%s-%s' % (ner_tag, lkif_labels[label_item]),
+                            '%s-%s' % (ner_tag, entity_labels[label_item]),
+                            '%s' % ner_label
+                        ))
+                    else:
+                        labels.append(('O', 'O', 'O', 'O', 'O'))
+
+        if fidx % 3 == 0 and fidx < 27:
+            print('Saving partial matrix and labels', file=sys.stderr)
+
+            with open(word_window_file_path, 'wb') as f:
+                pickle.dump(window_words, f)
+            if labels_file_path is not None:
+                with open(labels_file_path, 'wb') as f:
+                    pickle.dump(labels, f)
+
+    print('Saving final matrix to file %s' % word_window_file_path, file=sys.stderr)
+    with open(word_window_file_path, 'wb') as f:
+        pickle.dump(window_words, f)
+
+    if labels_file_path is not None:
+        print('Saving final labels to file %s' % labels_file_path, file=sys.stderr)
+        with open(labels_file_path, 'wb') as f:
+            pickle.dump(labels, f)
+
+    return labels
 
 
 def parse_corpus_to_word_vectors(path, matrix_file_path, word_vectors_file, labels_file_path=None,

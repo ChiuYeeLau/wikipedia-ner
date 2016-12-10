@@ -119,10 +119,6 @@ if __name__ == '__main__':
         with open(args.labels_file_path, 'rb') as f:
             labels = pickle.load(f)
 
-    if args.indices_save_path is None or args.classes_save_path is None:
-        print('You must provide a valid path for the indices and classes file', file=sys.stderr)
-        sys.exit(os.EX_USAGE)
-
     if args.valid_indices_path is None:
         print('You must provide a path for the valid indices file.', file=sys.stderr)
         sys.exit(os.EX_USAGE)
@@ -210,6 +206,7 @@ if __name__ == '__main__':
 
         labels = word_vectors_labels if labels is None else labels
 
-    split_dataset(labels, args.indices_save_path, args.classes_save_path, train_size=args.train_size,
-                  test_size=args.test_size, validation_size=args.validation_size, min_count=args.min_count)
+    if args.indices_save_path is not None and args.classes_save_path is not None:
+        split_dataset(labels, args.indices_save_path, args.classes_save_path, train_size=args.train_size,
+                      test_size=args.test_size, validation_size=args.validation_size, min_count=args.min_count)
 

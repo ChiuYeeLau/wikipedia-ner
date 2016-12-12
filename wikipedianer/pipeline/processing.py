@@ -332,7 +332,8 @@ def split_dataset(labels, indices_save_path, classes_save_path, train_size=0.8,
     for idx, iteration in enumerate(CL_ITERATIONS):
         print('Getting classes for iteration %s' % iteration, file=sys.stderr)
         replaced_labels = [label[idx] for label in labels]
-        classes[iteration] = np.unique(np.array(replaced_labels)[filtered_indices], return_counts=True)
+        classes[iteration] = np.unique(np.array(replaced_labels)[filtered_indices],
+                                       return_counts=True, return_inverse=True)
 
     print('Saving classes to file %s' % classes_save_path, file=sys.stderr)
     with open(classes_save_path, 'wb') as f:

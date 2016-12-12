@@ -306,11 +306,11 @@ def parse_corpus_to_word_vectors(path, matrix_file_path, word_vectors_file, labe
 
 
 def split_dataset(labels, indices_save_path, classes_save_path, train_size=0.8,
-                  test_size=0.1, validation_size=0.1, min_count=10):
+                  test_size=0.1, validation_size=0.1, min_count=3):
     classes = {}
 
     print('Getting uri labels', file=sys.stderr)
-    uri_labels = [label[0] for label in labels]
+    uri_labels = [label[1] for label in labels]
 
     print('Getting filtered classes', file=sys.stderr)
     filtered_classes = {l for l, v in Counter(uri_labels).items() if v >= min_count}

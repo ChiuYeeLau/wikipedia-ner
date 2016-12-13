@@ -96,7 +96,7 @@ if __name__ == '__main__':
                         help='Size of the validation set.')
     parser.add_argument('--min_count',
                         type=int,
-                        default=10,
+                        default=3,
                         help='Minimum amount of occurrences of a class in the corpus.')
     parser.add_argument('--remove_stopwords',
                         action='store_true',

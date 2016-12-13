@@ -7,11 +7,11 @@ import os
 
 
 CL_ITERATIONS = (
-    'URI',
-    'YAGO',
-    'LKIF',
+    'NER',
     'ENTITY',
-    'NER'
+    'LKIF',
+    'YAGO',
+    'URI'
 )
 
 

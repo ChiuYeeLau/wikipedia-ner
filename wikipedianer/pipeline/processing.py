@@ -309,17 +309,17 @@ def split_dataset(labels, indices_save_path, classes_save_path, train_size=0.8,
                   test_size=0.1, validation_size=0.1, min_count=3):
     classes = {}
 
-    print('Getting uri labels', file=sys.stderr)
-    uri_labels = [label[1] for label in labels]
+    print('Getting YAGO labels', file=sys.stderr)
+    yago_labels = [label[1] for label in labels]
 
     print('Getting filtered classes', file=sys.stderr)
-    filtered_classes = {l for l, v in Counter(uri_labels).items() if v >= min_count}
+    filtered_classes = {l for l, v in Counter(yago_labels).items() if v >= min_count}
 
     print('Getting filtered indices', file=sys.stderr)
-    filtered_indices = np.array([i for i, l in enumerate(uri_labels)
+    filtered_indices = np.array([i for i, l in enumerate(yago_labels)
                                  if (l != 'O' and l in filtered_classes) or (l == 'O')], dtype=np.int32)
 
-    strat_split = StratifiedSplitter(np.array(uri_labels), filtered_indices)
+    strat_split = StratifiedSplitter(np.array(yago_labels), filtered_indices)
 
     print('Splitting the dataset', file=sys.stderr)
     train_indices, test_indices, validation_indices = strat_split.get_splitted_dataset_indices(
@@ -329,7 +329,7 @@ def split_dataset(labels, indices_save_path, classes_save_path, train_size=0.8,
     np.savez_compressed(indices_save_path, train_indices=train_indices, test_indices=test_indices,
                         validation_indices=validation_indices, filtered_indices=filtered_indices)
 
-    for idx, iteration in enumerate(CL_ITERATIONS):
+    for idx, iteration in enumerate(CL_ITERATIONS[::-1]):
         print('Getting classes for iteration %s' % iteration, file=sys.stderr)
         replaced_labels = [label[idx] for label in labels]
         classes[iteration] = np.unique(np.array(replaced_labels)[filtered_indices], return_counts=True)

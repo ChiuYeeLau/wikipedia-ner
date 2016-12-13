@@ -35,7 +35,7 @@ class StratifiedSplitter(object):
         """
         Get indices of filtered indices of the train/test/validation portion.
         """
-        assert train_size + test_size + validation_size == 1.
+        assert abs(train_size + test_size + validation_size - 1.) < 10**-5
 
         y_counts = np.bincount(self._y_indices)
         n_cls = self._classes.shape[0]

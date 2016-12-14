@@ -226,7 +226,7 @@ class MultilayerPerceptron(BaseClassifier):
                     self.train_loss_record.append(loss)
 
                 # We check the validation accuracy every `loss_report`*2 iterations
-                if epoch > 0 and epoch % (self.loss_report * 2) == 0:
+                if epoch > 0 and epoch % (self.loss_report * 4) == 0:
                     accuracy = self._evaluate(sess, 'validation')
                     print('Validation accuracy: %.3f' % accuracy, file=sys.stderr)
                     self.validation_accuracy_record.append(accuracy)

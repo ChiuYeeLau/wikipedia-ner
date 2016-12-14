@@ -12,6 +12,8 @@ entities, the target will be 'wordnet_categories'. On the other hand,
 only to recognize named entities, the target will be 'ner_tag' or 'is_ner'.
 
 If the target attribute is multiple, them the first target will be selected
+
+IMPORTANT run with python 3 to avoid encoding errors
 """
 
 import argparse
@@ -32,8 +34,7 @@ DEFAULT_TARGET = 'O'
 
 
 # Map of tasks to the name of the field of wikipedianer.corpus.base.Word
-# used to obtain the target. The field function of the map contains a
-# function to apply to the target once is obtained from the Word instance.
+# used to obtain the target.
 TASKS_MAP = {
     'ner': 'ner_tag',
     'entity': 'entity_labels',

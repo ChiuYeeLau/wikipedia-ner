@@ -13,15 +13,22 @@ from wikipedianer.pipeline.util import CL_ITERATIONS
 
 
 def run_classifier(dataset_path, labels_path, indices_path, results_save_path, pre_trained_weights_save_path,
-                   cl_iterations, layers=list(), dropout_ratios=list(), save_models=list(), learning_rate=0.01,
-                   epochs=10000, batch_size=2100, loss_report=250, batch_normalization=False):
+                   cl_iterations, layers=list(), dropout_ratios=list(), save_models=list(), completed_iterations=list(),
+                   learning_rate=0.01, epochs=10000, batch_size=2100, loss_report=250, batch_normalization=False):
     dataset = HandcraftedFeaturesDataset(dataset_path, labels_path, indices_path)
 
     experiments_names = []
 
+    for iteration in completed_iterations:
+        experiment_name = '%s_%s' % ('_'.join(CL_ITERATIONS[:iteration+1]), '_'.join([str(l) for l in layers]))
+        experiments_names.append(experiment_name)
+
     for iteration in cl_iterations:
-        experiment_name = '%s_%s' % ('_'.join(CL_ITERATIONS[:iteration+1]),
-                                     '_'.join([str(l) for l in layers]))
+        if iteration in completed_iterations:
+            print('Skipping completed iterations %s' % CL_ITERATIONS[iteration], file=sys.stderr)
+            continue
+
+        experiment_name = '%s_%s' % ('_'.join(CL_ITERATIONS[:iteration+1]), '_'.join([str(l) for l in layers]))
         experiments_names.append(experiment_name)
 
         print('Running experiment: %s' % experiment_name, file=sys.stderr)

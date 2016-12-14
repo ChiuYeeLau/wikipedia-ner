@@ -9,26 +9,23 @@ import sys
 from wikipedianer.pipeline.classification import run_classifier
 from wikipedianer.pipeline.util import CL_ITERATIONS
 
-if sys.version_info.major == 3:
-    unicode = str
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('dataset_path',
-                        type=unicode,
+                        type=str,
                         help='Path to the dataset matrix file.')
     parser.add_argument('labels_path',
-                        type=unicode,
+                        type=str,
                         help='Path to the labels file.')
     parser.add_argument('indices_path',
-                        type=unicode,
+                        type=str,
                         help='Path to the indices file.')
     parser.add_argument('results_save_path',
-                        type=unicode,
+                        type=str,
                         help='Path to the directory to store the results.')
     parser.add_argument('--weights_save_path',
-                        type=unicode,
+                        type=str,
                         default='',
                         help='Path to save the pre-trained weights.')
     parser.add_argument('--layers',
@@ -37,15 +34,20 @@ if __name__ == '__main__':
                         default=[],
                         help='Layers of the network.')
     parser.add_argument('--cl_iterations',
-                        type=unicode,
+                        type=str,
                         nargs='+',
                         default=[],
                         help='Strings to determine the iterations in CL.')
     parser.add_argument('--save_models',
-                        type=unicode,
+                        type=str,
                         default=[],
                         nargs='+',
                         help='String to determine the models of the experiment to save.')
+    parser.add_argument('--completed_iterations',
+                        type=str,
+                        default=[],
+                        nargs='+',
+                        help='Iterations completed and ready to do a follow up')
     parser.add_argument('--learning_rate',
                         type=float,
                         default=0.01)
@@ -77,16 +79,20 @@ if __name__ == '__main__':
         print('You have to provide a valid set of iterations for CL', file=sys.stderr)
         sys.exit(os.EX_USAGE)
 
-    args.cl_iterations = [args.cl_iterations] if isinstance(args.cl_iterations, unicode) else args.cl_iterations
+    args.cl_iterations = [args.cl_iterations] if isinstance(args.cl_iterations, str) else args.cl_iterations
     cl_iterations = [CL_ITERATIONS.index(cl_iter) for cl_iter in args.cl_iterations]
 
-    save_models = [cl_iter in args.save_models for cl_iter in CL_ITERATIONS]
+    save_models = [cl_iter in set(args.save_models) for cl_iter in CL_ITERATIONS]
 
     args.dropout_ratios = [args.dropout_ratios] if isinstance(args.dropout_ratios, int) else args.dropout_ratios
+
+    args.completed_iterations = [args.completed_iterations] if isinstance(args.completed_iterations, str) \
+        else args.completed_iterations
+    completed_iterations = [CL_ITERATIONS.index(cl_iter) for cl_iter in args.completed_iterations]
 
     run_classifier(dataset_path=args.dataset_path, labels_path=args.labels_path, indices_path=args.indices_path,
                    results_save_path=args.results_save_path, pre_trained_weights_save_path=args.weights_save_path,
                    cl_iterations=cl_iterations, layers=args.layers, dropout_ratios=args.dropout_ratios,
-                   save_models=save_models, learning_rate=args.learning_rate, epochs=args.epochs,
-                   batch_size=args.batch_size, loss_report=args.loss_report,
-                   batch_normalization=args.batch_normalization)
+                   save_models=save_models, completed_iterations=completed_iterations,
+                   learning_rate=args.learning_rate, epochs=args.epochs, batch_size=args.batch_size,
+                   loss_report=args.loss_report, batch_normalization=args.batch_normalization)

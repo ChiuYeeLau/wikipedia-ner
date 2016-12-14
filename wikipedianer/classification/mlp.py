@@ -238,6 +238,14 @@ class MultilayerPerceptron(BaseClassifier):
                             print('Validation accuracy converging: delta_acc %.3f' % delta_acc, file=sys.stderr)
                             break
 
+                        if len(self.validation_accuracy_record) >= 5:
+                            # If there hasn't been any significant change in the last 5 iterations, stop
+                            change = (max(self.validation_accuracy_record[:-5]) -
+                                      min(self.validation_accuracy_record[:-5]))
+                            if change < 0.01:
+                                print('Validation accuracy unchanged for a large period', file=sys.stderr)
+                                break
+
                     if round(accuracy, 2) == 1:
                         print('Validation accuracy maxed: %.2f' % accuracy, file=sys.stderr)
                         break

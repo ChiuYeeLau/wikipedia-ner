@@ -38,25 +38,25 @@ if __name__ == "__main__":
 
     for mapping_kind in args.mappings_kind:
         if mapping_kind not in LABELS_REPLACEMENT[args.experiment_kind]:
-            print('Not a valid replacement {}'.format(mapping_kind), file=sys.stderr)
+            print('Not a valid replacement {}'.format(mapping_kind), file=sys.stderr, flush=True)
             sys.exit(1)
 
     if len(args.mappings_kind) != len(args.layers):
         print('Layers and mappings don\'t have the same amount of items')
         sys.exit(1)
 
-    print('Loading labels from file {}'.format(args.labels), file=sys.stderr)
+    print('Loading labels from file {}'.format(args.labels), file=sys.stderr, flush=True)
     with open(args.labels, 'rb') as f:
         labels = pickle.load(f)
 
-    print('Loading class mappings from file {}'.format(args.mappings), file=sys.stderr)
+    print('Loading class mappings from file {}'.format(args.mappings), file=sys.stderr, flush=True)
     with open(args.mappings, 'rb') as f:
         class_mappings = pickle.load(f)
 
     args.dynamic_layers = [args.dynamic_layers] if isinstance(args.dynamic_layers, int) else args.dynamic_layers
 
     if args.dynamic_layers is not None and len(args.dynamic_layers) != len(args.layers) - 1:
-        print('The number of dynamic layers must be one less than the number of layers', file=sys.stderr)
+        print('The number of dynamic layers must be one less than the number of layers', file=sys.stderr, flush=True)
         sys.exit(1)
 
     args.dropout_ratios = [args.dropout_ratios] if isinstance(args.dropout_ratios, int) else args.dropout_ratios
@@ -69,24 +69,24 @@ if __name__ == "__main__":
         )
         experiments_name.append(experiment_name)
 
-        print('Running experiment: {}'.format(experiment_name), file=sys.stderr)
+        print('Running experiment: {}'.format(experiment_name), file=sys.stderr, flush=True)
 
-        print('Replacing the labels', file=sys.stderr)
+        print('Replacing the labels', file=sys.stderr, flush=True)
         replacement_function = LABELS_REPLACEMENT[args.experiment_kind][mapping_kind]
         experiment_labels = list(replacement_function(labels, class_mappings))
 
-        print('Loading indices for train, test and validation', file=sys.stderr)
+        print('Loading indices for train, test and validation', file=sys.stderr, flush=True)
         indices = np.load(os.path.join(args.indices_dir, "{}_indices.npz".format(mapping_kind)))
 
         print('Loading dataset from file {}. Filtering dataset according to indices'.format(args.dataset),
-              file=sys.stderr)
+              file=sys.stderr, flush=True)
         experiment_dataset = np.load(args.dataset)['dataset'][indices['filtered_indices']]
 
-        print('Filtering labels according to indices', file=sys.stderr)
+        print('Filtering labels according to indices', file=sys.stderr, flush=True)
         experiment_labels = np.array(experiment_labels)[indices['filtered_indices']]
 
         if len(experiments_name) > 1:
-            print('Loading previous weights and biases', file=sys.stderr)
+            print('Loading previous weights and biases', file=sys.stderr, flush=True)
             pre_weights = np.load(os.path.join(args.saves_dir, '{}_weights.npz'.format(experiments_name[-2])))
             pre_biases = np.load(os.path.join(args.saves_dir, '{}_biases.npz'.format(experiments_name[-2])))
         else:
@@ -103,7 +103,7 @@ if __name__ == "__main__":
 
             do_ratios = args.dropout_ratios[:] if args.dropout_ratios is not None else None
 
-            print('Creating multilayer perceptron', file=sys.stderr)
+            print('Creating multilayer perceptron', file=sys.stderr, flush=True)
             mlp = MultilayerPerceptron(dataset=experiment_dataset, labels=experiment_labels,
                                        train_indices=indices['train_indices'], test_indices=indices['test_indices'],
                                        validation_indices=indices['validation_indices'], saves_dir=args.saves_dir,
@@ -116,7 +116,7 @@ if __name__ == "__main__":
             del experiment_dataset
             del experiment_labels
 
-            print('Training the classifier', file=sys.stderr)
+            print('Training the classifier', file=sys.stderr, flush=True)
             mlp.train()
 
         # Releasing some memory
@@ -126,6 +126,6 @@ if __name__ == "__main__":
         del mlp
         del g
 
-        print('Finished experiment {}'.format(experiment_name), file=sys.stderr)
+        print('Finished experiment {}'.format(experiment_name), file=sys.stderr, flush=True)
 
-    print('Finished all the experiments', file=sys.stderr)
+    print('Finished all the experiments', file=sys.stderr, flush=True)

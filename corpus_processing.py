@@ -108,22 +108,22 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if not os.path.isdir(args.corpus_path):
-        print('The given corpus path (%s) is not a valid directory' % args.corpus_path, file=sys.stderr)
+        print('The given corpus path (%s) is not a valid directory' % args.corpus_path, file=sys.stderr, flush=True)
         sys.exit(os.EX_USAGE)
 
     labels = None
     if args.labels_file_path is None:
-        print('You must provide a path for the labels file', file=sys.stderr)
+        print('You must provide a path for the labels file', file=sys.stderr, flush=True)
         sys.exit(os.EX_USAGE)
     elif os.path.isfile(args.labels_file_path):
         with open(args.labels_file_path, 'rb') as f:
             labels = pickle.load(f)
 
     if args.valid_indices_path is None:
-        print('You must provide a path for the valid indices file.', file=sys.stderr)
+        print('You must provide a path for the valid indices file.', file=sys.stderr, flush=True)
         sys.exit(os.EX_USAGE)
 
-    print('Getting valid indices', file=sys.stderr)
+    print('Getting valid indices', file=sys.stderr, flush=True)
     if os.path.isfile(args.valid_indices_path):
         with open(args.valid_indices_path, 'rb') as f:
             valid_indices = pickle.load(f)
@@ -133,20 +133,20 @@ if __name__ == '__main__':
 
     if args.handcrafted_matrix_path is not None:
         if args.gazetteer_file_path is None:
-            print('You must provide a path for the gazetteer file', file=sys.stderr)
+            print('You must provide a path for the gazetteer file', file=sys.stderr, flush=True)
             sys.exit(os.EX_USAGE)
         if args.features_file_path is None:
-            print('You must provide a path for the features file', file=sys.stderr)
+            print('You must provide a path for the features file', file=sys.stderr, flush=True)
             sys.exit(os.EX_USAGE)
         if args.filtered_features_file_path is None:
-            print('You must provide a path for the filtered features file', file=sys.stderr)
+            print('You must provide a path for the filtered features file', file=sys.stderr, flush=True)
             sys.exit(os.EX_USAGE)
         if args.filtered_handcrafted_matrix_path is None:
             print('You must provide a path for the handcrafted features matrix with feature selection file',
-                  file=sys.stderr)
+                  file=sys.stderr, flush=True)
             sys.exit(os.EX_USAGE)
 
-        print('Getting gazetteer', file=sys.stderr)
+        print('Getting gazetteer', file=sys.stderr, flush=True)
         if os.path.isfile(args.gazetteer_file_path):
             with open(args.gazetteer_file_path, 'rb') as f:
                 gazetteer, sloppy_gazetteer = pickle.load(f)
@@ -155,7 +155,7 @@ if __name__ == '__main__':
                 collect_gazeteers_and_subsample_non_entities(args.corpus_path, args.gazetteer_file_path,
                                                              args.valid_indices_path, args.remove_stopwords)
 
-        print('Getting handcrafted features matrix, labels and features names', file=sys.stderr)
+        print('Getting handcrafted features matrix, labels and features names', file=sys.stderr, flush=True)
         if os.path.isfile(args.handcrafted_matrix_path) and os.path.isfile(args.labels_file_path) and \
                 os.path.isfile(args.features_file_path):
             dataset = np.load(args.handcrafted_matrix_path)
@@ -186,7 +186,7 @@ if __name__ == '__main__':
     if args.word_vectors_matrix_path is not None:
         labels_file_path = args.labels_file_path if labels is None else None
 
-        print('Getting word vectors matrix and labels', file=sys.stderr)
+        print('Getting word vectors matrix and labels', file=sys.stderr, flush=True)
         word_vectors_labels = \
             parse_corpus_to_word_vectors(args.corpus_path, args.word_vectors_matrix_path, args.word_vectors_model_file,
                                          labels_file_path=labels_file_path, remove_stopwords=args.remove_stopwords,
@@ -198,7 +198,7 @@ if __name__ == '__main__':
     if args.word_window_file_path is not None:
         labels_file_path = args.labels_file_path if labels is None else None
 
-        print('Getting word windows and labels', file=sys.stderr)
+        print('Getting word windows and labels', file=sys.stderr, flush=True)
         word_vectors_labels = \
             parse_corpus_to_word_windows(args.corpus_path, args.word_window_file_path, labels_file_path,
                                          remove_stopwords=args.remove_stopwords, valid_indices=valid_indices,

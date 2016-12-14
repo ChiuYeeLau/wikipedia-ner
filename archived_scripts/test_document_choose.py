@@ -20,11 +20,11 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    print('Loading documents from file {}'.format(args.documents), file=sys.stderr)
+    print('Loading documents from file {}'.format(args.documents), file=sys.stderr, flush=True)
     with open(args.documents, "r") as f:
         documents = [doc.decode('utf-8').strip() for doc in f.readlines()]
 
-    print('Selecting {} documents at random'.format(args.sample), file=sys.stderr)
+    print('Selecting {} documents at random'.format(args.sample), file=sys.stderr, flush=True)
     chosen_documents_indices = np.random.permutation(len(documents))[:args.sample]
     chosen_documents = set()
     for doc_idx in chosen_documents_indices:
@@ -32,7 +32,7 @@ if __name__ == "__main__":
 
     for conll_file in sorted(os.listdir(args.input_dir)):
         corpus_doc, _ = conll_file.split(".", 1)
-        print('Getting selected documents from corpus {}'.format(corpus_doc), file=sys.stderr)
+        print('Getting selected documents from corpus {}'.format(corpus_doc), file=sys.stderr, flush=True)
 
         last_doc_in_sample = False
 

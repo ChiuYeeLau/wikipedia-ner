@@ -83,7 +83,7 @@ class StanfordEvaluator(object):
         lines_read = 0
         line = None
         with open(output_filepath, 'w') as output_file:
-            self.splitted_input_filepaths.append(output_filepath)
+            self.splitted_input_filepaths-.append(output_filepath)
             while not (line == '\n' and lines_read > split_max_size):
                 line = input_file.readline()
                 if not line:  # EOF for input file.

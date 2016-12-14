@@ -70,13 +70,13 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if not args.layers:
-        print('You have to provide a valid architecture.', file=sys.stderr)
+        print('You have to provide a valid architecture.', file=sys.stderr, flush=True)
         sys.exit(os.EX_USAGE)
 
     args.layers = [args.layers] if isinstance(args.layers, int) else args.layers
 
     if not args.cl_iterations:
-        print('You have to provide a valid set of iterations for CL', file=sys.stderr)
+        print('You have to provide a valid set of iterations for CL', file=sys.stderr, flush=True)
         sys.exit(os.EX_USAGE)
 
     args.cl_iterations = [args.cl_iterations] if isinstance(args.cl_iterations, str) else args.cl_iterations

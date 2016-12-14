@@ -26,17 +26,17 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    print('Loading dataset from file {}'.format(args.dataset), file=sys.stderr)
+    print('Loading dataset from file {}'.format(args.dataset), file=sys.stderr, flush=True)
     if args.word_vectors:
         dataset = np.load(args.dataset)['dataset']
     else:
         dataset = np.load(args.dataset)
         dataset = csr_matrix((dataset['data'], dataset['indices'], dataset['indptr']), shape=dataset['shape'])
 
-        print('Normalizing dataset', file=sys.stderr)
+        print('Normalizing dataset', file=sys.stderr, flush=True)
         dataset = normalize(dataset.astype(np.float32), norm='max', axis=0)
 
-    print('Loading classes from file {}'.format(args.classes), file=sys.stderr)
+    print('Loading classes from file {}'.format(args.classes), file=sys.stderr, flush=True)
     with open(args.classes, 'rb') as f:
         classes = np.array(cPickle.load(f))
 
@@ -52,11 +52,11 @@ if __name__ == "__main__":
 
         print('Building neural network with architecture: {}'
               .format(' -> '.join(map(str, [input_size] + layers_size + [output_size]))),
-              file=sys.stderr)
+              file=sys.stderr, flush=True)
 
         # Create the layers
         for layer_idx, (size_prev, size_current) in enumerate(zip([input_size] + layers_size, layers_size)):
-            print('Creating hidden layer {:02d}: {} -> {}'.format(layer_idx, size_prev, size_current), file=sys.stderr)
+            print('Creating hidden layer {:02d}: {} -> {}'.format(layer_idx, size_prev, size_current), file=sys.stderr, flush=True)
 
             layer_name = 'hidden_layer_{:02d}'.format(layer_idx)
 
@@ -74,7 +74,7 @@ if __name__ == "__main__":
 
         # The last layer is softmax
         with tf.name_scope('softmax_layer'):
-            print('Creating softmax layer: {} -> {}'.format(layers_size[-1], output_size), file=sys.stderr)
+            print('Creating softmax layer: {} -> {}'.format(layers_size[-1], output_size), file=sys.stderr, flush=True)
             weights_variable = tf.Variable(tf.zeros([layers_size[-1], output_size], dtype=tf.float32), name='weights')
             biases_variable = tf.Variable(tf.zeros([output_size]), name='biases')
             y_logits = tf.matmul(layers[-1], weights_variable) + biases_variable
@@ -83,12 +83,12 @@ if __name__ == "__main__":
 
         saver = tf.train.Saver()
 
-        print('Starting session for classification', file=sys.stderr)
+        print('Starting session for classification', file=sys.stderr, flush=True)
         with tf.Session() as sess:
-            print('Loading model from file {}'.format(args.model), file=sys.stderr)
+            print('Loading model from file {}'.format(args.model), file=sys.stderr, flush=True)
             saver.restore(sess, args.model)
 
-            print('Running classification for dataset {}'.format(args.dataset), file=sys.stderr)
+            print('Running classification for dataset {}'.format(args.dataset), file=sys.stderr, flush=True)
             for step in tqdm(np.arange(dataset.shape[0], step=args.batch_size)):
                 dataset_chunk = dataset[step:min(step+args.batch_size, dataset.shape[0])]
                 feed_dict = {
@@ -97,11 +97,11 @@ if __name__ == "__main__":
 
                 y_pred[step:min(step+args.batch_size, dataset.shape[0])] = sess.run(classification, feed_dict=feed_dict)
 
-    print('Loading words of corpus from file {}'.format(args.words), file=sys.stderr)
+    print('Loading words of corpus from file {}'.format(args.words), file=sys.stderr, flush=True)
     with open(args.words, 'rb') as f:
         words = cPickle.load(f)
 
-    print('Saving resulting corpus to dir {}'.format(args.results), file=sys.stderr)
+    print('Saving resulting corpus to dir {}'.format(args.results), file=sys.stderr, flush=True)
     with open(args.results, 'w') as f:
         for idx, (word_idx, token, tag, is_doc_start) in tqdm(enumerate(words)):
             word_label = classes[int(y_pred[idx])]
@@ -116,5 +116,5 @@ if __name__ == "__main__":
 
             print('{}\t{}\t{}\t{}\t{}'.format(word_idx, token, tag, word_label, doc_title).encode('utf-8'), file=f)
 
-    print('All finished', file=sys.stderr)
+    print('All finished', file=sys.stderr, flush=True)
 

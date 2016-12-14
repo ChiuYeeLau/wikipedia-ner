@@ -53,7 +53,7 @@ class MultilayerPerceptron(BaseClassifier):
 
         # Create the layers
         for layer_idx, (size_prev, size_current) in enumerate(zip([self.dataset.input_size] + layers, layers)):
-            print('Creating hidden layer %02d: %d -> %d' % (layer_idx, size_prev, size_current), file=sys.stderr)
+            print('Creating hidden layer %02d: %d -> %d' % (layer_idx, size_prev, size_current), file=sys.stderr, flush=True)
 
             layer_name = 'hidden_layer_%02d' % layer_idx
 
@@ -97,7 +97,7 @@ class MultilayerPerceptron(BaseClassifier):
             else:
                 last_layer = layers[-1]
             print('Creating softmax layer: %d -> %d' % (last_layer, self.dataset.output_size(self.cl_iteration)),
-                  file=sys.stderr)
+                  file=sys.stderr, flush=True)
             if pre_weights and 'softmax_layer' in pre_weights:
                 weights = tf.Variable(pre_weights['softmax_layer'], name='weights')
             else:
@@ -143,7 +143,7 @@ class MultilayerPerceptron(BaseClassifier):
     def _evaluate(self, sess, dataset_name, return_extras=False):
         y_pred = np.zeros(self.dataset.num_examples(dataset_name), dtype=np.int32)
 
-        print('Running evaluation for dataset %s' % dataset_name, file=sys.stderr)
+        print('Running evaluation for dataset %s' % dataset_name, file=sys.stderr, flush=True)
         for step, dataset_chunk in self.dataset.traverse_dataset(dataset_name, self.batch_size):
             feed_dict = {
                 self.X: dataset_chunk
@@ -186,7 +186,7 @@ class MultilayerPerceptron(BaseClassifier):
             os.path.join(self.results_save_path, 'test_predictions_%s.csv' % self.experiment_name), index=False)
 
         if save_layers:
-            print('Saving weights and biases', file=sys.stderr)
+            print('Saving weights and biases', file=sys.stderr, flush=True)
             file_name_weights = os.path.join(self.pre_trained_weights_save_path,
                                              "%s_weights.npz" % self.experiment_name)
             file_name_biases = os.path.join(self.pre_trained_weights_save_path,
@@ -222,20 +222,20 @@ class MultilayerPerceptron(BaseClassifier):
 
                 # We record the loss every `loss_report` iterations
                 if epoch > 0 and epoch % self.loss_report == 0:
-                    print('Epoch %d: loss = %.3f' % (epoch, loss), file=sys.stderr)
+                    print('Epoch %d: loss = %.3f' % (epoch, loss), file=sys.stderr, flush=True)
                     self.train_loss_record.append(loss)
 
                 # We check the validation accuracy every `loss_report`*2 iterations
                 if epoch > 0 and epoch % (self.loss_report * 4) == 0:
                     accuracy = self._evaluate(sess, 'validation')
-                    print('Validation accuracy: %.3f' % accuracy, file=sys.stderr)
+                    print('Validation accuracy: %.3f' % accuracy, file=sys.stderr, flush=True)
                     self.validation_accuracy_record.append(accuracy)
 
                     if len(self.validation_accuracy_record) >= 2:
                         delta_acc = max(self.validation_accuracy_record) - accuracy
 
                         if delta_acc > 0.01:
-                            print('Validation accuracy converging: delta_acc %.3f' % delta_acc, file=sys.stderr)
+                            print('Validation accuracy converging: delta_acc %.3f' % delta_acc, file=sys.stderr, flush=True)
                             break
 
                         # If there hasn't been any significant change in the last 5 iterations, stop
@@ -243,23 +243,23 @@ class MultilayerPerceptron(BaseClassifier):
                             change = (max(self.validation_accuracy_record[:-5]) -
                                       min(self.validation_accuracy_record[:-5]))
                             if change < 0.01:
-                                print('Validation accuracy unchanged for a large period', file=sys.stderr)
+                                print('Validation accuracy unchanged for a large period', file=sys.stderr, flush=True)
                                 break
                         elif len(self.validation_accuracy_record) >= 10 and self.validation_accuracy_record[-1] >= 0.85:
                             change = (max(self.validation_accuracy_record[:-10]) -
                                       min(self.validation_accuracy_record[:-10]))
                             if change < 0.01:
-                                print('Validation accuracy unchanged for a large period', file=sys.stderr)
+                                print('Validation accuracy unchanged for a large period', file=sys.stderr, flush=True)
                                 break
 
                     if round(accuracy, 2) == 1:
-                        print('Validation accuracy maxed: %.2f' % accuracy, file=sys.stderr)
+                        print('Validation accuracy maxed: %.2f' % accuracy, file=sys.stderr, flush=True)
                         break
 
-            print('Finished training', file=sys.stderr)
+            print('Finished training', file=sys.stderr, flush=True)
 
             accuracy, precision, recall, fscore, y_true, y_pred = self._evaluate(sess, 'test', True)
-            print('Testing accuracy: %.3f' % accuracy, file=sys.stderr)
+            print('Testing accuracy: %.3f' % accuracy, file=sys.stderr, flush=True)
 
             self.test_results = self.test_results.append({'accuracy': accuracy}, ignore_index=True)
             for cls_idx, cls in enumerate(self.dataset.classes[self.cl_iteration]):
@@ -273,12 +273,12 @@ class MultilayerPerceptron(BaseClassifier):
             self.test_predictions_results = pd.DataFrame(np.vstack([y_true, y_pred]).T,
                                                          columns=self.test_predictions_results.columns)
 
-            print('Saving results', file=sys.stderr)
+            print('Saving results', file=sys.stderr, flush=True)
             self._save_results(save_layers)
 
             if self.saver is not None:
-                print('Saving model', file=sys.stderr)
+                print('Saving model', file=sys.stderr, flush=True)
                 save_path = self.saver.save(sess, os.path.join(
                     self.results_save_path, '%s.model' % self.experiment_name))
-                print('Model saved in file %s' % save_path, file=sys.stderr)
+                print('Model saved in file %s' % save_path, file=sys.stderr, flush=True)
 

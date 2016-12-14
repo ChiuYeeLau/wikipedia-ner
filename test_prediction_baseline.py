@@ -20,20 +20,20 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    print('Loading dataset from file {}'.format(args.dataset), file=sys.stderr)
+    print('Loading dataset from file {}'.format(args.dataset), file=sys.stderr, flush=True)
     if args.word_vectors:
         dataset = np.load(args.dataset)['dataset']
     else:
         dataset = np.load(args.dataset)
         dataset = csr_matrix((dataset['data'], dataset['indices'], dataset['indptr']), shape=dataset['shape'])
 
-        print('Normalizing dataset', file=sys.stderr)
+        print('Normalizing dataset', file=sys.stderr, flush=True)
         dataset = normalize(dataset.astype(np.float32), norm='max', axis=0)
 
-    print('Loading indices from file {}'.format(args.indices), file=sys.stderr)
+    print('Loading indices from file {}'.format(args.indices), file=sys.stderr, flush=True)
     indices = np.load(args.indices)
 
-    print('Getting test dataset', file=sys.stderr)
+    print('Getting test dataset', file=sys.stderr, flush=True)
     dataset = dataset[indices['filtered_indices']]
     dataset = dataset[indices['test_indices']]
 
@@ -41,7 +41,7 @@ if __name__ == "__main__":
 
     y_pred = model.predict(dataset)
 
-    print('Saving results to file {}'.format(args.results), file=sys.stderr)
+    print('Saving results to file {}'.format(args.results), file=sys.stderr, flush=True)
     np.savetxt(args.results, y_pred, fmt='%d'.encode('utf-8'))
 
-    print('All finished', file=sys.stderr)
+    print('All finished', file=sys.stderr, flush=True)

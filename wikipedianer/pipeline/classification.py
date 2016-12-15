@@ -28,7 +28,11 @@ def run_classifier(dataset_path, labels_path, indices_path, results_save_path, p
             print('Skipping completed iterations %s' % CL_ITERATIONS[iteration], file=sys.stderr, flush=True)
             continue
 
-        experiment_name = '%s_%s' % ('_'.join(CL_ITERATIONS[:iteration+1]), '_'.join([str(l) for l in layers]))
+        if len(cl_iterations) > 1:
+            experiment_name = '%s_%s' % ('_'.join(CL_ITERATIONS[:iteration+1]), '_'.join([str(l) for l in layers]))
+        else:
+            experiment_name = '%s_%s' % (CL_ITERATIONS[iteration], '_'.join([str(l) for l in layers]))
+
         experiments_names.append(experiment_name)
 
         print('Running experiment: %s' % experiment_name, file=sys.stderr, flush=True)

@@ -7,30 +7,31 @@ cut -f 1,3 test.conll > test2.conll
 """
 import csv
 import argparse
+import logging
+logging.basicConfig(level=logging.INFO)
 import shlex
 import subprocess
 import os
 import utils
 
-from contextlib import nested
 from sklearn import metrics 
 
 
 def parse_arguments():
     """Reads arguments from stdin using the argsparse library."""
     parser = argparse.ArgumentParser()
-    parser.add_argument('--classifier_path', '-c', type=unicode,
+    parser.add_argument('--classifier_path', '-c', type=str,
                         help='Name of file with the classifier to apply.')
-    parser.add_argument('--test_filepath', '-t', type=unicode,
+    parser.add_argument('--test_filepath', '-t', type=str,
                         help='Name of file with the test dataset.')
-    parser.add_argument('--output_dirpath', '-o', type=unicode,
+    parser.add_argument('--output_dirpath', '-o', type=str,
                         help='Directory to save the tagged documents.')
     parser.add_argument('--split_size', type=int, default=10**6,
                         help='Maximum size of the test file. If exceeded'
                              'it will be splitted.')
-    parser.add_argument('--stanford_libs_path', type=unicode,
+    parser.add_argument('--stanford_libs_path', type=str,
                         help='Split the test corpus into parts.')
-    parser.add_argument('--task', type=unicode, default='ner',
+    parser.add_argument('--task', type=str, default='ner',
                         help='Name of the task to evaluate.')
     parser.add_argument('--evaluate_only', action='store_true',
                         help='Skip classification step.')
@@ -73,7 +74,7 @@ class StanfordEvaluator(object):
         # Finish all process and show the promp again. Optional.
         process.wait()
         if process.returncode:
-            print "Error: Classifier application failed."
+            logging.error("Classifier application failed.")
             return False
         return True
 
@@ -90,7 +91,7 @@ class StanfordEvaluator(object):
                     break
                 lines_read += 1
                 output_file.write(line)
-        print 'Creating split {} with {} lines'.format(split_number, lines_read)
+        logging.info('Creating split {} with {} lines'.format(split_number, lines_read))
         return lines_read
 
     def split(self, split_max_size):
@@ -104,7 +105,7 @@ class StanfordEvaluator(object):
 
         with open(self.input_filepath, 'r') as input_file:
             lines_read = 0
-            for split_number in range(test_size / split_max_size + 1):
+            for split_number in range(int(test_size / split_max_size + 1)):
                 lines_read += self._write_new_file(
                     split_number, input_file, split_max_size)
                 if lines_read >= test_size:
@@ -160,11 +161,11 @@ class StanfordEvaluator(object):
             output_filepath = os.path.join(output_dirpath,
                                            os.path.basename(input_filepath))
             self.read_predictions(output_filepath, y_true, y_predicted)
-        print metrics.classification_report(
-            y_true, y_predicted, target_names=self._classes, digits=3)
+        logging.info(metrics.classification_report(
+            y_true, y_predicted, target_names=self._classes, digits=3))
         for row in metrics.confusion_matrix(y_true, y_predicted):
-            print '\t'.join([str(x) for x in row])
-        print 'Accuracy', metrics.accuracy_score(y_true, y_predicted)
+            logging.info('\t'.join([str(x) for x in row]))
+        logging.info('Accuracy {}'.format(metrics.accuracy_score(y_true, y_predicted)))
 
     def predict(self, output_dirpath):
         """Applies the classifier to the test file"""

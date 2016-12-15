@@ -163,7 +163,7 @@ class StanfordPreprocesser(object):
 
         self.indices_filepath = indices_filepath
         if self.indices_filepath:
-            with open(self.indices_filepath) as indices_file:
+            with open(self.indices_filepath, 'rb') as indices_file:
                 (self.train_doc_index, self.test_doc_index,
                     self.validation_doc_index) = pickle.load(indices_file)
 

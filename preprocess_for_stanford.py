@@ -12,6 +12,8 @@ entities, the target will be 'wordnet_categories'. On the other hand,
 only to recognize named entities, the target will be 'ner_tag' or 'is_ner'.
 
 If the target attribute is multiple, them the first target will be selected
+
+IMPORTANT run with python 3 to avoid encoding errors
 """
 
 import argparse
@@ -32,8 +34,7 @@ DEFAULT_TARGET = 'O'
 
 
 # Map of tasks to the name of the field of wikipedianer.corpus.base.Word
-# used to obtain the target. The field function of the map contains a
-# function to apply to the target once is obtained from the Word instance.
+# used to obtain the target.
 TASKS_MAP = {
     'ner': 'ner_tag',
     'entity': 'entity_labels',
@@ -61,6 +62,9 @@ def read_arguments():
                              'present, create them.')
     parser.add_argument('--indices', type=str,
                         help='File with pickled documents indices to use.')
+    parser.add_argument('--reduce_by', type=float, default=1.0,
+                        help='Maximum number of documents in each partition of'
+                             'the dataset.')
 
     return parser.parse_args()
 
@@ -129,7 +133,7 @@ class StanfordPreprocesser(object):
     """
 
     def __init__(self, input_dirname, task_name, output_dirname, splits,
-                 indices_filepath):
+                 indices_filepath, reduce_by=-1):
         self.input_dirname = input_dirname
         if not task_name in TASKS_MAP:
             raise ValueError('The name of the task is incorrect.')
@@ -137,6 +141,7 @@ class StanfordPreprocesser(object):
         self.target_field = TASKS_MAP[task_name]
         self.output_dirname = output_dirname
         self.splits = splits if splits else []
+        self.reduce_by = reduce_by
 
         # Lists indices of filtered documents and their corresponding labels.
         # If a document has multiple labels, one is selected randomly.
@@ -206,9 +211,11 @@ class StanfordPreprocesser(object):
         # This split returns the filtered indexes of self.labels (equivalent to
         # self.documents) corresponding to each split. These are not absolute
         # document indices
-        train_index, test_index, validation_index = (
-            splitter.get_splitted_dataset_indices(*self.splits))
         logging.info('Splitting documents')
+        train_index, test_index, validation_index = (
+            splitter.get_splitted_dataset_indices(
+                *self.splits, reduce_by=self.reduce_by))
+
         if not len(train_index) or not len(test_index):
             raise ValueError("ERROR not enough instances to split")
         if isinstance(self.documents, list):
@@ -238,7 +245,8 @@ class StanfordPreprocesser(object):
         logging.info("Writing {} documents".format(len(self.documents)))
         logging.info("Train dataset size {}".format(len(self.train_doc_index)))
         logging.info("Test dataset size {}".format(len(self.test_doc_index)))
-        logging.info("Validation dataset size {}".format(len(self.validation_doc_index)))
+        logging.info("Validation dataset size {}".format(
+            len(self.validation_doc_index)))
         current_document_index = 0
 
         if not self.indices_filepath:
@@ -282,7 +290,7 @@ def main():
         input_dirname = args.input_dirname
     processer = StanfordPreprocesser(input_dirname, args.task_name,
                                      args.output_dirname, args.splits,
-                                     args.indices)
+                                     args.indices, args.reduce_by)
 
     processer.preprocess()
 

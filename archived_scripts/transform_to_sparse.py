@@ -15,10 +15,10 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    print('Loading dataset from file {}'.format(args.dataset), file=sys.stderr)
+    print('Loading dataset from file {}'.format(args.dataset), file=sys.stderr, flush=True)
     dataset = np.load(args.dataset)["dataset"]
 
-    print('Saving dataset to file {}'.format(args.output), file=sys.stderr)
+    print('Saving dataset to file {}'.format(args.output), file=sys.stderr, flush=True)
 
     nnz_count = 0
 
@@ -33,7 +33,7 @@ if __name__ == "__main__":
                     nnz_count += 1
                     print('{} {} {}'.format(i+1, j+1, dataset[i, j]), file=f)
 
-    print('Finished writing matrix.', file=sys.stderr)
-    print('Final number of non zero items: {}'.format(nnz_count), file=sys.stderr)
+    print('Finished writing matrix.', file=sys.stderr, flush=True)
+    print('Final number of non zero items: {}'.format(nnz_count), file=sys.stderr, flush=True)
     print('Sparse ratio: {:.02e}'.format(float(nnz_count) / float(dataset.shape[0] * dataset.shape[1])),
-          file=sys.stderr)
+          file=sys.stderr, flush=True)

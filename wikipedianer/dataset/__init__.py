@@ -120,26 +120,28 @@ class Dataset(object):
 class HandcraftedFeaturesDataset(Dataset):
     def __load_data__(self, dataset_path, labels_path, indices_path,
                       cl_iterations=enumerate(CL_ITERATIONS)):
-        print('Loading dataset from file %s' % dataset_path, file=sys.stderr)
+        print('Loading dataset from file %s' % dataset_path, file=sys.stderr
+              flush=True)
         dataset = np.load(dataset_path)
         dataset = csr_matrix((dataset['data'], dataset['indices'], dataset['indptr']), shape=dataset['shape'])
 
-        print('Loading labels from file %s' % labels_path, file=sys.stderr)
+        print('Loading labels from file %s' % labels_path, file=sys.stderr, flush=True)
         with open(labels_path, 'rb') as f:
             labels = np.array(pickle.load(f))[:, ::-1]  # Reverse the columns order to follow the right flow of CL
 
-        print('Loading the indices for train, test and validation from %s' % indices_path, file=sys.stderr)
+        print('Loading the indices for train, test and validation from %s' % indices_path, file=sys.stderr, flush=True)
         indices = np.load(indices_path)
 
         labels = labels[indices['filtered_indices']]
 
         classes = []
-        print('Getting classes for each iteration', file=sys.stderr)
+
+        print('Getting classes for each iteration', file=sys.stderr, flush=True)
         for idx, iteration in cl_iterations:
             replaced_labels = np.array([label[idx] for label in labels])
             classes.append(np.unique(replaced_labels, return_inverse=True))
 
-        print('Normalizing dataset', file=sys.stderr)
+        print('Normalizing dataset', file=sys.stderr, flush=True)
         dataset = dataset[indices['filtered_indices']]
         dataset = normalize(dataset.astype(np.float32), norm='max', axis=0)
 
@@ -164,10 +166,8 @@ class HandcraftedFeaturesDataset(Dataset):
             self.validation_labels = []
 
     def _one_hot_encoding(self, slice_, cl_iteration):
-        if isinstance(slice_, csr_matrix):
-            slice_ = slice_.toarray()
         return np.eye(self.output_size(cl_iteration),
-                      dtype=self.train_dataset.dtype)[slice_]
+                      dtype=self.train_dataset.dtype)[slice_.astype(np.int32)]
 
     def next_batch(self, batch_size, cl_iteration):
         start = self._index_in_epoch

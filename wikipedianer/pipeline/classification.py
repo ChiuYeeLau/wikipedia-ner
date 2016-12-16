@@ -26,16 +26,20 @@ def run_classifier(dataset_path, labels_path, indices_path, results_save_path, p
 
     for iteration in cl_iterations:
         if iteration in completed_iterations:
-            print('Skipping completed iterations %s' % CL_ITERATIONS[iteration], file=sys.stderr)
+            print('Skipping completed iterations %s' % CL_ITERATIONS[iteration], file=sys.stderr, flush=True)
             continue
 
-        experiment_name = '%s_%s' % ('_'.join(CL_ITERATIONS[:iteration+1]), '_'.join([str(l) for l in layers]))
+        if len(cl_iterations) > 1:
+            experiment_name = '%s_%s' % ('_'.join(CL_ITERATIONS[:iteration+1]), '_'.join([str(l) for l in layers]))
+        else:
+            experiment_name = '%s_%s' % (CL_ITERATIONS[iteration], '_'.join([str(l) for l in layers]))
+
         experiments_names.append(experiment_name)
 
-        print('Running experiment: %s' % experiment_name, file=sys.stderr)
+        print('Running experiment: %s' % experiment_name, file=sys.stderr, flush=True)
 
         if len(experiments_names) > 1:
-            print('Loading previous weights and biases', file=sys.stderr)
+            print('Loading previous weights and biases', file=sys.stderr, flush=True)
             pre_weights = np.load(os.path.join(pre_trained_weights_save_path, '%s_weights.npz' % experiments_names[-2]))
             pre_biases = np.load(os.path.join(pre_trained_weights_save_path, '%s_biases.npz' % experiments_names[-2]))
         else:
@@ -49,7 +53,7 @@ def run_classifier(dataset_path, labels_path, indices_path, results_save_path, p
 
             do_ratios = dropout_ratios[:] if dropout_ratios is not None else None
 
-            print('Creating multilayer perceptron', file=sys.stderr)
+            print('Creating multilayer perceptron', file=sys.stderr, flush=True)
             mlp = MultilayerPerceptron(dataset=dataset, pre_trained_weights_save_path=pre_trained_weights_save_path,
                                        results_save_path=results_save_path, experiment_name=experiment_name,
                                        cl_iteration=iteration, layers=layers, learning_rate=learning_rate,
@@ -57,7 +61,7 @@ def run_classifier(dataset_path, labels_path, indices_path, results_save_path, p
                                        pre_weights=pre_weights, pre_biases=pre_biases, save_model=save_model,
                                        dropout_ratios=do_ratios, batch_normalization=batch_normalization)
 
-            print('Training the classifier', file=sys.stderr)
+            print('Training the classifier', file=sys.stderr, flush=True)
             mlp.train()
 
         # Releasing some memory
@@ -66,6 +70,6 @@ def run_classifier(dataset_path, labels_path, indices_path, results_save_path, p
         del mlp
         del g
 
-        print('Finished experiment %s' % experiment_name, file=sys.stderr)
+        print('Finished experiment %s' % experiment_name, file=sys.stderr, flush=True)
 
-    print('Finished all the experiments', file=sys.stderr)
+    print('Finished all the experiments', file=sys.stderr, flush=True)

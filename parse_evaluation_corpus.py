@@ -50,7 +50,7 @@ def process_sentences(parser, total_sentences, instance_extractor, features):
 
 def parse_to_feature_matrix(input_file, output_dir, resources_dir,
                             total_sentences):
-    print('Loading resources', file=sys.stderr)
+    print('Loading resources', file=sys.stderr, flush=True)
 
     with open(os.path.join(resources_dir, "gazetteer.pickle"),
               "rb") as gazetteer_file:
@@ -79,13 +79,13 @@ def parse_to_feature_matrix(input_file, output_dir, resources_dir,
         sloppy_gazetteer=sloppy_gazetteer
     )
     print('Getting instances from corpus {}'.format(input_file),
-          file=sys.stderr)
+          file=sys.stderr, flush=True)
 
     parser = WikipediaCorpusColumnParser(input_file)
     dataset_matrix, words = process_sentences(parser, total_sentences,
                                               instance_extractor, features)
 
-    print('Saving matrix and words', file=sys.stderr)
+    print('Saving matrix and words', file=sys.stderr, flush=True)
     np.savez_compressed(
         os.path.join(output_dir, 'evaluation_dataset.npz'),
         data=dataset_matrix.data, indices=dataset_matrix.indices,
@@ -97,7 +97,7 @@ def parse_to_feature_matrix(input_file, output_dir, resources_dir,
 
 
 def parse_to_word_vectors(input_file, output_dir, wordvectors, window, total_sentences, debug):
-    print('Loading vectors', file=sys.stderr)
+    print('Loading vectors', file=sys.stderr, flush=True)
     if not debug:
         word2vec_model = gensim.models.Word2Vec.load_word2vec_format(wordvectors, binary=True)
     else:
@@ -108,7 +108,7 @@ def parse_to_word_vectors(input_file, output_dir, wordvectors, window, total_sen
     instances = []
     words = []
 
-    print('Getting instances from corpus {}'.format(input_file), file=sys.stderr)
+    print('Getting instances from corpus {}'.format(input_file), file=sys.stderr, flush=True)
 
     parser = WikipediaCorpusColumnParser(input_file)
 
@@ -122,7 +122,7 @@ def parse_to_word_vectors(input_file, output_dir, wordvectors, window, total_sen
         instances.extend(sentence_instances)
         words.extend(sentence_words)
 
-    print('Saving matrix and words', file=sys.stderr)
+    print('Saving matrix and words', file=sys.stderr, flush=True)
 
     dataset_matrix = np.vstack(instances)
 
@@ -157,19 +157,19 @@ if __name__ == "__main__":
 
     if args.resources is None and args.wordvectors is None:
         print('You have to give a resources path or a wordvectors path',
-              file=sys.stderr)
+              file=sys.stderr, flush=True)
         sys.exit(1)
 
     if args.resources is not None:
-        print('Parsing to handcrafted features matrix', file=sys.stderr)
+        print('Parsing to handcrafted features matrix', file=sys.stderr, flush=True)
         parse_to_feature_matrix(args.input_file, args.output_dir,
                                 args.resources, args.total_sentences)
 
     if args.wordvectors is not None:
-        print('Parsing to word vectors', file=sys.stderr)
+        print('Parsing to word vectors', file=sys.stderr, flush=True)
         parse_to_word_vectors(args.input_file, args.output_dir,
                               args.wordvectors, args.window,
                               args.total_sentences, args.debug)
 
-    print('All operations finished', file=sys.stderr)
+    print('All operations finished', file=sys.stderr, flush=True)
 

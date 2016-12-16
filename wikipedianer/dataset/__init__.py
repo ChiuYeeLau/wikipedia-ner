@@ -123,7 +123,7 @@ class HandcraftedFeaturesDataset(Dataset):
             perm = np.arange(self.num_examples())
             np.random.shuffle(perm)
             self.train_dataset = self.train_dataset[perm]
-            self.train_labels = self.train_dataset[perm]
+            self.train_labels = self.train_labels[perm]
             # Start next epoch
             start = 0
             self._index_in_epoch = batch_size

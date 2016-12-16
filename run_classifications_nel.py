@@ -12,7 +12,7 @@ import numpy
 import pickle
 
 from scipy.sparse import csr_matrix
-from wikipedianer.classification import double_step_classifier
+from .wikipedianer.classification import double_step_classifier
 
 
 def read_arguments():
@@ -21,7 +21,7 @@ def read_arguments():
     parser.add_argument('input_matrix', type=str,
                         help='Path of file with the numpy matrix used for'
                              'training')
-    parser.add_argument('--high_level_labels', '-hl,' type=str,
+    parser.add_argument('--high_level_labels', '-hl,', type=str,
                         help='Path of file with the pickled labels to use as'
                              'first classification step.')
     parser.add_argument('--low_level_labels', '-ll', type=str,

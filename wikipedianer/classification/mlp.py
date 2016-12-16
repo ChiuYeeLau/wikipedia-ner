@@ -8,11 +8,12 @@ import os
 import pandas as pd
 import sys
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
-from .base import BaseClassifier
+from base import BaseClassifier
 
 
 class MultilayerPerceptron(BaseClassifier):
-    def __init__(self, dataset, pre_trained_weights_save_path, results_save_path, experiment_name, cl_iteration, layers,
+    def __init__(self, dataset, pre_trained_weights_save_path='', results_save_path='',
+                 experiment_name='', cl_iteration=0, layers=[],
                  learning_rate=0.01, training_epochs=10000, batch_size=2100, loss_report=250, pre_weights=None,
                  pre_biases=None, save_model=False, dropout_ratios=None, batch_normalization=False):
         """
@@ -31,9 +32,7 @@ class MultilayerPerceptron(BaseClassifier):
         :type dropout_ratios: list(float)
         :type batch_normalization: bool
         """
-        assert (batch_size <= dataset.num_examples('train') and batch_size <= dataset.num_examples('test')
-                and batch_size <= dataset.num_examples('validation')),\
-            'The batch size cannot be larger than the number of examples training, test or validation datasets'
+        self.check_batch_size(batch_size, dataset)
 
         self.dataset = dataset
         self.cl_iteration = cl_iteration
@@ -139,6 +138,16 @@ class MultilayerPerceptron(BaseClassifier):
         self.test_predictions_results = pd.DataFrame(columns=['true', 'prediction'])
         self.loss_report = loss_report
         self.saver = tf.train.Saver() if save_model else None
+
+    def check_batch_size(self, batch_size, dataset):
+        error_message = ('The batch size cannot be larger than the number of '
+                         'examples training, test or validation datasets')
+        assert batch_size <= dataset.num_examples('train'), error_message
+        if dataset.num_examples('test') > 1:
+            assert batch_size <= dataset.num_examples('test'), error_message
+        if dataset.num_examples('validation') > 1:
+            assert batch_size <= dataset.num_examples('validation'), \
+                error_message
 
     def _evaluate(self, sess, dataset_name, return_extras=False):
         y_pred = np.zeros(self.dataset.num_examples(dataset_name), dtype=np.int32)
@@ -276,9 +285,12 @@ class MultilayerPerceptron(BaseClassifier):
             print('Saving results', file=sys.stderr)
             self._save_results(save_layers)
 
-            if self.saver is not None:
-                print('Saving model', file=sys.stderr)
-                save_path = self.saver.save(sess, os.path.join(
-                    self.results_save_path, '%s.model' % self.experiment_name))
-                print('Model saved in file %s' % save_path, file=sys.stderr)
+            self.save_model(sess)
+
+    def save_model(self, sess):
+        if self.saver is not None:
+            print('Saving model', file=sys.stderr)
+            save_path = self.saver.save(sess, os.path.join(
+                self.results_save_path, '%s.model' % self.experiment_name))
+            print('Model saved in file %s' % save_path, file=sys.stderr)
 

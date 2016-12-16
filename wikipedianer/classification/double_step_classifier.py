@@ -1,9 +1,33 @@
 # -*- coding: utf-8 -*-
 import logging
+logging.basicConfig(level=logging.INFO)
 import numpy
+from scipy.sparse import csr_matrix, vstack
 
 from tqdm import tqdm
 from mlp import MultilayerPerceptron
+
+
+
+class ClassifierFactory(object):
+    """Abstract class."""
+    def get_classifier(self, dataset, results_save_path, experiment_name):
+        raise NotImplementedError
+
+
+class MLPFactory(ClassifierFactory):
+    """"""
+    def get_classifier(self, dataset, results_save_path, experiment_name,
+                       cl_iteration=1):
+        layers = [1000]  # One hidden layer with size 1000
+        batch_size = min(dataset.num_examples('train'), 2000,
+                         dataset.num_examples('validation'))
+        classifier = MultilayerPerceptron(
+            dataset, results_save_path=results_save_path,
+            experiment_name=experiment_name, layers=layers,
+            save_model=True, cl_iteration=cl_iteration,
+            batch_size=batch_size)
+        return classifier
 
 
 class DoubleStepClassifier(object):
@@ -19,11 +43,56 @@ class DoubleStepClassifier(object):
         -- The high level classifier already trained.
         -- The class of the low level classifier.
     """
-    def __init__(self, x_matrix, hl_labels, ll_labels, train_indices,
-                 test_indices, validation_indices, models_dirpath,
-                 results_dirpath, negative_proportion=0.5,
-                 low_level_classifier=MultilayerPerceptron):
+    def __init__(self, results_dirpath=None, models_dirpath=None,
+                 negative_proportion=0.5, dataset_class=None):
         """
+        :param models_dirpath: string. The name of the directory where to store
+            the trained models.
+        :param results_dirpath: string. The name of the directory where to store
+            the training/testing results.
+        :param negative_proportion: float < 1. The relation between negative and
+            positive examples to use when constructing the datasets for training
+             the low level classifiers.
+        :param dataset_class: a subclass of dataset.Dataset
+        """
+        self.dataset = None
+
+        self.hl_labels_name = None
+        self.ll_labels_name = None
+
+        self.models_dirpath = models_dirpath
+        self.results_dirpath = results_dirpath
+        self.negative_proportion = negative_proportion
+        self.unique_hl_labels = None
+        self.dataset_class = dataset_class
+
+        self.low_level_models = {}
+
+    def load_from_files(self, dataset_filepath, labels_filepath,
+                        labels, indices_filepath, dataset_class):
+        """
+        Builds the internal matrix from the given files.
+
+        :param dataset_filepath:
+        :param labels_filepath:
+        :param labels: tuple with index and name of high level and low level
+            class. The index is the position in the labels's tuples in filepath.
+        :param indices_filepath:
+        """
+        self.dataset = self.dataset_class()
+        self.dataset.load_from_files(
+            dataset_filepath, labels_filepath, indices_filepath,
+            cl_iterations=labels)
+        self.classes = self.dataset.classes
+        self.hl_labels_name = labels[0][1]
+        self.ll_labels_name = labels[1][1]
+
+    def load_from_arrays(self, x_matrix, hl_labels, ll_labels, train_indices,
+                         test_indices, validation_indices,
+                         hl_labels_name, ll_labels_name):
+        """
+        Builds the internal matrix from the given arrays.
+
         :param x_matrix: a 2-dimension sparse matrix with all examples.
         :param hl_labels: an array-like object with the high level classes.
         :param ll_labels: an array-like object with the low level classes.
@@ -33,77 +102,109 @@ class DoubleStepClassifier(object):
             of x_matrix to use for testing.
         :param validation_indices: an array-like object with the indices of
             instances of x_matrix to use for validation.
-        :param models_dirpath: string. The name of the directory where to store
-            the trained models.
-        :param results_dirpath: string. The name of the directory where to store
-            the training/testing results.
-        :param negative_proportion: float < 1. The relation between negative and
-            positive examples to use when constructing the datasets for training
-             the low level classifiers.
         """
-        self.train_indices = train_indices
-        self.test_indices = test_indices
-        self.validation_indices = validation_indices
-        self.x_matrix = x_matrix
+        self.classes = [
+            numpy.unique(hl_labels, return_inverse=True),
+            numpy.unique(ll_labels, return_inverse=True)
+        ]
+        classes = tuple([cls[0] for cls in self.classes])
+        integer_labels = numpy.stack([cls[1] for cls in self.classes]).T
 
-        self.ll_labels = ll_labels
-        self.hl_labels = hl_labels
+        self.dataset = self.dataset_class()
 
-        self.models_dirpath = models_dirpath
-        self.results_dirpath = results_dirpath
-        self.negative_proportion = negative_proportion
+        if len(test_indices):
+            test_x = x_matrix[test_indices]
+            test_labels = integer_labels[test_indices]
+        else:
+            test_x = csr_matrix([])
+            test_labels = []
+        if len(validation_indices):
+            validation_x = x_matrix[validation_indices]
+            validation_labels = integer_labels[
+                validation_indices]
+        else:
+            validation_x = csr_matrix([])
+            validation_labels = []
+
+        self.dataset.load_from_arrays(
+            classes, train_dataset=x_matrix[train_indices],
+            test_dataset=test_x, validation_dataset=validation_x,
+            train_labels=integer_labels[train_indices],
+            test_labels=test_labels, validation_labels=validation_labels)
+        self.ll_labels_name = ll_labels_name
+        self.hl_labels_name = hl_labels_name
+
         self.unique_hl_labels = numpy.unique(hl_labels)
 
-        self.low_level_models = {}
+    def _filter_dataset(self, dataset_name, target_label):
+        dataset = self.dataset.datasets[dataset_name]
+        indices = numpy.where(dataset.labels[:, 0] == target_label)[0]
+        return dataset.data[indices], dataset.labels[indices]
 
-    def create_dataset(self, indices, target_label):
+    def create_train_dataset(self, target_label, validation_proportion=0.1):
         """
         Returns a numpy array with a subset of indices with balanced examples
         of target_label and negative examples, taken from labels.
 
-        :param indices: 1-dimensional array with the indices to filter.
-        :param target_label: a string, the label to consider positive.
-        :return: a 1-dimensional numpy array.
+        :param label_index: an integer. 0 for high level class, 1 for ll class.
+        :param source_split: a str. The source for the new dataset, it can be
+         'train', 'test' or 'validation'
+        :return: a new instance of Dataset.
         """
-        if not isinstance(self.hl_labels, numpy.array):
-            labels = numpy.array(self.hl_labels)
-        filtered_labels = self.hl_labels[indices]
-        positive_indices = indices[numpy.where(filtered_labels == target_label)]
+        # Pick the high label class (index 0)
+        target_label_index = numpy.where(
+            self.classes[0][0] == target_label)[0][0]
 
-        negative_indices = indices[numpy.where(filtered_labels != target_label)]
-        # Select random subsample
-        negative_indices = numpy.random.choice(negative_indices,
-                                               size=positive_indices.shape[0])
-        selected_indices = numpy.concatenate(positive_indices, negative_indices)
-        logging.info('Selecting {} instances for label {}'.format(
-            selected_indices.shape[0], target_label))
-        return selected_indices
+        train_x, train_y = self._filter_dataset('train', target_label_index)
+        test_x, test_y = self._filter_dataset('test', target_label_index)
+        validation_x, validation_y = self._filter_dataset('validation',
+                                                          target_label_index)
 
-    def train(self, low_level_classifier_class, low_level_model_parameters):
+        logging.info('Creating dataset with sizes {} {} {} for {}'.format(
+            train_x.shape[0], test_x.shape[0], validation_x.shape[0],
+            self.classes[0][0][target_label_index]
+        ))
+
+        if (validation_x.shape[0] < 2 or test_x.shape[0] < 2 or
+                train_x.shape[0] < 2):
+            logging.error('Dataset has less than 2 instances per split.')
+            return None
+
+        classes = tuple([cls[0] for cls in self.classes])
+
+        new_dataset = self.dataset_class()
+        new_dataset.load_from_arrays(classes, train_x, test_x, validation_x,
+                                     train_y, test_y, validation_y)
+        return new_dataset
+
+    def train(self, classifier_factory):
         """Trains the classifier.
 
-        :param low_level_classifier_class: python class. The class to instantiate when
-            creating a low level classifier. Must extend base.BaseClassifier.
-        :param low_level_model_parameters: a dictionary with the parameters to
-            pass to the init function to the low level classifiers.
+        :param low_level_classifier_class: python class. The class to
+            instantiate when creating a low level classifier. Must extend
+            base.BaseClassifier.
+        :param classifier_factory: an function
         """
         # Train a different model for each hl_class
         for hl_label in tqdm(self.unique_hl_labels,
                              total=self.unique_hl_labels.shape[0]):
             # Calculate indices for this high level class.
-            train_indices = self.create_dataset(self.train_indices, hl_label)
-            test_indices = self.create_dataset(self.test_indices, hl_label)
-            validation_indices = self.create_dataset(self.validation_indices,
-                                                     hl_label)
+            new_dataset = self.create_train_dataset(target_label=hl_label)
+            if not new_dataset:
+                continue
 
-            classifier = low_level_classifier_class(
-                self.x_matrix, self.ll_labels, train_indices, test_indices,
-                validation_indices, **low_level_model_parameters)
+            classifier = classifier_factory.get_classifier(
+                new_dataset, self.results_dirpath, experiment_name=hl_label)
 
-    def evaluate(self, high_level_model):
+            classifier.train(save_layers=False)
+
+            self.low_level_models[hl_label] = classifier
+
+    def evaluate(self, high_level_model=None):
         """
 
-        :param high_level_model:
-        :return:
+        :param high_level_model: if not None, this model is used to get the
+        high level labels for the instances. Otherwise, the ground truth is
+        used.
         """
         return 0

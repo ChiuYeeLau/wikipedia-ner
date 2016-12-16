@@ -239,7 +239,8 @@ class MultilayerPerceptron(BaseClassifier):
                         delta_acc = max(self.validation_accuracy_record) - accuracy
 
                         if delta_acc > 0.01:
-                            print('Validation accuracy converging: delta_acc %.3f' % delta_acc, file=sys.stderr, flush=True)
+                            print('Validation accuracy converging: delta_acc %.3f' % delta_acc, file=sys.stderr,
+                                  flush=True)
                             break
 
                         # If there hasn't been any significant change in the last 5 iterations, stop

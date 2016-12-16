@@ -15,7 +15,8 @@ from wikipedianer.pipeline.util import CL_ITERATIONS
 def run_classifier(dataset_path, labels_path, indices_path, results_save_path, pre_trained_weights_save_path,
                    cl_iterations, layers=list(), dropout_ratios=list(), save_models=list(), completed_iterations=list(),
                    learning_rate=0.01, epochs=10000, batch_size=2100, loss_report=250, batch_normalization=False):
-    dataset = HandcraftedFeaturesDataset(dataset_path, labels_path, indices_path)
+    dataset = HandcraftedFeaturesDataset()
+    dataset.load_from_files(dataset_path, labels_path, indices_path)
 
     experiments_names = []
 

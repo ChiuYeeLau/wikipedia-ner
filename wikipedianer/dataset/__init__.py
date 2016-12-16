@@ -110,7 +110,7 @@ class HandcraftedFeaturesDataset(Dataset):
         self.validation_labels = integer_labels[indices['validation_indices']]
 
     def _one_hot_encoding(self, slice_, cl_iteration):
-        return np.eye(self.output_size(cl_iteration), dtype=self.train_dataset.dtype)[slice_]
+        return np.eye(self.output_size(cl_iteration), dtype=self.train_dataset.dtype)[slice_.astype(np.int32)]
 
     def next_batch(self, batch_size, cl_iteration):
         start = self._index_in_epoch

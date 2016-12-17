@@ -120,7 +120,7 @@ class Dataset(object):
 class HandcraftedFeaturesDataset(Dataset):
     def __load_data__(self, dataset_path, labels_path, indices_path,
                       cl_iterations=enumerate(CL_ITERATIONS)):
-        print('Loading dataset from file %s' % dataset_path, file=sys.stderr
+        print('Loading dataset from file %s' % dataset_path, file=sys.stderr,
               flush=True)
         dataset = np.load(dataset_path)
         dataset = csr_matrix((dataset['data'], dataset['indices'], dataset['indptr']), shape=dataset['shape'])

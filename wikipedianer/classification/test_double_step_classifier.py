@@ -6,7 +6,7 @@ import sys
 sys.path.append('../../')
 import unittest
 
-from mock import patch
+from unittest.mock import patch
 from scipy.sparse import csr_matrix
 from wikipedianer.dataset import HandcraftedFeaturesDataset
 from wikipedianer.pipeline import util

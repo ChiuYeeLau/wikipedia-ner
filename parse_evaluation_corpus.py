@@ -5,6 +5,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 import argparse
 import cPickle
+import csv
 import gensim
 import numpy as np
 import os
@@ -25,7 +26,7 @@ def process_sentences(parser, total_sentences, instance_extractor, features):
 
     words = []
     for sentence in tqdm(parser, total=total_sentences):
-        sentence_words = [(word.idx, word.token, word.tag, word.is_doc_start)
+        sentence_words = [(word.idx, word.token.encode('utf-8'), word.tag, word.is_doc_start)
                           for word in sentence]
         sent_instances, _, _ = instance_extractor.get_instances_for_sentence(
             sentence, 0)
@@ -91,9 +92,10 @@ def parse_to_feature_matrix(input_file, output_dir, resources_dir,
         data=dataset_matrix.data, indices=dataset_matrix.indices,
         indptr=dataset_matrix.indptr, shape=dataset_matrix.shape)
 
-    with open(os.path.join(output_dir, 'evaluation_words.pickle'),
+    with open(os.path.join(output_dir, 'evaluation_words.csv'),
               'wb') as output_file:
-        cPickle.dump(words, output_file)
+        writer = csv.writer(output_file, delimiter=str('\t'))
+        writer.writerows(words)
 
 
 def parse_to_word_vectors(input_file, output_dir, wordvectors, window, total_sentences, debug):

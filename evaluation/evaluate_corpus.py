@@ -4,6 +4,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 import argparse
 import cPickle
+import csv
 import numpy as np
 import sys
 import tensorflow as tf
@@ -98,12 +99,9 @@ if __name__ == "__main__":
                 y_pred[step:min(step+args.batch_size, dataset.shape[0])] = sess.run(classification, feed_dict=feed_dict)
 
     print('Loading words of corpus from file {}'.format(args.words), file=sys.stderr)
-    with open(args.words, 'rb') as f:
-        words = cPickle.load(f)
-
-    print('Saving resulting corpus to dir {}'.format(args.results), file=sys.stderr)
-    with open(args.results, 'w') as f:
-        for idx, (word_idx, token, tag, is_doc_start) in tqdm(enumerate(words)):
+    with open(args.words, 'rb') as input_file, open(args.results, 'w') as output_file:
+        reader = csv.reader(input_file, delimiter='\t')
+        for idx, (word_idx, token, tag, is_doc_start) in enumerate(reader):
             word_label = classes[int(y_pred[idx])]
 
             if idx > 0 and word_idx == 0:
@@ -114,7 +112,9 @@ if __name__ == "__main__":
 
             doc_title = 'DOCUMENT START' if is_doc_start else ''
 
-            print('{}\t{}\t{}\t{}\t{}'.format(word_idx, token, tag, word_label, doc_title).encode('utf-8'), file=f)
+            print('{}\t{}\t{}\t{}\t{}'.format(
+                word_idx, token, tag, word_label, doc_title).encode('utf-8'),
+                file=output_file)
 
     print('All finished', file=sys.stderr)
 

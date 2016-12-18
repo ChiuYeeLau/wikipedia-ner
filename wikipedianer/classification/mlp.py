@@ -8,7 +8,7 @@ import os
 import pandas as pd
 import sys
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
-from base import BaseClassifier
+from .base import BaseClassifier
 
 
 class MultilayerPerceptron(BaseClassifier):

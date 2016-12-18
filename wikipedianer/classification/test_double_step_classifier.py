@@ -71,6 +71,14 @@ class DoubleStepClassifierTest(unittest.TestCase):
                                                cl_iteration=1)
         self.assertEqual(numpy.unique(labels).shape[0], 2)
 
+        # Check the total number of labels is correct.
+        self.assertEqual(len(result_dataset.classes[1]), 2)
+        train_labels = result_dataset.classes[1][
+            result_dataset.datasets['train'].labels[:,1]
+        ]
+        self.assertEqual(['00', '01'],
+                         sorted(numpy.unique(train_labels.tolist())))
+
     def test_create_dataset_small(self):
         result_dataset = self.classifier.create_train_dataset(1)
         self.assertIsNone(result_dataset)

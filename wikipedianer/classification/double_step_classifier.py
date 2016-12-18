@@ -3,6 +3,10 @@ from __future__ import absolute_import
 import logging
 logging.basicConfig(level=logging.INFO)
 import numpy
+import pandas
+import pickle
+import os
+
 from scipy.sparse import csr_matrix, vstack
 
 from tqdm import tqdm
@@ -48,8 +52,7 @@ class DoubleStepClassifier(object):
         -- The high level classifier already trained.
         -- The class of the low level classifier.
     """
-    def __init__(self, results_dirpath=None, models_dirpath=None,
-                 negative_proportion=0.5, dataset_class=None):
+    def __init__(self, dataset_class=None):
         """
         :param models_dirpath: string. The name of the directory where to store
             the trained models.
@@ -63,15 +66,14 @@ class DoubleStepClassifier(object):
         self.hl_labels_name = None
         self.ll_labels_name = None
 
-        self.models_dirpath = models_dirpath
-        self.negative_proportion = negative_proportion
-        self.unique_hl_labels = None
         self.dataset_class = dataset_class
 
         self.low_level_models = {}
         # Keeps the order assigned to the filtered class during the training
         # of the low level models
         self.low_level_classes_orders = {}
+
+        self.test_results = {}
 
     def load_from_files(self, dataset_filepath, labels_filepath,
                         labels, indices_filepath):
@@ -207,14 +209,24 @@ class DoubleStepClassifier(object):
 
             classifier.train(save_layers=False)
 
-            self.low_level_models[hl_label] = classifier
+            # We may need this to rebuild the classifiers.
             self.low_level_classes_orders[hl_label] = new_dataset.classes[1]
 
-    def evaluate(self, high_level_model=None):
-        """
+            self.test_results[hl_label] = classifier.test_results
 
-        :param high_level_model: if not None, this model is used to get the
-        high level labels for the instances. Otherwise, the ground truth is
-        used.
-        """
-        return 0
+
+    def save_to_file(self, results_dirname):
+        """Saves classifier metadata and test results to files"""
+        to_save = {
+            'classes_orders': self.low_level_classes_orders,
+            'classes': self.classes
+        }
+        filename = os.path.join(results_dirname,
+                                'double_step_classifier.meta.pickle')
+        with open(filename, 'w') as output_file:
+            pickle.dump(to_save, output_file)
+
+        filename = os.path.join(results_dirname,
+                                'general_test_results.csv')
+        results = pandas.concat(self.test_results.values())
+        results.to_csv(filename, index=False)

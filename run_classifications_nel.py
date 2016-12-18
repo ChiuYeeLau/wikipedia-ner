@@ -27,8 +27,6 @@ def read_arguments():
                              'with high level labels')
     parser.add_argument('--results_dirname', '-r', type=str,
                         help='Path of directory to save results')
-    parser.add_argument('--models_dirname', '-m', type=str,
-                        help='Path of directory to save the trained models.')
     parser.add_argument('--indices', '-i', type=str,
                         help='Path of file with the numpy matrix containing'
                              'the split indices training/testing/validation')
@@ -41,8 +39,6 @@ def main():
     """Main function of script."""
     args = read_arguments()
     classifier = double_step_classifier.DoubleStepClassifier(
-        results_dirpath=args.results_dirname,
-        models_dirpath=args.models_dirname,
         dataset_class=HandcraftedFeaturesDataset)
 
     classifier.load_from_files(
@@ -54,6 +50,7 @@ def main():
         results_save_path=args.results_dirname, training_epochs=100,
         layers=[1000])
     classifier.train(classifier_factory=factory)
+    classifier.save_to_file(results_dirname=args.results_dirname)
 
 
 

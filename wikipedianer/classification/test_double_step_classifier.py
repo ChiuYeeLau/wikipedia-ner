@@ -54,7 +54,7 @@ class DoubleStepClassifierTest(unittest.TestCase):
         self.classifier.train(classifier_factory)
 
         # One of the datasets is too small
-        self.assertEqual(1, len(self.classifier.low_level_models))
+        self.assertEqual(1, len(self.classifier.test_results))
 
     def test_create_dataset(self):
         result_dataset = self.classifier.create_train_dataset(0)

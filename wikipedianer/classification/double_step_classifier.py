@@ -135,20 +135,24 @@ class DoubleStepClassifier(object):
             test_labels=test_labels, validation_labels=validation_labels)
         self.ll_labels_name = ll_labels_name
         self.hl_labels_name = hl_labels_name
+        # Keeps the order assigned to the filtered class during the training
+        # of the low level models
+        self.low_level_classes_orders = {}
 
     def _filter_dataset(self, dataset_name, target_label):
         dataset = self.dataset.datasets[dataset_name]
-        indices = numpy.where(dataset.labels[:, 0] == target_label)[0]
+        indices = numpy.where(dataset.labels[:,0] == target_label)[0]
+
         return dataset.data[indices], dataset.labels[indices]
 
     def create_train_dataset(self, target_label_index):
         """
-        Returns a numpy array with a subset of indices with balanced examples
-        of target_label and negative examples, taken from labels.
+                Returns a numpy array with a subset of indices with balanced examples
+                of target_label and negative examples, taken from labels.
 
-        :param target_label_index: an integer. 0 for high level class, 1 for ll class.
-        :return: a new instance of Dataset.
-        """
+                :param target_label_index: an integer. 0 for high level class, 1 for ll class.
+                :return: a new instance of Dataset.
+                """
         train_x, train_y = self._filter_dataset('train', target_label_index)
         test_x, test_y = self._filter_dataset('test', target_label_index)
         validation_x, validation_y = self._filter_dataset('validation',
@@ -160,13 +164,25 @@ class DoubleStepClassifier(object):
         ))
 
         if (validation_x.shape[0] < 2 or test_x.shape[0] < 2 or
-                train_x.shape[0] < 2):
+                    train_x.shape[0] < 2):
             logging.error('Dataset has less than 2 instances per split.')
             return None
 
+        # Filter the classes based on the training dataset
+        replaced_train_y = self.classes[1][train_y[:,1]]
+        replaced_test_y = self.classes[1][test_y[:, 1]]
+        replaced_validation_y = self.classes[1][validation_y[:, 1]]
+        all_labels = numpy.concatenate((replaced_train_y, replaced_test_y,
+                                        replaced_validation_y))
+        new_classes, int_labels = numpy.unique(all_labels, return_inverse=True)
+        train_y[:,1] = int_labels[:train_y.shape[0]]
+        test_y[:,1] = int_labels[:test_y.shape[0]]
+        validation_y[:, 1] = int_labels[:validation_y.shape[0]]
+
         new_dataset = self.dataset_class()
-        new_dataset.load_from_arrays(self.classes, train_x, test_x, validation_x,
-                                     train_y, test_y, validation_y)
+        new_dataset.load_from_arrays(
+            (self.classes[0], new_classes), train_x, test_x, validation_x,
+            train_y, test_y, validation_y)
         return new_dataset
 
     def train(self, classifier_factory):
@@ -192,6 +208,7 @@ class DoubleStepClassifier(object):
             classifier.train(save_layers=False)
 
             self.low_level_models[hl_label] = classifier
+            self.low_level_classes_orders[hl_label] = new_dataset.classes[1]
 
     def evaluate(self, high_level_model=None):
         """

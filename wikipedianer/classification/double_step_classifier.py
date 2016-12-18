@@ -69,6 +69,9 @@ class DoubleStepClassifier(object):
         self.dataset_class = dataset_class
 
         self.low_level_models = {}
+        # Keeps the order assigned to the filtered class during the training
+        # of the low level models
+        self.low_level_classes_orders = {}
 
     def load_from_files(self, dataset_filepath, labels_filepath,
                         labels, indices_filepath):
@@ -135,9 +138,6 @@ class DoubleStepClassifier(object):
             test_labels=test_labels, validation_labels=validation_labels)
         self.ll_labels_name = ll_labels_name
         self.hl_labels_name = hl_labels_name
-        # Keeps the order assigned to the filtered class during the training
-        # of the low level models
-        self.low_level_classes_orders = {}
 
     def _filter_dataset(self, dataset_name, target_label):
         dataset = self.dataset.datasets[dataset_name]

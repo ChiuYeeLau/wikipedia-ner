@@ -1,16 +1,17 @@
 """Test for the DoubleStepClassifier and ClassifierFactory classes."""
 
 import numpy
-import sys
-# Add the ptdraft folder path to the sys.path list
-sys.path.append('../../')
 import unittest
 
-from unittest.mock import patch
+try:
+    from unittest.mock import patch
+except ImportError:
+    from mock import patch
 from scipy.sparse import csr_matrix
 from wikipedianer.dataset import HandcraftedFeaturesDataset
 from wikipedianer.pipeline import util
-from double_step_classifier import DoubleStepClassifier, MLPFactory
+from wikipedianer.classification.double_step_classifier import (
+        DoubleStepClassifier, MLPFactory)
 
 
 class DoubleStepClassifierTest(unittest.TestCase):
@@ -45,18 +46,18 @@ class DoubleStepClassifierTest(unittest.TestCase):
             test_indices, validation_indices, hl_labels_name,
             ll_labels_name)
 
-    @patch('double_step_classifier.MultilayerPerceptron.save_model')
-    @patch('double_step_classifier.MultilayerPerceptron._save_results')
+    @patch('wikipedianer.classification.double_step_classifier.MultilayerPerceptron.save_model')
+    @patch('wikipedianer.classification.double_step_classifier.MultilayerPerceptron._save_results')
     def test_basic_case(self, save_model_mock, save_results_mock):
         """Test the training of with a simple matrix."""
-        classifier_factory = MLPFactory()
+        classifier_factory = MLPFactory('', 10, [10])
         self.classifier.train(classifier_factory)
 
         # One of the datasets is too small
         self.assertEqual(1, len(self.classifier.low_level_models))
 
     def test_create_dataset(self):
-        result_dataset = self.classifier.create_train_dataset(target_label='0')
+        result_dataset = self.classifier.create_train_dataset(0)
         self.assertIsNotNone(result_dataset)
         self.assertEqual(3, result_dataset.num_examples('train'))
         self.assertEqual(2, result_dataset.num_examples('test'))
@@ -71,7 +72,7 @@ class DoubleStepClassifierTest(unittest.TestCase):
         self.assertEqual(numpy.unique(labels).shape[0], 2)
 
     def test_create_dataset_small(self):
-        result_dataset = self.classifier.create_train_dataset(target_label='1')
+        result_dataset = self.classifier.create_train_dataset(1)
         self.assertIsNone(result_dataset)
 
 

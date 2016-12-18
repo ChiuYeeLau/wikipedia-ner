@@ -52,6 +52,8 @@ class Dataset(object):
         self.__load_data__(dataset_path, labels_path, indices_path,
                            cl_iterations=cl_iterations)
 
+        self._add_datasets()
+
     def _add_datasets(self):
         self.datasets = {
             'train': DataTuple(self.train_dataset, self.train_labels),

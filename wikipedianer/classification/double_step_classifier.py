@@ -75,6 +75,10 @@ class DoubleStepClassifier(object):
 
         self.test_results = {}
 
+        # The accuracy is the total
+        self.correctly_labeled = 0
+        self.total_test_size = 0
+
     def load_from_files(self, dataset_filepath, labels_filepath,
                         labels, indices_filepath):
         """
@@ -211,9 +215,13 @@ class DoubleStepClassifier(object):
 
             # We may need this to rebuild the classifiers.
             self.low_level_classes_orders[hl_label] = new_dataset.classes[1]
-
+            import ipdb
+            ipdb.set_trace()
             self.test_results[hl_label] = classifier.test_results
-
+            self.correctly_labeled += (
+                new_dataset.num_examples('test') *
+                classifier.test_results['accuracy'].max())
+            self.total_test_size += new_dataset.num_examples('test')
 
     def save_to_file(self, results_dirname):
         """Saves classifier metadata and test results to files"""
@@ -229,4 +237,7 @@ class DoubleStepClassifier(object):
         filename = os.path.join(results_dirname,
                                 'general_test_results.csv')
         results = pandas.concat(self.test_results.values())
+        general_accuracy = self.correctly_labeled / self.total_test_size
+        results = results.append({'general_accuracy': general_accuracy},
+                                 ignore_index=True)
         results.to_csv(filename, index=False)

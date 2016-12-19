@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 import logging
-logging.basicConfig(level=logging.INFO)
 import numpy
 import pandas
 import pickle
@@ -12,6 +11,7 @@ from scipy.sparse import csr_matrix, vstack
 from tqdm import tqdm
 from .mlp import MultilayerPerceptron
 
+logging.basicConfig(level=logging.INFO)
 
 
 class ClassifierFactory(object):

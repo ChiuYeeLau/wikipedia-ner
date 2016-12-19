@@ -8,13 +8,16 @@ cut -f 1,3 test.conll > test2.conll
 import csv
 import argparse
 import logging
-logging.basicConfig(level=logging.INFO)
+
 import shlex
 import subprocess
 import os
 import utils
 
-from sklearn import metrics 
+from sklearn import metrics
+
+logging.basicConfig(level=logging.INFO)
+
 
 
 def parse_arguments():
@@ -84,14 +87,15 @@ class StanfordEvaluator(object):
         lines_read = 0
         line = None
         with open(output_filepath, 'w') as output_file:
-            self.splitted_input_filepaths-.append(output_filepath)
+            self.splitted_input_filepaths.append(output_filepath)
             while not (line == '\n' and lines_read > split_max_size):
                 line = input_file.readline()
                 if not line:  # EOF for input file.
                     break
                 lines_read += 1
                 output_file.write(line)
-        logging.info('Creating split {} with {} lines'.format(split_number, lines_read))
+        logging.info('Creating split {} with {} lines'.format(
+            split_number, lines_read))
         return lines_read
 
     def split(self, split_max_size):
@@ -124,13 +128,6 @@ class StanfordEvaluator(object):
             return 'O'
         if self.task == 'ner':
             return 'I' if prediction[2] != 'O' else prediction[2]
-        elif self.task == 'person':
-            if prediction[2].lower() == 'PERSON':
-                return 'person'
-            elif prediction[2] != 'O':
-                return 'not_person'
-        elif self.task == 'categories':
-            return prediction[2]
         return 'O'
 
     def read_predictions(self, output_filepath, y_true, y_predicted):
@@ -161,11 +158,16 @@ class StanfordEvaluator(object):
             output_filepath = os.path.join(output_dirpath,
                                            os.path.basename(input_filepath))
             self.read_predictions(output_filepath, y_true, y_predicted)
-        logging.info(metrics.classification_report(
-            y_true, y_predicted, target_names=self._classes, digits=3))
+
+        report = metrics.classification_report(
+            y_true, y_predicted, target_names=self._classes, digits=3)
+        logging.info('\n' + report)
+        confusion_matrix = '\n'
         for row in metrics.confusion_matrix(y_true, y_predicted):
-            logging.info('\t'.join([str(x) for x in row]))
-        logging.info('Accuracy {}'.format(metrics.accuracy_score(y_true, y_predicted)))
+            confusion_matrix += '\t'.join([str(x) for x in row]) + '\n'
+        logging.info(confusion_matrix)
+        logging.info('Accuracy {}'.format(
+            metrics.accuracy_score(y_true, y_predicted)))
 
     def predict(self, output_dirpath):
         """Applies the classifier to the test file"""

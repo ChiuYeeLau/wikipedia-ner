@@ -1,0 +1,56 @@
+1	the	DT	O	O	O
+2	Brabham	NNP	B-Brabham	B-wordnet_adjudicator_109769636	B-LKIF_Class
+3	Racing	NNP	I-Brabham	I-wordnet_adjudicator_109769636	I-LKIF_Class
+4	Organisation	NNP	I-Brabham	I-wordnet_adjudicator_109769636	I-LKIF_Class
+
+1	the	DT	O	O	O
+2	Brabham	NNP	B-Brabham	B-wordnet_adjudicator_109769636	B-LKIF_Class
+3	Racing	NNP	I-Brabham	I-wordnet_adjudicator_109769636	I-LKIF_Class
+4	Organisation	NNP	I-Brabham	I-wordnet_adjudicator_109769636	I-LKIF_Class
+
+1	such	JJ	O	O	O
+2	as	IN	O	O	O
+3	Rob	NNP	B-Rob_Walker_Racing_Team	B-wordnet_criminal_record_106490173	B-LKIF_Class
+4	Walker	NNP	I-Rob_Walker_Racing_Team	I-wordnet_criminal_record_106490173	I-LKIF_Class
+5	or	CC	O	O	O
+6	Jo	NNP	O	O	O
+7	Siffert	NNP	O	O	O
+8	.	.	O	O	O
+
+1	Technical	JJ	O	O	O
+2	issues	NNS	O	O	O
+3	prevented	VBD	O	O	O
+4	the	DT	O	O	O
+5	BT7	NNP	O	O	O
+6	from	IN	O	O	O
+7	scoring	VBG	O	O	O
+8	better	JJR	O	O	O
+9	results	NNS	O	O	O
+10	.	.	O	O	O
+
+1	such	JJ	O	O	O
+2	as	IN	O	O	O
+3	Rob	NNP	B-Rob_Walker_Racing_Team	B-wordnet_criminal_record_106490173	B-LKIF_Class
+4	Walker	NNP	I-Rob_Walker_Racing_Team	I-wordnet_criminal_record_106490173	I-LKIF_Class
+5	or	CC	O	O	O
+6	Jo	NNP	O	O	O
+7	Siffert	NNP	O	O	O
+8	.	.	O	O	O
+
+1	Her	PRP$	O	O	O
+2	earlier	JJR	O	O	O
+3	CDs	NNS	O	O	O
+4	include	VBP	O	O	O
+5	music	JJ	O	O	O
+6	by	IN	O	O	O
+7	Andrew	NNP	B-Andrew_Lloyd_Webber	B-wordnet_court_108329453	B-LKIF_Class
+8	Lloyd	NNP	I-Andrew_Lloyd_Webber	I-wordnet_court_108329453	I-LKIF_Class
+9	Webber	NNP	I-Andrew_Lloyd_Webber	I-wordnet_court_108329453	I-LKIF_Class
+10	and	CC	O	O	O
+11	Claude-Michel	NNP	O	O	O
+12	Schönberg	NNP	O	O	O
+13	,	,	O	O	O
+14	among	IN	O	O	O
+15	others	NNS	O	O	O
+16	.	.	O	O	O
+

@@ -38,7 +38,11 @@ TASKS_MAP = {
     'ner': 'ner_tag',
     'entity': 'entity_labels',
     'lkif': 'lkif_labels',
+    'entity_mapped': 'yago_labels',
+    'yago': 'yago_labels'
 }
+
+POSSIBLE_PREFIXES = ('B-', 'I-')
 
 
 def read_arguments():
@@ -61,6 +65,8 @@ def read_arguments():
                              'present, create them.')
     parser.add_argument('--indices', type=str,
                         help='File with pickled documents indices to use.')
+    parser.add_argument('--mapping_file', type=str,
+                        help='File with pickled file with the classes mapping.')
     parser.add_argument('--reduce_by', type=float, default=1.0,
                         help='Maximum number of documents in each partition of'
                              'the dataset.')
@@ -132,7 +138,7 @@ class StanfordPreprocesser(object):
     """
 
     def __init__(self, input_dirname, task_name, output_dirname, splits,
-                 indices_filepath, reduce_by=-1):
+                 indices_filepath, reduce_by=-1, mapping=None):
         self.input_dirname = input_dirname
         if not task_name in TASKS_MAP:
             raise ValueError('The name of the task is incorrect.')
@@ -165,6 +171,7 @@ class StanfordPreprocesser(object):
             with open(self.indices_filepath) as indices_file:
                 (self.train_doc_index, self.test_doc_index,
                     self.validation_doc_index) = pickle.load(indices_file)
+        self.mapping = mapping
 
     def preprocess(self):
         """Runs all the preprocess tasks."""
@@ -194,11 +201,20 @@ class StanfordPreprocesser(object):
 
     def process_target(self, target):
         """Returns a processed target for the word."""
+        original_target = target
         if isinstance(target, list):
             target = target[0] if len(target) > 0 else DEFAULT_TARGET
-        if target is None or target == u'':
-            target = DEFAULT_TARGET
-        return target
+        if self.mapping is not None and target != DEFAULT_TARGET:
+            prefix = target[:2]
+            if prefix in POSSIBLE_PREFIXES:
+                target = self.mapping.get(target.replace(prefix, ''))
+            else:
+                target = self.mapping.get(target)
+                prefix = ''
+            if target:
+                return prefix + target
+            logging.warning('Label {} outside mapping'.format(original_target))
+        return target if target and target != '' else DEFAULT_TARGET
 
     def filter_labels(self):
         """Filter the labels and documents with less than 3 occurrences"""

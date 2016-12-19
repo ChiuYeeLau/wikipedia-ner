@@ -133,6 +133,9 @@ class NamedEntity(object):
         for word in self._words:
             yield word
 
+    def __repr__(self):
+        return ' '.join([word.token for word in self._words])
+
     @property
     def entity_gazette(self):
         return ' '.join([word.token for word in self._words])

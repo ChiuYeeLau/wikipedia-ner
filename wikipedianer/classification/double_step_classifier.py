@@ -10,6 +10,7 @@ from scipy.sparse import csr_matrix, vstack
 
 from tqdm import tqdm
 from .mlp import MultilayerPerceptron
+from .heuristic_classifier import HeuristicClassifier
 
 logging.basicConfig(level=logging.INFO)
 
@@ -37,6 +38,15 @@ class MLPFactory(ClassifierFactory):
             save_model=True, cl_iteration=cl_iteration,
             batch_size=batch_size, training_epochs=self.training_epochs)
         return classifier
+
+
+class HeuristicClassifierFactory(ClassifierFactory):
+    def __init__(self, entities, features):
+        self.entities = entities
+        self.features = features
+
+    def get_classifier(self, dataset, experiment_name):
+        return HeuristicClassifier(dataset, self.entities, self.features)
 
 
 class DoubleStepClassifier(object):
@@ -215,8 +225,6 @@ class DoubleStepClassifier(object):
 
             # We may need this to rebuild the classifiers.
             self.low_level_classes_orders[hl_label] = new_dataset.classes[1]
-            import ipdb
-            ipdb.set_trace()
             self.test_results[hl_label] = classifier.test_results
             self.correctly_labeled += (
                 new_dataset.num_examples('test') *
@@ -231,7 +239,7 @@ class DoubleStepClassifier(object):
         }
         filename = os.path.join(results_dirname,
                                 'double_step_classifier.meta.pickle')
-        with open(filename, 'w') as output_file:
+        with open(filename, 'wb') as output_file:
             pickle.dump(to_save, output_file)
 
         filename = os.path.join(results_dirname,

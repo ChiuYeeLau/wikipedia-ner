@@ -222,6 +222,7 @@ class DoubleStepClassifier(object):
                 new_dataset, experiment_name=hl_label)
 
             classifier.train(save_layers=False)
+            self.low_level_models[hl_label] = classifier
 
             # We may need this to rebuild the classifiers.
             self.low_level_classes_orders[hl_label] = new_dataset.classes[1]
@@ -230,6 +231,18 @@ class DoubleStepClassifier(object):
                 new_dataset.num_examples('test') *
                 classifier.test_results['accuracy'].max())
             self.total_test_size += new_dataset.num_examples('test')
+
+    def evaluate(self, predicted_high_level_labels, classifier_factory):
+        """Evalutes the classifier in a real pipeline over the test dataset.
+
+        Uses the predicted_high_level_labels to select a low level classifier
+        to apply to the instance.
+        """
+        for hl_label_index, hl_label in tqdm(enumerate(self.classes[0]),
+                                             total=len(self.classes[0])):
+            if hl_label in self.low_level_models:
+
+
 
     def save_to_file(self, results_dirname):
         """Saves classifier metadata and test results to files"""

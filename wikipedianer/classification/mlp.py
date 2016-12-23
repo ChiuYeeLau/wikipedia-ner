@@ -149,20 +149,25 @@ class MultilayerPerceptron(BaseClassifier):
             assert batch_size <= dataset.num_examples('validation'), \
                 error_message
 
+    def predict(self, sess, x_matrix):
+        assert x_matrix.shape[0] <= self.batch_size
+        feed_dict = {
+            self.X: x_matrix
+        }
+
+        for keep_prob in self.keep_probs:
+            feed_dict[keep_prob] = 1.0
+
+        return sess.run(self.y_pred, feed_dict=feed_dict)
+
     def _evaluate(self, sess, dataset_name, return_extras=False):
         y_pred = np.zeros(self.dataset.num_examples(dataset_name), dtype=np.int32)
 
         print('Running evaluation for dataset %s' % dataset_name, file=sys.stderr, flush=True)
         for step, dataset_chunk in self.dataset.traverse_dataset(dataset_name, self.batch_size):
-            feed_dict = {
-                self.X: dataset_chunk
-            }
-
-            for keep_prob in self.keep_probs:
-                feed_dict[keep_prob] = 1.0
 
             y_pred[step:min(step+self.batch_size, self.dataset.num_examples(dataset_name))] =\
-                sess.run(self.y_pred, feed_dict=feed_dict)
+                self.predict(dataset_chunk)
 
         y_true = self.dataset.dataset_labels(dataset_name, self.cl_iteration)
         accuracy = accuracy_score(y_true, y_pred.astype(y_true.dtype))

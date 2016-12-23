@@ -48,13 +48,24 @@ class DoubleStepClassifierTest(unittest.TestCase):
 
     @patch('wikipedianer.classification.double_step_classifier.MultilayerPerceptron.save_model')
     @patch('wikipedianer.classification.double_step_classifier.MultilayerPerceptron._save_results')
-    def test_basic_case(self, save_model_mock, save_results_mock):
+    def test_basic_train(self, save_model_mock, save_results_mock):
         """Test the training of with a simple matrix."""
         classifier_factory = MLPFactory('', 10, [10])
         self.classifier.train(classifier_factory)
 
         # One of the datasets is too small
         self.assertEqual(1, len(self.classifier.test_results))
+
+    @patch('wikipedianer.classification.double_step_classifier.'
+           'MultilayerPerceptron.save_model')
+    @patch('wikipedianer.classification.double_step_classifier'
+           '.MultilayerPerceptron._save_results')
+    def test_basic_evaluate(self, save_model_mock, save_results_mock):
+        """Test the training of with a simple matrix."""
+        classifier_factory = MLPFactory('', 10, [10])
+        self.classifier.train(classifier_factory)
+        # Evaluates the classifier without loading from files.
+        self.classifier.evaluate([0, 0, 1], classifier_factory)
 
     def test_create_dataset(self):
         result_dataset = self.classifier.create_train_dataset(0)

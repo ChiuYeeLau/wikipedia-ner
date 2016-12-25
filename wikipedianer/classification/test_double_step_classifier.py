@@ -46,8 +46,10 @@ class DoubleStepClassifierTest(unittest.TestCase):
             test_indices, validation_indices, hl_labels_name,
             ll_labels_name)
 
-    @patch('wikipedianer.classification.double_step_classifier.MultilayerPerceptron.save_model')
-    @patch('wikipedianer.classification.double_step_classifier.MultilayerPerceptron._save_results')
+    @patch('wikipedianer.classification.double_step_classifier.'
+           'MultilayerPerceptron.save_model')
+    @patch('wikipedianer.classification.double_step_classifier'
+           '.MultilayerPerceptron._save_results')
     def test_basic_train(self, save_model_mock, save_results_mock):
         """Test the training of with a simple matrix."""
         classifier_factory = MLPFactory('', 10, [10])

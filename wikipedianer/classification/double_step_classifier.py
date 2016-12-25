@@ -232,15 +232,31 @@ class DoubleStepClassifier(object):
                 classifier.test_results['accuracy'].max())
             self.total_test_size += new_dataset.num_examples('test')
 
-    def evaluate(self, predicted_high_level_labels, classifier_factory):
+    def evaluate(self, predicted_high_level_labels, classifier_factory,
+                 default_label='O'):
         """Evalutes the classifier in a real pipeline over the test dataset.
 
         Uses the predicted_high_level_labels to select a low level classifier
         to apply to the instance.
         """
+        import ipdb
+        ipdb.set_trace()
+        if default_label in self.classes[1]:
+            default_index = numpy.where(self.classes[1] == default_label)[0][0]
+        else:
+            default_index = 0
+        predictions = (numpy.zeros((self.dataset.num_examples('test'), )) +
+                       default_index)
+        if not self.dataset:
+            raise ValueError('A dataset must be loaded previously')
         for hl_label_index, hl_label in tqdm(enumerate(self.classes[0]),
                                              total=len(self.classes[0])):
             if hl_label in self.low_level_models:
+                model = self.low_level_models[hl_label]
+                results = model.evaluate(None, 'test')
+                y_true, y_pred = results[-2:]
+                # Now we need to convert from low level dataset labels to the
+                # high level labels.
 
 
 

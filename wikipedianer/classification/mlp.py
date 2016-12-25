@@ -160,14 +160,14 @@ class MultilayerPerceptron(BaseClassifier):
 
         return sess.run(self.y_pred, feed_dict=feed_dict)
 
-    def _evaluate(self, sess, dataset_name, return_extras=False):
+    def evaluate(self, sess, dataset_name, return_extras=False):
         y_pred = np.zeros(self.dataset.num_examples(dataset_name), dtype=np.int32)
 
         print('Running evaluation for dataset %s' % dataset_name, file=sys.stderr, flush=True)
         for step, dataset_chunk in self.dataset.traverse_dataset(dataset_name, self.batch_size):
 
             y_pred[step:min(step+self.batch_size, self.dataset.num_examples(dataset_name))] =\
-                self.predict(dataset_chunk)
+                self.predict(sess, dataset_chunk)
 
         y_true = self.dataset.dataset_labels(dataset_name, self.cl_iteration)
         accuracy = accuracy_score(y_true, y_pred.astype(y_true.dtype))
@@ -241,7 +241,7 @@ class MultilayerPerceptron(BaseClassifier):
 
                 # We check the validation accuracy every `loss_report`*2 iterations
                 if epoch > 0 and epoch % (self.loss_report * 4) == 0:
-                    accuracy = self._evaluate(sess, 'validation')
+                    accuracy = self.evaluate(sess, 'validation')
                     print('Validation accuracy: %.3f' % accuracy, file=sys.stderr, flush=True)
                     self.validation_accuracy_record.append(accuracy)
 
@@ -273,7 +273,7 @@ class MultilayerPerceptron(BaseClassifier):
 
             print('Finished training', file=sys.stderr, flush=True)
 
-            accuracy, precision, recall, fscore, y_true, y_pred = self._evaluate(sess, 'test', True)
+            accuracy, precision, recall, fscore, y_true, y_pred = self.evaluate(sess, 'test', True)
             print('Testing accuracy: %.3f' % accuracy, file=sys.stderr, flush=True)
 
             self.test_results = self.test_results.append({'accuracy': accuracy}, ignore_index=True)

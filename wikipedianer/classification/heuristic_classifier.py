@@ -59,19 +59,22 @@ class HeuristicClassifier(object):
             predictions.append(self.get_numeric_label(prediction))
         return numpy.array(predictions)
 
-    def train(self, save_layers=False):
+    def evaluate(self):
         # Get test accuracy
         y_pred = self.predict(self.dataset.datasets['test'].data)
         y_true = self.dataset.dataset_labels('test', 1)
         assert y_pred.shape[0] == y_true.shape[0]
         accuracy = accuracy_score(y_true, y_pred.astype(y_true.dtype))
 
-        precision = precision_score(y_true, y_pred, labels=numpy.arange(
-            self.dataset.output_size(1)), average=None)
-        recall = recall_score(y_true, y_pred, labels=numpy.arange(
-            self.dataset.output_size(1)), average=None)
-        fscore = f1_score(y_true, y_pred, labels=numpy.arange(
-            self.dataset.output_size(1)), average=None)
+        labels = numpy.arange(self.dataset.output_size(1))
+
+        precision = precision_score(y_true, y_pred, labels=labels, average=None)
+        recall = recall_score(y_true, y_pred, labels=labels, average=None)
+        fscore = f1_score(y_true, y_pred, labels=labels, average=None)
+        return accuracy, precision, recall, fscore, y_true, y_pred
+
+    def train(self, save_layers=False):
+        accuracy, precision, recall, fscore, y_true, y_pred = self.evaluate()
 
         self.test_results = self.test_results.append({'accuracy': accuracy},
                                                      ignore_index=True)

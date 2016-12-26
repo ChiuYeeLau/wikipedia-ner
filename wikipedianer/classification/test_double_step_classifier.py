@@ -62,8 +62,8 @@ class DoubleStepClassifierTest(unittest.TestCase):
            'MultilayerPerceptron.save_model')
     @patch('wikipedianer.classification.double_step_classifier'
            '.MultilayerPerceptron._save_results')
-    def test_model_predict(self, save_model_mock, save_results_mock):
-        """Test the evaluation of with a simple matrix."""
+    def test_predict(self, save_model_mock, save_results_mock):
+        """Test the predict function."""
         classifier_factory = MLPFactory('', 10, [10])
         self.classifier.train(classifier_factory)
         predictions = self.classifier.predict('test', default_label=4).tolist()
@@ -78,14 +78,37 @@ class DoubleStepClassifierTest(unittest.TestCase):
            'MultilayerPerceptron.save_model')
     @patch('wikipedianer.classification.double_step_classifier'
            '.MultilayerPerceptron._save_results')
+    def test_predict_w_given_labels(self, save_model_mock, save_results_mock):
+        """Test the evaluation of with a simple matrix."""
+        classifier_factory = MLPFactory('', 10, [10])
+        self.classifier.train(classifier_factory)
+        test_dataset = self.classifier.low_level_models['0'].dataset.datasets[
+            'test']
+        predictions = self.classifier.predict(
+            'test', predicted_high_level_labels=[1, 1, 0],
+            default_label=4).tolist()
+        self.assertEqual(len(predictions), 3)
+
+        self.assertEqual(predictions[0], 0)
+        self.assertEqual(predictions[1], 0)  # For non trained classifier is
+        # default index
+        self.assertNotEqual(self.classifier.classes[1][predictions[1]], '11')
+
+        new_test_dataset = self.classifier.low_level_models[
+            '0'].dataset.datasets['test']
+        self.assertTrue(numpy.array_equal(test_dataset.data, new_test_dataset.data))
+        self.assertTrue(numpy.array_equal(test_dataset.labels, new_test_dataset.labels))
+
+    @patch('wikipedianer.classification.double_step_classifier.'
+           'MultilayerPerceptron.save_model')
+    @patch('wikipedianer.classification.double_step_classifier'
+           '.MultilayerPerceptron._save_results')
     def test_basic_evaluate(self, save_model_mock, save_results_mock):
         """Test the evaluation of with a simple matrix."""
         classifier_factory = MLPFactory('', 10, [10])
         self.classifier.train(classifier_factory)
         # Evaluates the classifier without loading from files.
-        results = self.classifier.evaluate(
-            predicted_high_level_labels=[0, 0, 1],
-            classifier_factory=classifier_factory)
+        results = self.classifier.evaluate()
         self.assertEqual(len(results), 6)
         accuracy = results[0]
         self.assertLessEqual(accuracy, 1)

@@ -8,6 +8,10 @@ import os
 
 from scipy.sparse import csr_matrix, vstack
 
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import f1_score
+from sklearn.metrics import precision_score
+from sklearn.metrics import recall_score
 from tqdm import tqdm
 from .mlp import MultilayerPerceptron
 from .heuristic_classifier import HeuristicClassifier
@@ -148,7 +152,7 @@ class DoubleStepClassifier(object):
             validation_labels = []
 
         self.dataset.load_from_arrays(
-            classes, train_dataset=x_matrix[train_indices],
+            self.classes, train_dataset=x_matrix[train_indices],
             test_dataset=test_x, validation_dataset=validation_x,
             train_labels=integer_labels[train_indices],
             test_labels=test_labels, validation_labels=validation_labels)
@@ -159,7 +163,7 @@ class DoubleStepClassifier(object):
         dataset = self.dataset.datasets[dataset_name]
         indices = numpy.where(dataset.labels[:,0] == target_label)[0]
 
-        return dataset.data[indices], dataset.labels[indices]
+        return dataset.data[indices], dataset.labels[indices], indices
 
     def create_train_dataset(self, target_label_index):
         """
@@ -169,10 +173,12 @@ class DoubleStepClassifier(object):
                 :param target_label_index: an integer. 0 for high level class, 1 for ll class.
                 :return: a new instance of Dataset.
                 """
-        train_x, train_y = self._filter_dataset('train', target_label_index)
-        test_x, test_y = self._filter_dataset('test', target_label_index)
-        validation_x, validation_y = self._filter_dataset('validation',
-                                                          target_label_index)
+        train_x, train_y, train_indices = self._filter_dataset('train',
+                                                               target_label_index)
+        test_x, test_y, test_indices = self._filter_dataset('test',
+                                                            target_label_index)
+        validation_x, validation_y, validation_indices = self._filter_dataset(
+            'validation', target_label_index)
 
         logging.info('Creating dataset with sizes {} {} {} for {}'.format(
             train_x.shape[0], test_x.shape[0], validation_x.shape[0],
@@ -183,6 +189,9 @@ class DoubleStepClassifier(object):
                     train_x.shape[0] < 2):
             logging.error('Dataset has less than 2 instances per split.')
             return None
+
+        indices = {'train': train_indices, 'test': test_indices,
+                   'validation': validation_indices}
 
         # Filter the classes based on the training dataset
         replaced_train_y = self.classes[1][train_y[:,1]]
@@ -198,7 +207,7 @@ class DoubleStepClassifier(object):
         new_dataset = self.dataset_class()
         new_dataset.load_from_arrays(
             (self.classes[0], new_classes), train_x, test_x, validation_x,
-            train_y, test_y, validation_y)
+            train_y, test_y, validation_y, indices)
         return new_dataset
 
     def train(self, classifier_factory):
@@ -232,20 +241,12 @@ class DoubleStepClassifier(object):
                 classifier.test_results['accuracy'].max())
             self.total_test_size += new_dataset.num_examples('test')
 
-    def evaluate(self, predicted_high_level_labels, classifier_factory,
-                 default_label='O'):
-        """Evalutes the classifier in a real pipeline over the test dataset.
-
-        Uses the predicted_high_level_labels to select a low level classifier
-        to apply to the instance.
-        """
-        import ipdb
-        ipdb.set_trace()
+    def predict(self, dataset_name, default_label='O'):
         if default_label in self.classes[1]:
             default_index = numpy.where(self.classes[1] == default_label)[0][0]
         else:
             default_index = 0
-        predictions = (numpy.zeros((self.dataset.num_examples('test'), )) +
+        predictions = (numpy.zeros((self.dataset.num_examples(dataset_name),)) +
                        default_index)
         if not self.dataset:
             raise ValueError('A dataset must be loaded previously')
@@ -253,11 +254,35 @@ class DoubleStepClassifier(object):
                                              total=len(self.classes[0])):
             if hl_label in self.low_level_models:
                 model = self.low_level_models[hl_label]
-                results = model.evaluate(None, 'test')
+                results = model.evaluate(dataset_name, return_extras=True)
                 y_true, y_pred = results[-2:]
                 # Now we need to convert from low level dataset labels to the
                 # high level labels.
+                y_pred = model.dataset.classes[1][y_pred]
+                test_indices = model.dataset.indices[dataset_name]
+                for index, low_level_class in enumerate(self.classes[1]):
+                    low_level_indices = numpy.where(
+                        y_pred == low_level_class)[0]
+                    predictions[test_indices[low_level_indices]] = index
+        return predictions
 
+    def evaluate(self, predicted_high_level_labels, classifier_factory,
+                 default_label='O'):
+        """Evalutes the classifier in a real pipeline over the test dataset.
+
+        Uses the predicted_high_level_labels to select a low level classifier
+        to apply to the instance.
+        """
+        y_true = self.dataset.datasets['test'].labels[:,1]
+        y_pred = self.predict('test', default_label)
+        accuracy = accuracy_score(y_true, y_pred.astype(y_true.dtype))
+
+        labels = numpy.arange(self.dataset.output_size(1))
+        precision = precision_score(y_true, y_pred, labels=labels, average=None)
+        recall = recall_score(y_true, y_pred, labels=labels, average=None)
+        fscore = f1_score(y_true, y_pred, labels=labels, average=None)
+
+        return accuracy, precision, recall, fscore, y_true, y_pred
 
 
     def save_to_file(self, results_dirname):

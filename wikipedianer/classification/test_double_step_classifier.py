@@ -62,12 +62,38 @@ class DoubleStepClassifierTest(unittest.TestCase):
            'MultilayerPerceptron.save_model')
     @patch('wikipedianer.classification.double_step_classifier'
            '.MultilayerPerceptron._save_results')
+    def test_model_predict(self, save_model_mock, save_results_mock):
+        """Test the evaluation of with a simple matrix."""
+        classifier_factory = MLPFactory('', 10, [10])
+        self.classifier.train(classifier_factory)
+        predictions = self.classifier.predict('test', default_label=4).tolist()
+        self.assertEqual(len(predictions), 3)
+
+        self.assertEqual(predictions[0], 0)  # For non trained classifier is
+        # default index
+        self.assertNotEqual(self.classifier.classes[1][predictions[1]], '11')
+        self.assertNotEqual(self.classifier.classes[1][predictions[2]], '11')
+
+    @patch('wikipedianer.classification.double_step_classifier.'
+           'MultilayerPerceptron.save_model')
+    @patch('wikipedianer.classification.double_step_classifier'
+           '.MultilayerPerceptron._save_results')
     def test_basic_evaluate(self, save_model_mock, save_results_mock):
-        """Test the training of with a simple matrix."""
+        """Test the evaluation of with a simple matrix."""
         classifier_factory = MLPFactory('', 10, [10])
         self.classifier.train(classifier_factory)
         # Evaluates the classifier without loading from files.
-        self.classifier.evaluate([0, 0, 1], classifier_factory)
+        results = self.classifier.evaluate(
+            predicted_high_level_labels=[0, 0, 1],
+            classifier_factory=classifier_factory)
+        self.assertEqual(len(results), 6)
+        accuracy = results[0]
+        self.assertLessEqual(accuracy, 1)
+        self.assertGreaterEqual(accuracy, 0)
+        for result in results[1:4]:
+            for metric in result:
+                self.assertLessEqual(metric, 1)
+                self.assertGreaterEqual(metric, 0)
 
     def test_create_dataset(self):
         result_dataset = self.classifier.create_train_dataset(0)

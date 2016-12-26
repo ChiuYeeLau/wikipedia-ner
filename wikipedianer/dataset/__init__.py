@@ -64,6 +64,18 @@ class Dataset(object):
                                     self.validation_labels)
         }
 
+    def add_dataset(self, dataset_name, x_matrix, y_labels):
+        if dataset_name == 'train':
+            self.train_dataset = x_matrix
+            self.train_labels = y_labels
+        elif dataset_name == 'test':
+            self.test_dataset = x_matrix
+            self.test_labels = y_labels
+        elif dataset_name == 'validation':
+            self.validation_dataset = x_matrix
+            self.validation_labels = y_labels
+        self._add_datasets()
+
     def load_from_arrays(self, classes, train_dataset, test_dataset,
                          validation_dataset, train_labels, test_labels,
                          validation_labels, indices=None):

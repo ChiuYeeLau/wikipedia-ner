@@ -91,7 +91,7 @@ def main():
             entities_database, token_features)
         classifier.train(classifier_factory=factory)
         classifier.save_to_file(results_dirname=args.results_dirname)
-
+        metrics = classifier.evaluate()
 
 if __name__ == '__main__':
     main()

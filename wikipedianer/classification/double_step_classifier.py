@@ -161,22 +161,23 @@ class DoubleStepClassifier(object):
 
     def _filter_dataset(self, dataset_name, target_label):
         dataset = self.dataset.datasets[dataset_name]
-        indices = numpy.where(dataset.labels[:,0] == target_label)[0]
+        indices = numpy.where(dataset.labels[:, 0] == target_label)[0]
 
         return dataset.data[indices], dataset.labels[indices], indices
 
     def create_train_dataset(self, target_label_index):
         """
-                Returns a numpy array with a subset of indices with balanced examples
-                of target_label and negative examples, taken from labels.
+        Returns a numpy array with a subset of indices with balanced examples
+        of target_label and negative examples, taken from labels.
 
-                :param target_label_index: an integer. 0 for high level class, 1 for ll class.
-                :return: a new instance of Dataset.
-                """
-        train_x, train_y, train_indices = self._filter_dataset('train',
-                                                               target_label_index)
-        test_x, test_y, test_indices = self._filter_dataset('test',
-                                                            target_label_index)
+        :param target_label_index: an integer. The index of the high level
+            label associated with the train dataset.
+        :return: a new instance of Dataset.
+        """
+        train_x, train_y, train_indices = self._filter_dataset(
+            'train', target_label_index)
+        test_x, test_y, test_indices = self._filter_dataset(
+            'test', target_label_index)
         validation_x, validation_y, validation_indices = self._filter_dataset(
             'validation', target_label_index)
 
@@ -194,7 +195,7 @@ class DoubleStepClassifier(object):
                    'validation': validation_indices}
 
         # Filter the classes based on the training dataset
-        replaced_train_y = self.classes[1][train_y[:,1]]
+        replaced_train_y = self.classes[1][train_y[:, 1]]
         replaced_test_y = self.classes[1][test_y[:, 1]]
         replaced_validation_y = self.classes[1][validation_y[:, 1]]
         all_labels = numpy.concatenate((replaced_train_y, replaced_test_y,
@@ -241,7 +242,25 @@ class DoubleStepClassifier(object):
                 classifier.test_results['accuracy'].max())
             self.total_test_size += new_dataset.num_examples('test')
 
-    def predict(self, dataset_name, default_label='O'):
+    def _dataset_from_predictions(self, dataset_name, target_label_index,
+                                  predicted_high_level_labels, new_labels):
+        test_x, test_y, test_indices = self._filter_dataset(
+            dataset_name, target_label_index)
+        test_y[:, 1] = predicted_high_level_labels[test_indices]
+        # Replace labels following the classes order
+        old_labels = self.classes[1]
+        new_labels_indexes = numpy.zeros(old_labels.shape) - 1
+        for old_index, old_label in enumerate(old_labels):
+            new_index = numpy.where(new_labels == old_label)[0]
+            if new_index.shape[0] > 0:
+                new_labels_indexes[old_index] = new_index
+        numpy.place(
+            test_y[:, 1], numpy.in1d(test_y, numpy.arange(old_labels.shape[0])),
+            new_labels_indexes.astype(numpy.int32))
+        return test_x, test_y
+
+    def predict(self, dataset_name, predicted_high_level_labels=None,
+                default_label='O'):
         if default_label in self.classes[1]:
             default_index = numpy.where(self.classes[1] == default_label)[0][0]
         else:
@@ -250,31 +269,49 @@ class DoubleStepClassifier(object):
                        default_index)
         if not self.dataset:
             raise ValueError('A dataset must be loaded previously')
+        if isinstance(predicted_high_level_labels, list):
+            predicted_high_level_labels = numpy.array(
+                predicted_high_level_labels)
         for hl_label_index, hl_label in tqdm(enumerate(self.classes[0]),
                                              total=len(self.classes[0])):
-            if hl_label in self.low_level_models:
-                model = self.low_level_models[hl_label]
+            if not hl_label in self.low_level_models:
+                continue
+            model = self.low_level_models[hl_label]
+            if predicted_high_level_labels is None:
                 results = model.evaluate(dataset_name, return_extras=True)
-                y_true, y_pred = results[-2:]
-                # Now we need to convert from low level dataset labels to the
-                # high level labels.
-                y_pred = model.dataset.classes[1][y_pred]
-                test_indices = model.dataset.indices[dataset_name]
-                for index, low_level_class in enumerate(self.classes[1]):
-                    low_level_indices = numpy.where(
-                        y_pred == low_level_class)[0]
-                    predictions[test_indices[low_level_indices]] = index
+            else:
+                # Replace the dataset_name with a new one filtered from
+                # the given high level predictions
+                original_test_dataset = model.dataset.datasets[dataset_name]
+                test_x, test_y = self._dataset_from_predictions(
+                    dataset_name, hl_label, predicted_high_level_labels,
+                    model.dataset.classes[1])
+                model.dataset.add_dataset(dataset_name, test_x, test_y)
+                results = model.evaluate(dataset_name, return_extras=True)
+                model.dataset.add_dataset(
+                    dataset_name, original_test_dataset.data,
+                    original_test_dataset.labels)
+            y_true, y_pred = results[-2:]
+            # Now we need to convert from low level dataset labels to the
+            # high level labels.
+            y_pred = model.dataset.classes[1][y_pred]
+            test_indices = model.dataset.indices[dataset_name]
+            for index, low_level_class in enumerate(self.classes[1]):
+                low_level_indices = numpy.where(
+                    y_pred == low_level_class)[0]
+                predictions[test_indices[low_level_indices]] = index
         return predictions
 
-    def evaluate(self, predicted_high_level_labels, classifier_factory,
-                 default_label='O'):
+    def evaluate(self, predicted_high_level_labels=None,
+                 classifier_factory=None, default_label='O'):
         """Evalutes the classifier in a real pipeline over the test dataset.
 
         Uses the predicted_high_level_labels to select a low level classifier
         to apply to the instance.
         """
         y_true = self.dataset.datasets['test'].labels[:,1]
-        y_pred = self.predict('test', default_label)
+        y_pred = self.predict('test', predicted_high_level_labels,
+                              default_label)
         accuracy = accuracy_score(y_true, y_pred.astype(y_true.dtype))
 
         labels = numpy.arange(self.dataset.output_size(1))

@@ -1,6 +1,8 @@
 """Test for the DoubleStepClassifier and ClassifierFactory classes."""
 
 import numpy
+import os
+import shutil
 import unittest
 
 try:
@@ -14,7 +16,26 @@ from wikipedianer.classification.double_step_classifier import (
         DoubleStepClassifier, MLPFactory)
 
 
+def safe_mkdir(dir_path):
+    """Checks if a directory exists, and if it doesn't, creates one."""
+    try:
+        os.stat(dir_path)
+    except OSError:
+        os.mkdir(dir_path)
+
+
+def safe_rmdir(dir_path):
+    """Checks if a directory exists, and if it does, removes it."""
+    try:
+        os.stat(dir_path)
+        shutil.rmtree(dir_path)
+    except OSError:
+        pass
+
+
 class DoubleStepClassifierTest(unittest.TestCase):
+
+    OUTPUT_DIR = os.path.join('wikipedianer', 'classification', 'test_files')
 
     def setUp(self):
         x_matrix = csr_matrix([
@@ -96,8 +117,10 @@ class DoubleStepClassifierTest(unittest.TestCase):
 
         new_test_dataset = self.classifier.low_level_models[
             '0'].dataset.datasets['test']
-        self.assertTrue(numpy.array_equal(test_dataset.data, new_test_dataset.data))
-        self.assertTrue(numpy.array_equal(test_dataset.labels, new_test_dataset.labels))
+        self.assertTrue(numpy.array_equal(test_dataset.data,
+                                          new_test_dataset.data))
+        self.assertTrue(numpy.array_equal(test_dataset.labels,
+                                          new_test_dataset.labels))
 
     @patch('wikipedianer.classification.double_step_classifier.'
            'MultilayerPerceptron.save_model')
@@ -117,6 +140,28 @@ class DoubleStepClassifierTest(unittest.TestCase):
             for metric in result:
                 self.assertLessEqual(metric, 1)
                 self.assertGreaterEqual(metric, 0)
+
+    @patch('wikipedianer.classification.double_step_classifier'
+           '.MultilayerPerceptron._save_results')
+    def test_evaluate_with_files(self, save_results_mock):
+        """Test the evaluation saving the models to a file."""
+        safe_rmdir(self.OUTPUT_DIR)
+        safe_mkdir(self.OUTPUT_DIR)
+        classifier_factory = MLPFactory(
+            results_save_path=self.OUTPUT_DIR, training_epochs=10,
+            layers=[10])
+        self.classifier.train(classifier_factory)
+        original_results = self.classifier.evaluate()
+        original_test, original_predictions = original_results[-2:]
+        # Delete the reference to the model, forcing to read from file.
+        self.classifier.low_level_models = {}
+        new_results = self.classifier.evaluate(
+            classifier_factory=classifier_factory)
+        new_test, new_predictions = new_results[-2:]
+        # Evaluates the classifier without loading from files.
+        self.assertEqual(original_test.tolist(), new_test.tolist())
+        self.assertEqual(original_predictions.tolist(), new_predictions.tolist())
+        safe_rmdir(self.OUTPUT_DIR)
 
     def test_create_dataset(self):
         result_dataset = self.classifier.create_train_dataset(0)

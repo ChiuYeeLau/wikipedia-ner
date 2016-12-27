@@ -49,6 +49,7 @@ class MultilayerPerceptron(BaseClassifier):
         self.keep_probs_ratios = []
 
         dropout_ratios = [] if dropout_ratios is None else dropout_ratios
+        self.var_names = {}
 
         # Create the layers
         for layer_idx, (size_prev, size_current) in enumerate(zip([self.dataset.input_size] + layers, layers)):
@@ -70,11 +71,13 @@ class MultilayerPerceptron(BaseClassifier):
                                             stddev=1.0 / np.sqrt(size_prev)),
                         name='weights'
                     )
+                self.var_names['layer_{}_weights'.format(layer_idx)] = weights
 
                 if pre_biases and layer_name in pre_biases:
                     biases = tf.Variable(pre_biases[layer_name], name='biases')
                 else:
                     biases = tf.Variable(tf.zeros([size_current]), name='biases')
+                self.var_names['layer_{}_biases'.format(layer_idx)] = biases
 
                 keep_prob = tf.placeholder(tf.float32, name='keep_prob')
                 layer = tf.nn.relu(tf.matmul(self.layers[-1], weights) + biases)
@@ -105,11 +108,13 @@ class MultilayerPerceptron(BaseClassifier):
                                         stddev=1.0 / np.sqrt(last_layer)),
                     name='weights'
                 )
+            self.var_names['softmax_weights'] = weights
 
             if pre_biases and 'softmax_layer' in pre_biases:
                 biases = tf.Variable(pre_biases['softmax_layer'], name='biases')
             else:
                 biases = tf.Variable(tf.zeros([self.dataset.output_size(self.cl_iteration)]), name='biases')
+            self.var_names['softmax_biases'] = biases
 
             self.y_logits = tf.matmul(self.layers[-1], weights) + biases
 
@@ -124,9 +129,9 @@ class MultilayerPerceptron(BaseClassifier):
 
         # Add a scalar summary for the snapshot loss.
         tf.scalar_summary(self.loss.op.name, self.loss)
-        self.train_step = tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss, global_step=global_step)
+        self.train_step = tf.train.AdagradOptimizer(self.learning_rate).minimize(self.loss, global_step=global_step)
 
-        self.init = tf.initialize_all_variables()
+        # self.init = tf.initialize_all_variables()
 
         # results and saves
         self.pre_trained_weights_save_path = pre_trained_weights_save_path
@@ -137,7 +142,7 @@ class MultilayerPerceptron(BaseClassifier):
         self.test_results = pd.DataFrame(columns=['accuracy', 'class', 'precision', 'recall', 'fscore'])
         self.test_predictions_results = pd.DataFrame(columns=['true', 'prediction'])
         self.loss_report = loss_report
-        self.saver = tf.train.Saver() if save_model else None
+        self.saver = tf.train.Saver(self.var_names) if save_model else None
 
     def check_batch_size(self, batch_size, dataset):
         error_message = ('The batch size cannot be larger than the number of '
@@ -160,9 +165,18 @@ class MultilayerPerceptron(BaseClassifier):
 
         return sess.run(self.y_pred, feed_dict=feed_dict)
 
-    def evaluate(self, dataset_name, return_extras=False):
+    def _get_save_path(self):
+        return os.path.join(self.results_save_path,
+                            '%s.model' % self.experiment_name)
+
+    def evaluate(self, dataset_name, return_extras=False, restore=False):
         with tf.Session() as session:
-            session.run(tf.initialize_all_variables())
+            if not restore:
+                session.run(tf.initialize_all_variables())
+            elif self.saver is not None:
+                print('Loading model from file {}'.format(
+                    self._get_save_path()))
+                self.saver.restore(session, self._get_save_path())
             return self._evaluate(session, dataset_name, return_extras)
 
     def _evaluate(self, sess, dataset_name, return_extras=False):
@@ -301,8 +315,7 @@ class MultilayerPerceptron(BaseClassifier):
     def save_model(self, sess):
         if self.saver is not None:
             print('Saving model', file=sys.stderr, flush=True)
-            save_path = self.saver.save(sess, os.path.join(
-                self.results_save_path, '%s.model' % self.experiment_name))
+            save_path = self.saver.save(sess, self._get_save_path())
             print('Model saved in file %s' % save_path, file=sys.stderr,
                   flush=True)
 

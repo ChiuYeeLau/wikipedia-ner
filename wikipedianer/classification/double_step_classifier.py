@@ -24,9 +24,6 @@ class ClassifierFactory(object):
     def get_classifier(self, dataset, experiment_name):
         raise NotImplementedError
 
-    def rebuild_classifier(self, experiment_name):
-        raise NotImplementedError
-
 
 class MLPFactory(ClassifierFactory):
     """"""
@@ -235,8 +232,8 @@ class DoubleStepClassifier(object):
             classifier = classifier_factory.get_classifier(
                 new_dataset, experiment_name=hl_label)
 
-            classifier.train(save_layers=False)
-            self.low_level_models[hl_label] = classifier
+            session = classifier.train(save_layers=False, close_session=False)
+            self.low_level_models[hl_label] = (classifier, session)
 
             # We may need this to rebuild the classifiers.
             self.low_level_classes_orders[hl_label] = new_dataset.classes[1]
@@ -270,6 +267,7 @@ class DoubleStepClassifier(object):
         for hl_label_index
         """
         load_model = False
+        session = None
         hl_label = self.classes[0][hl_label_index]
         if not hl_label in self.low_level_models:
             if classifier_factory is None:
@@ -281,12 +279,13 @@ class DoubleStepClassifier(object):
                 return
             model = classifier_factory.get_classifier(new_dataset, hl_label)
             load_model = True
+            self.low_level_models[hl_label] = (model, None)
         else:
-            model = self.low_level_models[hl_label]
+            model, session = self.low_level_models[hl_label]
 
         if predicted_high_level_labels is None:
             results = model.evaluate(dataset_name, return_extras=True,
-                                     restore=load_model)
+                                     restore=load_model, session=session)
         else:
             # Replace the dataset_name with a new one filtered from
             # the given high level predictions
@@ -296,7 +295,7 @@ class DoubleStepClassifier(object):
                 model.dataset.classes[1])
             model.dataset.add_dataset(dataset_name, test_x, test_y)
             results = model.evaluate(dataset_name, return_extras=True,
-                                     restore=load_model)
+                                     restore=load_model, session=session)
             model.dataset.add_dataset(
                 dataset_name, original_test_dataset.data,
                 original_test_dataset.labels)
@@ -328,7 +327,7 @@ class DoubleStepClassifier(object):
             self._predict_for_label(
                 hl_label_index, classifier_factory, predicted_high_level_labels,
                 dataset_name, predictions)
-        return predictions
+        return predictions.astype(numpy.int32)
 
     def evaluate(self, predicted_high_level_labels=None,
                  classifier_factory=None, default_label='O'):
@@ -349,6 +348,10 @@ class DoubleStepClassifier(object):
 
         return accuracy, precision, recall, fscore, y_true, y_pred
 
+    def close_open_sessions(self):
+        for _, session in self.low_level_models.values():
+            session.close()
+        self.low_level_models = {}
 
     def save_to_file(self, results_dirname):
         """Saves classifier metadata and test results to files"""

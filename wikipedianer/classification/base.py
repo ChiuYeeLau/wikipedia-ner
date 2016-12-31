@@ -18,3 +18,9 @@ class BaseClassifier(object):
                 'recall': recall[cls_idx],
                 'fscore': fscore[cls_idx]
             }, ignore_index=True)
+
+    def evaluate(self, dataset_name, *args, **kwargs):
+        raise NotImplementedError
+
+    def train(self, *args, **kwargs):
+        raise NotImplementedError

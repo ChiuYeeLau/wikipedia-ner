@@ -16,6 +16,7 @@ from collections import defaultdict
 logging.basicConfig(level=logging.INFO)
 
 from wikipedianer.classification import double_step_classifier
+from wikipedianer.classification import logistic_regression
 from wikipedianer.dataset import HandcraftedFeaturesDataset
 
 
@@ -38,7 +39,7 @@ def read_arguments():
                              'the split indices training/testing/validation')
     parser.add_argument('--classifier', type=str, default='mlp',
                         help='The classifier to use. Possible values are mlp '
-                             'and heuristic.')
+                             'lr and heuristic.')
     parser.add_argument('--features_filename', type=str, default=None,
                         help='Path of file with the filtered features. Only '
                              'for heuristic classifier.')
@@ -61,13 +62,13 @@ def main():
         labels_filepath=args.labels_filepath,
         labels=((3, 'wordnet'), (4, 'uri')),
         indices_filepath=args.indices)
+    factory = None
+
     if args.classifier == 'mlp':
         factory = double_step_classifier.MLPFactory(
             results_save_path=args.results_dirname, training_epochs=100)
-        classifier.train(classifier_factory=factory)
-        classifier.save_to_file(results_dirname=args.results_dirname)
-    elif args.classifier == 'heuristic':
 
+    elif args.classifier == 'heuristic':
         # Read the entities
         entities_database = defaultdict(set)
         with jsonlines.open(args.entities_filename) as reader:
@@ -88,14 +89,20 @@ def main():
             if x.startswith('token:current')}
         factory = double_step_classifier.HeuristicClassifierFactory(
             entities_database, token_features)
-        classifier.train(classifier_factory=factory)
-        classifier.save_to_file(results_dirname=args.results_dirname)
-        metrics = classifier.evaluate()
-        print('Accuracy {}'.format(metrics[0]))
-        print('Classes {}'.format(classifier.classes[1]))
-        print('Precision {}'.format(metrics[1]))
-        print('Recall {}'.format(metrics[2]))
-        print('F1 Score {}'.format(metrics[3]))
+    elif args.classifier == 'lr':
+        factory = logistic_regression.LRClassifierFactory(
+            save_models=True, results_save_path=args.results_dirname)
+
+    classifier.train(classifier_factory=factory)
+    classifier.save_to_file(results_dirname=args.results_dirname)
+    metrics = classifier.evaluate()
+    print('Accuracy {}'.format(metrics[0]))
+    print('Classes {}'.format(classifier.classes[1]))
+    print('Precision {}'.format(metrics[1]))
+    print('Recall {}'.format(metrics[2]))
+    print('F1 Score {}'.format(metrics[3]))
+
+    if args.classifier == 'mlp':
         classifier.close_open_sessions()
 
 

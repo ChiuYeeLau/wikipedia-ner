@@ -63,8 +63,7 @@ def main():
         indices_filepath=args.indices)
     if args.classifier == 'mlp':
         factory = double_step_classifier.MLPFactory(
-            results_save_path=args.results_dirname, training_epochs=100,
-            layers=[1000])
+            results_save_path=args.results_dirname, training_epochs=100)
         classifier.train(classifier_factory=factory)
         classifier.save_to_file(results_dirname=args.results_dirname)
     elif args.classifier == 'heuristic':

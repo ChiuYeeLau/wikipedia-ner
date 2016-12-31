@@ -92,6 +92,11 @@ def main():
         classifier.train(classifier_factory=factory)
         classifier.save_to_file(results_dirname=args.results_dirname)
         metrics = classifier.evaluate()
+        print('Accuracy {}'.format(metrics[0]))
+        print('Classes {}'.format(classifier.classes[1]))
+        print('Precision {}'.format(metrics[1]))
+        print('Recall {}'.format(metrics[2]))
+        print('F1 Score {}'.format(metrics[3]))
         classifier.close_open_sessions()
 
 

@@ -35,6 +35,8 @@ class Dataset(object):
         self._index_in_epoch = 0
         self.datasets = {}
 
+        self.indices = None
+
     def load_from_files(self, dataset_path, labels_path, indices_path,
                         cl_iterations=None):
         """
@@ -62,9 +64,21 @@ class Dataset(object):
                                     self.validation_labels)
         }
 
+    def add_dataset(self, dataset_name, x_matrix, y_labels):
+        if dataset_name == 'train':
+            self.train_dataset = x_matrix
+            self.train_labels = y_labels
+        elif dataset_name == 'test':
+            self.test_dataset = x_matrix
+            self.test_labels = y_labels
+        elif dataset_name == 'validation':
+            self.validation_dataset = x_matrix
+            self.validation_labels = y_labels
+        self._add_datasets()
+
     def load_from_arrays(self, classes, train_dataset, test_dataset,
                          validation_dataset, train_labels, test_labels,
-                         validation_labels):
+                         validation_labels, indices=None):
         """
 
         :param classes: an iterable with the sorted classes.
@@ -86,6 +100,7 @@ class Dataset(object):
         self.train_labels = train_labels
         self.test_labels = test_labels
         self.validation_labels = validation_labels
+        self.indices = indices
 
         self._add_datasets()
 
@@ -133,6 +148,7 @@ class HandcraftedFeaturesDataset(Dataset):
 
         print('Loading the indices for train, test and validation from %s' % indices_path, file=sys.stderr, flush=True)
         indices = np.load(indices_path)
+        self.indices = indices
 
         labels = labels[indices['filtered_indices']]
 

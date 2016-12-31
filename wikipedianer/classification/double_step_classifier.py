@@ -84,9 +84,6 @@ class DoubleStepClassifier(object):
         self.dataset_class = dataset_class
 
         self.low_level_models = {}
-        # Keeps the order assigned to the filtered class during the training
-        # of the low level models
-        self.low_level_classes_orders = {}
 
         self.test_results = {}
 
@@ -235,8 +232,6 @@ class DoubleStepClassifier(object):
             session = classifier.train(save_layers=False, close_session=False)
             self.low_level_models[hl_label] = (classifier, session)
 
-            # We may need this to rebuild the classifiers.
-            self.low_level_classes_orders[hl_label] = new_dataset.classes[1]
             self.test_results[hl_label] = classifier.test_results
             self.correctly_labeled += (
                 new_dataset.num_examples('test') *
@@ -245,20 +240,24 @@ class DoubleStepClassifier(object):
 
     def _dataset_from_predictions(self, dataset_name, target_label_index,
                                   predicted_high_level_labels, new_labels):
-        test_x, test_y, test_indices = self._filter_dataset(
-            dataset_name, target_label_index)
-        test_y[:, 1] = predicted_high_level_labels[test_indices]
-        # Replace labels following the classes order
+        test_indices = numpy.where(
+            predicted_high_level_labels == target_label_index)
+        dataset_to_filter = self.dataset.datasets[dataset_name]
+        test_x = dataset_to_filter.data[test_indices]
+        test_y = dataset_to_filter.labels[test_indices]
+
+        # Replace low level labels to match the classifier order.
+
         old_labels = self.classes[1]
-        new_labels_indexes = numpy.zeros(old_labels.shape) - 1
+        new_test_y = numpy.zeros(test_y.shape) - 1
         for old_index, old_label in enumerate(old_labels):
+            # We search for the new index of the label "old_label"
             new_index = numpy.where(new_labels == old_label)[0]
+            # old_label may not be present in new_labels.
             if new_index.shape[0] > 0:
-                new_labels_indexes[old_index] = new_index
-        numpy.place(
-            test_y[:, 1], numpy.in1d(test_y, numpy.arange(old_labels.shape[0])),
-            new_labels_indexes.astype(numpy.int32))
-        return test_x, test_y
+                mask = numpy.where(test_y[:,1] == old_index)[0]
+                new_test_y[mask, 1] = new_index
+        return test_x, test_y, test_indices[0]
 
     def _predict_for_label(self, hl_label_index, classifier_factory,
                            predicted_high_level_labels, dataset_name,
@@ -274,6 +273,9 @@ class DoubleStepClassifier(object):
                 return
             # Read the model from file
             new_dataset = self.create_train_dataset(hl_label_index)
+            # numpy.unique returns sorted arrays, which guaranties that every
+            # time that we call create_train_dataset with the same parameters
+            # we obtain the same result and the same order of classes.
             if not new_dataset:
                 logging.warning('Evaluation dataset could not be created.')
                 return
@@ -286,13 +288,18 @@ class DoubleStepClassifier(object):
         if predicted_high_level_labels is None:
             results = model.evaluate(dataset_name, return_extras=True,
                                      restore=load_model, session=session)
+            test_indices = model.dataset.indices[dataset_name]
         else:
+            assert (predicted_high_level_labels.shape[0] ==
+                    self.dataset.num_examples(dataset_name))
             # Replace the dataset_name with a new one filtered from
-            # the given high level predictions
+            # the instances with hl_label_index in predicted_high_level_labels
             original_test_dataset = model.dataset.datasets[dataset_name]
-            test_x, test_y = self._dataset_from_predictions(
-                dataset_name, hl_label, predicted_high_level_labels,
+            test_x, test_y, test_indices = self._dataset_from_predictions(
+                dataset_name, hl_label_index, predicted_high_level_labels,
                 model.dataset.classes[1])
+            assert test_y.shape[0] == test_x.shape[0]
+            assert test_y.shape[0] == test_indices.shape[0]
             model.dataset.add_dataset(dataset_name, test_x, test_y)
             results = model.evaluate(dataset_name, return_extras=True,
                                      restore=load_model, session=session)
@@ -303,7 +310,6 @@ class DoubleStepClassifier(object):
         # Now we need to convert from low level dataset labels to the
         # high level labels.
         y_pred = model.dataset.classes[1][y_pred]
-        test_indices = model.dataset.indices[dataset_name]
         for index, low_level_class in enumerate(self.classes[1]):
             low_level_indices = numpy.where(
                 y_pred == low_level_class)[0]
@@ -350,13 +356,13 @@ class DoubleStepClassifier(object):
 
     def close_open_sessions(self):
         for _, session in self.low_level_models.values():
-            session.close()
+            if session is not None:
+                session.close()
         self.low_level_models = {}
 
     def save_to_file(self, results_dirname):
         """Saves classifier metadata and test results to files"""
         to_save = {
-            'classes_orders': self.low_level_classes_orders,
             'classes': self.classes
         }
         filename = os.path.join(results_dirname,

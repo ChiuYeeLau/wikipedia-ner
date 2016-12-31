@@ -25,6 +25,9 @@ from wikipedianer.pipeline import util
 from wikipedianer.classification.base import BaseClassifier
 from wikipedianer.classification.double_step_classifier import (
         DoubleStepClassifier, MLPFactory, ClassifierFactory)
+from wikipedianer.classification.logistic_regression import (
+    LRClassifierFactory
+)
 
 
 def safe_mkdir(dir_path):
@@ -386,6 +389,60 @@ class DoubleStepClassifierTest(unittest.TestCase):
         result_dataset = self.classifier.create_train_dataset(1)
         self.assertIsNone(result_dataset)
 
+    def test_predict_lr(self):
+        """Test the predict function."""
+        classifier_factory = LRClassifierFactory()
+        self.classifier.train(classifier_factory)
+        predictions = self.classifier.predict('test', default_label=4).tolist()
+        self.assertEqual(len(predictions), 3)
+
+        self.assertEqual(predictions[0], 0)  # For non trained classifier is
+        # default index
+        self.assertNotEqual(self.classifier.classes[1][predictions[1]], '11')
+        self.assertNotEqual(self.classifier.classes[1][predictions[2]], '11')
+
+    def test_evaluate_with_files_lr(self):
+        """Test the evaluation saving the models to a file."""
+        safe_rmdir(self.OUTPUT_DIR)
+        safe_mkdir(self.OUTPUT_DIR)
+        classifier_factory = LRClassifierFactory(
+            results_save_path=self.OUTPUT_DIR, save_models=True)
+        self.classifier.train(classifier_factory)
+        original_results = self.classifier.evaluate()
+        original_test, original_predictions = original_results[-2:]
+        # Delete the reference to the model, forcing to read from file.
+        self.classifier.close_open_sessions()
+        new_results = self.classifier.evaluate(
+            classifier_factory=classifier_factory)
+        new_test, new_predictions = new_results[-2:]
+        # Evaluates the classifier without loading from files.
+        self.assertEqual(original_test.tolist(), new_test.tolist())
+        self.assertEqual(original_predictions.tolist(),
+                         new_predictions.tolist())
+        safe_rmdir(self.OUTPUT_DIR)
+
+    def test_predict_w_given_labels_lr(self):
+        """Test the evaluation of with a simple matrix."""
+        classifier_factory = LRClassifierFactory()
+        self.classifier.train(classifier_factory)
+        test_dataset = self.classifier.low_level_models[
+            '0'][0].dataset.datasets['test']
+        predictions = self.classifier.predict(
+            'test', predicted_high_level_labels=[1, 1, 0],
+            default_label=4).tolist()
+        self.assertEqual(len(predictions), 3)
+
+        self.assertEqual(predictions[0], 0)
+        self.assertEqual(predictions[1], 0)  # For non trained classifier is
+        # default index
+        self.assertNotEqual(self.classifier.classes[1][predictions[1]], '11')
+
+        new_test_dataset = self.classifier.low_level_models[
+            '0'][0].dataset.datasets['test']
+        self.assertTrue(numpy.array_equal(test_dataset.data,
+                                          new_test_dataset.data))
+        self.assertTrue(numpy.array_equal(test_dataset.labels,
+                                          new_test_dataset.labels))
 
 if __name__ == '__main__':
     unittest.main()

@@ -62,15 +62,14 @@ def main():
         labels_filepath=args.labels_filepath,
         labels=((3, 'wordnet'), (4, 'uri')),
         indices_filepath=args.indices)
+    factory = None
+
     if args.classifier == 'mlp':
         factory = double_step_classifier.MLPFactory(
             results_save_path=args.results_dirname, training_epochs=100,
             layers=[1000])
-        classifier.train(classifier_factory=factory)
-        classifier.save_to_file(results_dirname=args.results_dirname)
-        classifier.close_open_sessions()
-    elif args.classifier == 'heuristic':
 
+    elif args.classifier == 'heuristic':
         # Read the entities
         entities_database = defaultdict(set)
         with jsonlines.open(args.entities_filename) as reader:
@@ -91,14 +90,21 @@ def main():
             if x.startswith('token:current')}
         factory = double_step_classifier.HeuristicClassifierFactory(
             entities_database, token_features)
-        classifier.train(classifier_factory=factory)
-        classifier.save_to_file(results_dirname=args.results_dirname)
-        metrics = classifier.evaluate()
     elif args.classifier == 'lr':
         factory = logistic_regression.LRClassifierFactory(
             save_models=True, results_save_path=args.results_dirname)
-        classifier.train(classifier_factory=factory)
-        classifier.save_to_file(results_dirname=args.results_dirname)
+
+    classifier.train(classifier_factory=factory)
+    classifier.save_to_file(results_dirname=args.results_dirname)
+    metrics = classifier.evaluate()
+    print('Accuracy {}'.format(metrics[0]))
+    print('Classes {}'.format(classifier.classes[1]))
+    print('Precision {}'.format(metrics[1]))
+    print('Recall {}'.format(metrics[2]))
+    print('F1 Score {}'.format(metrics[3]))
+
+    if args.classifier == 'mlp':
+        classifier.close_open_sessions()
 
 
 if __name__ == '__main__':

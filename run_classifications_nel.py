@@ -16,6 +16,7 @@ from collections import defaultdict
 logging.basicConfig(level=logging.INFO)
 
 from wikipedianer.classification import double_step_classifier
+from wikipedianer.classification import logistic_regression
 from wikipedianer.dataset import HandcraftedFeaturesDataset
 
 
@@ -38,7 +39,7 @@ def read_arguments():
                              'the split indices training/testing/validation')
     parser.add_argument('--classifier', type=str, default='mlp',
                         help='The classifier to use. Possible values are mlp '
-                             'and heuristic.')
+                             'lr and heuristic.')
     parser.add_argument('--features_filename', type=str, default=None,
                         help='Path of file with the filtered features. Only '
                              'for heuristic classifier.')
@@ -67,6 +68,7 @@ def main():
             layers=[1000])
         classifier.train(classifier_factory=factory)
         classifier.save_to_file(results_dirname=args.results_dirname)
+        classifier.close_open_sessions()
     elif args.classifier == 'heuristic':
 
         # Read the entities
@@ -92,7 +94,11 @@ def main():
         classifier.train(classifier_factory=factory)
         classifier.save_to_file(results_dirname=args.results_dirname)
         metrics = classifier.evaluate()
-        classifier.close_open_sessions()
+    elif args.classifier == 'lr':
+        factory = logistic_regression.LRClassifierFactory(
+            save_models=True, results_save_path=args.results_dirname)
+        classifier.train(classifier_factory=factory)
+        classifier.save_to_file(results_dirname=args.results_dirname)
 
 
 if __name__ == '__main__':

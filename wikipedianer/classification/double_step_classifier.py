@@ -346,6 +346,8 @@ class DoubleStepClassifier(object):
                 predicted_high_level_labels)
         for hl_label_index, hl_label in tqdm(enumerate(self.classes[0]),
                                              total=len(self.classes[0])):
+            if hl_label == default_label:
+                continue
             self._predict_for_label(
                 hl_label_index, classifier_factory, predicted_high_level_labels,
                 dataset_name, predictions)

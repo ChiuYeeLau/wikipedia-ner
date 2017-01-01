@@ -232,11 +232,16 @@ class DoubleStepClassifier(object):
             new_dataset = self.create_train_dataset(hl_label_index)
             if not new_dataset:
                 continue
-            classifier = classifier_factory.get_classifier(
-                new_dataset, experiment_name=hl_label)
+            try:
+                classifier = classifier_factory.get_classifier(
+                    new_dataset, experiment_name=hl_label)
+            except Exception as e:
+                logging.error('Classifier {} not created. Error {}'.format(
+                    hl_label, e))
+                continue
 
-            session = classifier.train(save_layers=False, close_session=False)
-            self.low_level_models[hl_label] = (classifier, session)
+            session = classifier.train(save_layers=False)
+            # self.low_level_models[hl_label] = (classifier, session)
 
             self.test_results[hl_label] = classifier.test_results
             self.correctly_labeled += (
@@ -285,7 +290,12 @@ class DoubleStepClassifier(object):
             if not new_dataset:
                 logging.warning('Evaluation dataset could not be created.')
                 return
-            model = classifier_factory.get_classifier(new_dataset, hl_label)
+            try:
+                model = classifier_factory.get_classifier(new_dataset, hl_label)
+            except Exception as e:                                               
+                logging.error('Classifier {} not created. Error {}'.format(      
+                    hl_label, e))                                                
+                return
             load_model = True
             self.low_level_models[hl_label] = (model, None)
         else:

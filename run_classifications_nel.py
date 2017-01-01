@@ -59,8 +59,10 @@ def read_arguments():
     return parser.parse_args()
 
 
-def save_evaluation_results(classifier, dirname):
-    accuracy, precision, recall, fscore, y_true, y_pred = classifier.evaluate()
+def save_evaluation_results(classifier, dirname, classifier_factory):
+    accuracy, precision, recall, fscore, y_true, y_pred = classifier.evaluate(
+        classifier_factory=classifier_factory
+    )
     evaluation_results = pandas.DataFrame(
         columns=['accuracy', 'class', 'precision', 'recall', 'fscore'])
     evaluation_results = evaluation_results.append({'accuracy': accuracy},
@@ -128,7 +130,7 @@ def main():
         classifier.train(classifier_factory=factory)
         classifier.save_to_file(results_dirname=args.results_dirname)
 
-    save_evaluation_results(classifier, args.results_dirname)
+    save_evaluation_results(classifier, args.results_dirname, factory)
 
     if args.classifier == 'mlp':
         classifier.close_open_sessions()

@@ -27,9 +27,10 @@ class ClassifierFactory(object):
 
 class MLPFactory(ClassifierFactory):
     """"""
-    def __init__(self, results_save_path, training_epochs):
+    def __init__(self, results_save_path, training_epochs, dropout_ratio=0.0):
         self.results_save_path = results_save_path
         self.training_epochs = training_epochs
+        self.dropout_ratio = dropout_ratio
 
     def get_classifier(self, dataset, experiment_name,
                        cl_iteration=1):
@@ -47,7 +48,7 @@ class MLPFactory(ClassifierFactory):
             experiment_name=experiment_name, layers=[hidden_layer],
             save_model=True, cl_iteration=cl_iteration,
             batch_size=batch_size, training_epochs=self.training_epochs,
-            loss_report=loss_report)
+            loss_report=loss_report, dropout_ratios=[self.dropout_ratio])
         return classifier
 
 

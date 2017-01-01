@@ -133,7 +133,7 @@ class MultilayerPerceptron(BaseClassifier):
 
         # Add a scalar summary for the snapshot loss.
         tf.scalar_summary(self.loss.op.name, self.loss)
-        self.train_step = tf.train.AdagradOptimizer(self.learning_rate).minimize(self.loss, global_step=global_step)
+        self.train_step = tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss, global_step=global_step)
 
         # self.init = tf.initialize_all_variables()
 

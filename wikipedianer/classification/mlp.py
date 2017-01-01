@@ -36,6 +36,9 @@ class MultilayerPerceptron(BaseClassifier):
         self.check_batch_size(batch_size, dataset)
 
         self.dataset = dataset
+        if self.dataset.classes[1].shape[0] > 10000:
+            raise Exception('The number of labels is too big for the MLP'
+                            'classifier')
         self.cl_iteration = cl_iteration
 
         self.X = tf.placeholder(tf.float32, shape=(None, self.dataset.input_size), name='X')

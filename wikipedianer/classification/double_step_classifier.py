@@ -27,21 +27,27 @@ class ClassifierFactory(object):
 
 class MLPFactory(ClassifierFactory):
     """"""
-    def __init__(self, results_save_path, training_epochs, layers):
+    def __init__(self, results_save_path, training_epochs):
         self.results_save_path = results_save_path
         self.training_epochs = training_epochs
-        self.layers = layers
 
     def get_classifier(self, dataset, experiment_name,
                        cl_iteration=1):
         batch_size = min(dataset.num_examples('train'), 2000,
                          dataset.num_examples('validation'),
                          dataset.num_examples('test'))
+        # The hidden layer is twice the size of the number of labels, with 
+        # a maximum of 500 and a minimum of 10.
+        num_labels = dataset.classes[1].shape[0]
+        hidden_layer = min(max(10, 2 * num_labels), 500)
+        loss_report = min(batch_size, 250)
+
         classifier = MultilayerPerceptron(
             dataset, results_save_path=self.results_save_path,
-            experiment_name=experiment_name, layers=self.layers,
+            experiment_name=experiment_name, layers=[hidden_layer],
             save_model=True, cl_iteration=cl_iteration,
-            batch_size=batch_size, training_epochs=self.training_epochs)
+            batch_size=batch_size, training_epochs=self.training_epochs,
+            loss_report=loss_report)
         return classifier
 
 
@@ -226,11 +232,16 @@ class DoubleStepClassifier(object):
             new_dataset = self.create_train_dataset(hl_label_index)
             if not new_dataset:
                 continue
-            classifier = classifier_factory.get_classifier(
-                new_dataset, experiment_name=hl_label)
+            try:
+                classifier = classifier_factory.get_classifier(
+                    new_dataset, experiment_name=hl_label)
+            except Exception as e:
+                logging.error('Classifier {} not created. Error {}'.format(
+                    hl_label, e))
+                continue
 
-            session = classifier.train(save_layers=False, close_session=False)
-            self.low_level_models[hl_label] = (classifier, session)
+            session = classifier.train(save_layers=False)
+            # self.low_level_models[hl_label] = (classifier, session)
 
             self.test_results[hl_label] = classifier.test_results
             self.correctly_labeled += (
@@ -279,7 +290,12 @@ class DoubleStepClassifier(object):
             if not new_dataset:
                 logging.warning('Evaluation dataset could not be created.')
                 return
-            model = classifier_factory.get_classifier(new_dataset, hl_label)
+            try:
+                model = classifier_factory.get_classifier(new_dataset, hl_label)
+            except Exception as e:                                               
+                logging.error('Classifier {} not created. Error {}'.format(      
+                    hl_label, e))                                                
+                return
             load_model = True
             self.low_level_models[hl_label] = (model, None)
         else:
@@ -330,6 +346,8 @@ class DoubleStepClassifier(object):
                 predicted_high_level_labels)
         for hl_label_index, hl_label in tqdm(enumerate(self.classes[0]),
                                              total=len(self.classes[0])):
+            if hl_label == default_label:
+                continue
             self._predict_for_label(
                 hl_label_index, classifier_factory, predicted_high_level_labels,
                 dataset_name, predictions)

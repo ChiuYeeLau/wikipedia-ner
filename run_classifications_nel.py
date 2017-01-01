@@ -7,11 +7,16 @@ python run_classifications_nel.py ../data/legal_sampled/filtered_handcreafter_ma
 from __future__ import absolute_import, print_function, unicode_literals
 
 import argparse
+import os
+
 import jsonlines
 import logging
 import pickle
 
 from collections import defaultdict
+
+import numpy
+import pandas
 
 logging.basicConfig(level=logging.INFO)
 
@@ -46,9 +51,37 @@ def read_arguments():
     parser.add_argument('--entities_filename', type=str, default=None,
                         help='Path of jsonlines file with the entity labels. '
                              'Only for heuristic classifier.')
+    parser.add_argument('--evaluate-only', action='store_true',
+                        help='Do not train the classifier, only perform'
+                             'evaluation')
 
 
     return parser.parse_args()
+
+
+def save_evaluation_results(classifier, dirname, classifier_factory):
+    accuracy, precision, recall, fscore, y_true, y_pred = classifier.evaluate(
+        classifier_factory=classifier_factory
+    )
+    evaluation_results = pandas.DataFrame(
+        columns=['accuracy', 'class', 'precision', 'recall', 'fscore'])
+    evaluation_results = evaluation_results.append({'accuracy': accuracy},
+                                                   ignore_index=True)
+    for cls_idx, cls in enumerate(classifier.classes[1]):
+        evaluation_results = evaluation_results.append({
+            'class': cls,
+            'precision': precision[cls_idx],
+            'recall': recall[cls_idx],
+            'fscore': fscore[cls_idx]
+        }, ignore_index=True)
+    evaluation_results.to_csv(os.path.join(dirname, 'evaluation_results.csv'),
+                              index=False)
+
+    predictions = pandas.DataFrame(numpy.vstack([y_true, y_pred]).T,
+                                   columns=['true', 'prediction'])
+    predictions.to_csv(os.path.join(dirname, 'evaluation_predictions.csv'),
+                       index=False)
+
 
 
 def main():
@@ -66,8 +99,7 @@ def main():
 
     if args.classifier == 'mlp':
         factory = double_step_classifier.MLPFactory(
-            results_save_path=args.results_dirname, training_epochs=100,
-            layers=[1000])
+            results_save_path=args.results_dirname, training_epochs=100)
 
     elif args.classifier == 'heuristic':
         # Read the entities
@@ -94,14 +126,11 @@ def main():
         factory = logistic_regression.LRClassifierFactory(
             save_models=True, results_save_path=args.results_dirname)
 
-    classifier.train(classifier_factory=factory)
-    classifier.save_to_file(results_dirname=args.results_dirname)
-    metrics = classifier.evaluate()
-    print('Accuracy {}'.format(metrics[0]))
-    print('Classes {}'.format(classifier.classes[1]))
-    print('Precision {}'.format(metrics[1]))
-    print('Recall {}'.format(metrics[2]))
-    print('F1 Score {}'.format(metrics[3]))
+    if not args.evaluate_only:
+        classifier.train(classifier_factory=factory)
+        classifier.save_to_file(results_dirname=args.results_dirname)
+
+    save_evaluation_results(classifier, args.results_dirname, factory)
 
     if args.classifier == 'mlp':
         classifier.close_open_sessions()

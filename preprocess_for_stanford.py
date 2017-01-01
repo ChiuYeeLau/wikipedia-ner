@@ -24,6 +24,7 @@ import pickle
 import os
 import utils
 
+from tqdm import tqdm
 from wikipedianer.corpus.parser import WikipediaCorpusColumnParser
 from wikipedianer.dataset.preprocess import labels_filterer
 from wikipedianer.dataset.preprocess import StratifiedSplitter
@@ -107,7 +108,7 @@ class DocumentsFilter(object):
         with open(output_filepath, 'w') as output_file:
             parser = WikipediaCorpusColumnParser(file_path=input_filepath,
                                                  keep_originals=True)
-            for document in parser:
+            for document in tqdm(parser):
                 if not document.has_named_entity:
                     continue
                 output_file.write(
@@ -168,7 +169,7 @@ class StanfordPreprocesser(object):
 
         self.indices_filepath = indices_filepath
         if self.indices_filepath:
-            with open(self.indices_filepath) as indices_file:
+            with open(self.indices_filepath, 'rb') as indices_file:
                 (self.train_doc_index, self.test_doc_index,
                     self.validation_doc_index) = pickle.load(indices_file)
         self.mapping = mapping
@@ -181,12 +182,6 @@ class StanfordPreprocesser(object):
             self.split_corpus()
         self.write_splits()
 
-    def add_label(self, document):
-        """Adds the target field from the document to the labels list."""
-        labels_in_document = document.get_unique_properties(self.target_field)
-        assert len(labels_in_document) >= 1
-        self.labels.append(self.process_target(labels_in_document.pop()))
-
     def read_documents(self):
         """Adds all documents and labels to the inputs labels and documents."""
         current_document_index = 0
@@ -194,10 +189,12 @@ class StanfordPreprocesser(object):
             logging.info("Reading file: {}".format(file_path))
             parser = WikipediaCorpusColumnParser(file_path=file_path)
             for document in parser:
-                if document.has_named_entity:
+                labels = document.get_unique_properties(self.target_field)
+                if len(labels) >= 1:
                     self.documents.append(current_document_index)
-                    self.add_label(document)
+                    self.labels.append(self.process_target(labels.pop()))
                 current_document_index += 1
+        self.documents = numpy.array(self.documents)
 
     def process_target(self, target):
         """Returns a processed target for the word."""
@@ -218,35 +215,30 @@ class StanfordPreprocesser(object):
 
     def filter_labels(self):
         """Filter the labels and documents with less than 3 occurrences"""
+        logging.info('Filtering out labels')
         filtered_indices = labels_filterer(self.labels)
         self.labels = numpy.array(self.labels)[filtered_indices]
-        self.documents = [
-            doc_index for index, doc_index in enumerate(self.documents)
-            if index in filtered_indices]
+        self.documents = self.documents[filtered_indices]
 
     def split_corpus(self):
         """Splits dataset into train, test and validation."""
-        logging.info("Splitting dataset.")
+        logging.info("Splitting labels.")
         splitter = StratifiedSplitter(self.labels)
         # This split returns the filtered indexes of self.labels (equivalent to
         # self.documents) corresponding to each split. These are not absolute
         # document indices
+        logging.info('Splitting documents')
         train_index, test_index, validation_index = (
             splitter.get_splitted_dataset_indices(
-                *self.splits, ignore_warnings=True, reduce_by=self.reduce_by))
+                *self.splits, reduce_by=self.reduce_by))
 
         if not len(train_index) or not len(test_index):
             raise ValueError("ERROR not enough instances to split")
-
-        self.train_doc_index = [
-            doc_index for index, doc_index in enumerate(self.documents)
-            if index in train_index]
-        self.test_doc_index = [
-            doc_index for index, doc_index in enumerate(self.documents)
-            if index in test_index]
-        self.validation_doc_index = [
-            doc_index for index, doc_index in enumerate(self.documents)
-            if index in validation_index]
+        if isinstance(self.documents, list):
+            self.documents = numpy.array(self.documents)
+        self.train_doc_index = self.documents[train_index]
+        self.test_doc_index = self.documents[test_index]
+        self.validation_doc_index = self.documents[validation_index]
 
     def write_document(self, document, output_file):
         """Writes the document into the output file with proper format."""
@@ -265,6 +257,7 @@ class StanfordPreprocesser(object):
         """
         if not self.output_dirname:
             return
+        utils.safe_mkdir(self.output_dirname)
         logging.info("Writing {} documents".format(len(self.documents)))
         logging.info("Train dataset size {}".format(len(self.train_doc_index)))
         logging.info("Test dataset size {}".format(len(self.test_doc_index)))
@@ -287,9 +280,9 @@ class StanfordPreprocesser(object):
                 open(test_filename, 'w') as test_f, \
                 open(val_filename, 'w') as val_f:
             for file_path in self.file_paths:
-                logging.info("Reading file: {}".format(file_path))
+                logging.info("Writing file: {}".format(file_path))
                 parser = WikipediaCorpusColumnParser(file_path=file_path)
-                for document in parser:
+                for document in tqdm(parser):
                     if current_document_index in self.train_doc_index:
                         self.write_document(document, train_f)
                     elif current_document_index in self.test_doc_index:
@@ -311,9 +304,12 @@ def main():
                                      DocumentsFilter.OUTPUT_DIRNAME)
     else:
         input_dirname = args.input_dirname
+    with open(args.mapping_file, 'rb') as map_file:
+        mapping = pickle.load(map_file)
     processer = StanfordPreprocesser(input_dirname, args.task_name,
                                      args.output_dirname, args.splits,
-                                     args.indices, args.reduce_by)
+                                     args.indices, args.reduce_by,
+                                     mapping=mapping)
 
     processer.preprocess()
 

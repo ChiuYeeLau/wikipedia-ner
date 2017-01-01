@@ -5,6 +5,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 import os
 import numpy
+import pandas
 import pickle
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
@@ -24,7 +25,8 @@ class LRClassifierFactory(ClassifierFactory):
 
     def get_classifier(self, dataset, experiment_name):
         return LRCLassifier(dataset, save_model=self.save_models,
-                            results_save_path=self.results_save_path)
+                            results_save_path=self.results_save_path,
+                            experiment_name=experiment_name)
 
 
 class LRCLassifier(BaseClassifier):
@@ -48,8 +50,12 @@ class LRCLassifier(BaseClassifier):
         # Get accuracy on test dataset
         accuracy, precision, recall, fscore, y_true, y_pred = self.evaluate(
             'test', return_extras=True)
+        predictions_results = pandas.DataFrame(numpy.vstack([y_true, y_pred]).T,
+                                                    columns=['true', 'prediction'])
+        predictions_results.to_csv(self.get_predictions_filename(), index=False)
         self.add_test_results(accuracy, precision, recall, fscore,
                               self.dataset.classes[1])
+        print(self.test_results)
 
         if self.save_model:
             self.save()
@@ -78,6 +84,11 @@ class LRCLassifier(BaseClassifier):
     def get_save_filename(self):
         return os.path.join(self.results_save_path,
                             '{}_lr.model'.format(self.experiment_name))
+
+    def get_predictions_filename(self):
+        return os.path.join(
+            self.results_save_path,
+            'test_predictions_{}.csv'.format(self.experiment_name))
 
     def save(self):
         with open(self.get_save_filename(), 'wb') as out_file:

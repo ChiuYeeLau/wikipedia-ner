@@ -54,7 +54,8 @@ def read_arguments():
     parser.add_argument('--evaluate-only', action='store_true',
                         help='Do not train the classifier, only perform'
                              'evaluation')
-
+    parser.add_argument('--dropout-ratio', type=float, default=0.0,
+                        help='The dropout ratio for the classifier.')
 
     return parser.parse_args()
 
@@ -97,12 +98,10 @@ def main():
         indices_filepath=args.indices)
     if args.classifier == 'mlp':
         factory = double_step_classifier.MLPFactory(
-            results_save_path=args.results_dirname, training_epochs=100)
-        classifier.train(classifier_factory=factory)
-        classifier.save_to_file(results_dirname=args.results_dirname)
-        classifier.close_open_sessions()
-    elif args.classifier == 'heuristic':
+            results_save_path=args.results_dirname, training_epochs=100,
+            dropout_ratio=args.dropout_ratio)
 
+    elif args.classifier == 'heuristic':
         # Read the entities
         entities_database = defaultdict(set)
         with jsonlines.open(args.entities_filename) as reader:
@@ -142,12 +141,13 @@ def main():
         classifier.train(classifier_factory=factory)
         classifier.save_to_file(results_dirname=args.results_dirname)
 
-    logging.info('Starting evaluation')
-    save_evaluation_results(classifier, args.results_dirname, factory)
-
     if args.classifier == 'mlp':
         classifier.close_open_sessions()
+
+    logging.info('Starting evaluation')
+    save_evaluation_results(classifier, args.results_dirname, factory)
     logging.info('All operations completed')
+
 
 
 if __name__ == '__main__':

@@ -136,11 +136,12 @@ def main():
         classifier.train(classifier_factory=factory)
         classifier.save_to_file(results_dirname=args.results_dirname)
 
-    if args.classifier == 'mlp':
-        classifier.close_open_sessions()
-
+    logging.info('Starting evaluation')
     save_evaluation_results(classifier, args.results_dirname, factory)
 
+    if args.classifier == 'mlp':
+        classifier.close_open_sessions()
+    logging.info('All operations completed')
 
 
 if __name__ == '__main__':

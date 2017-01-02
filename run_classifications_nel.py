@@ -54,7 +54,8 @@ def read_arguments():
     parser.add_argument('--evaluate-only', action='store_true',
                         help='Do not train the classifier, only perform'
                              'evaluation')
-
+    parser.add_argument('--dropout-ratio', type=float, default=0.0,
+                        help='The dropout ratio for the classifier.')
 
     return parser.parse_args()
 
@@ -99,7 +100,8 @@ def main():
 
     if args.classifier == 'mlp':
         factory = double_step_classifier.MLPFactory(
-            results_save_path=args.results_dirname, training_epochs=100)
+            results_save_path=args.results_dirname, training_epochs=100,
+            dropout_ratio=args.dropout_ratio)
 
     elif args.classifier == 'heuristic':
         # Read the entities

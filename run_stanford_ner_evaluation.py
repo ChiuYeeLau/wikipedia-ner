@@ -21,18 +21,18 @@ logging.basicConfig(level=logging.INFO)
 def parse_arguments():
     """Reads arguments from stdin using the argsparse library."""
     parser = argparse.ArgumentParser()
-    parser.add_argument('--classifier_path', '-c', type=unicode,
+    parser.add_argument('--classifier_path', '-c', type=str,
                         help='Name of file with the classifier to apply.')
-    parser.add_argument('--test_filepath', '-t', type=unicode,
+    parser.add_argument('--test_filepath', '-t', type=str,
                         help='Name of file with the test dataset.')
-    parser.add_argument('--output_dirpath', '-o', type=unicode,
+    parser.add_argument('--output_dirpath', '-o', type=str,
                         help='Directory to save the tagged documents.')
     parser.add_argument('--split_size', type=int, default=10**6,
                         help='Maximum size of the test file. If exceeded'
                              'it will be splitted.')
-    parser.add_argument('--stanford_libs_path', type=unicode,
+    parser.add_argument('--stanford_libs_path', type=str,
                         help='Split the test corpus into parts.')
-    parser.add_argument('--task', type=unicode, default='ner',
+    parser.add_argument('--task', type=str, default='ner',
                         help='Name of the task to evaluate.')
     parser.add_argument('--evaluate_only', action='store_true',
                         help='Skip classification step.')
@@ -107,7 +107,7 @@ class StanfordEvaluator(object):
 
         with open(self.input_filepath, 'r') as input_file:
             lines_read = 0
-            for split_number in range(test_size / split_max_size + 1):
+            for split_number in range(int(test_size / split_max_size + 1)):
                 lines_read += self._write_new_file(
                     split_number, input_file, split_max_size)
                 if lines_read >= test_size:

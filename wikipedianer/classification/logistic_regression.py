@@ -55,7 +55,7 @@ class LRCLassifier(BaseClassifier):
         predictions_results.to_csv(self.get_predictions_filename(), index=False)
         self.add_test_results(accuracy, precision, recall, fscore,
                               self.dataset.classes[1])
-        print(self.test_results)
+        self.test_results.to_csv(self.get_results_filename(), index=False)
 
         if self.save_model:
             self.save()
@@ -89,6 +89,11 @@ class LRCLassifier(BaseClassifier):
         return os.path.join(
             self.results_save_path,
             'test_predictions_{}.csv'.format(self.experiment_name))
+
+    def get_results_filename(self):
+        return os.path.join(
+            self.results_save_path,
+            'test_results_{}.csv'.format(self.experiment_name))
 
     def save(self):
         with open(self.get_save_filename(), 'wb') as out_file:

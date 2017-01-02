@@ -245,6 +245,7 @@ class DoubleStepClassifier(object):
             # self.low_level_models[hl_label] = (classifier, session)
 
             self.test_results[hl_label] = classifier.test_results
+            self.test_results[hl_label]['hl_label'] = hl_label
             self.correctly_labeled += (
                 new_dataset.num_examples('test') *
                 classifier.test_results['accuracy'].max())

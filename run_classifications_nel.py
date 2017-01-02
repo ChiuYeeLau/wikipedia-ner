@@ -56,6 +56,10 @@ def read_arguments():
                              'evaluation')
     parser.add_argument('--dropout-ratio', type=float, default=0.0,
                         help='The dropout ratio for the classifier.')
+    parser.add_argument('--num-layers', type=int, default=1,
+                        help='Use a hidden layer in the mlp classifier. Possible'
+                             'values 0 or 1.')
+
 
     return parser.parse_args()
 
@@ -99,7 +103,7 @@ def main():
     if args.classifier == 'mlp':
         factory = double_step_classifier.MLPFactory(
             results_save_path=args.results_dirname, training_epochs=100,
-            dropout_ratio=args.dropout_ratio)
+            dropout_ratio=args.dropout_ratio, num_layers=args.num_layers)
 
     elif args.classifier == 'heuristic':
         # Read the entities

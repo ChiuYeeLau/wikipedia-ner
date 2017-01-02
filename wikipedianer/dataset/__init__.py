@@ -12,7 +12,6 @@ import sys
 from collections import namedtuple
 from scipy.sparse import csr_matrix
 from sklearn.preprocessing import normalize
-from tqdm import tqdm
 from wikipedianer.pipeline.util import CL_ITERATIONS
 
 
@@ -214,5 +213,5 @@ class HandcraftedFeaturesDataset(Dataset):
     def traverse_dataset(self, dataset_name, batch_size):
         dataset, _ = self.datasets[dataset_name]
 
-        for step in tqdm(np.arange(dataset.shape[0], step=batch_size)):
+        for step in np.arange(dataset.shape[0], step=batch_size):
             yield step, dataset[step:min(step+batch_size, dataset.shape[0])].toarray()

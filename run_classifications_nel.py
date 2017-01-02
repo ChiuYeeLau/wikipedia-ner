@@ -77,7 +77,8 @@ def save_evaluation_results(classifier, dirname, classifier_factory):
             'class': cls,
             'precision': precision[cls_idx],
             'recall': recall[cls_idx],
-            'fscore': fscore[cls_idx]
+            'fscore': fscore[cls_idx],
+            'support': (y_true == cls_idx).sum()
         }, ignore_index=True)
     evaluation_results.to_csv(os.path.join(dirname, 'evaluation_results.csv'),
                               index=False)
@@ -102,7 +103,7 @@ def main():
         indices_filepath=args.indices)
     if args.classifier == 'mlp':
         factory = double_step_classifier.MLPFactory(
-            results_save_path=args.results_dirname, training_epochs=100,
+            results_save_path=args.results_dirname, training_epochs=1000,
             dropout_ratio=args.dropout_ratio, num_layers=args.num_layers)
 
     elif args.classifier == 'heuristic':

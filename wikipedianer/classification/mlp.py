@@ -245,6 +245,7 @@ class MultilayerPerceptron(BaseClassifier):
         sess = tf.Session()
         sess.run(tf.initialize_all_variables())
 
+        effective_epochs = 0
         for epoch in np.arange(self.training_epochs):
             batch_dataset, batch_labels = self.dataset.next_batch(self.batch_size, self.cl_iteration)
 
@@ -257,6 +258,7 @@ class MultilayerPerceptron(BaseClassifier):
                 feed_dict[keep_prob] = self.keep_probs_ratios[idx]
 
             _, loss = sess.run([self.train_step, self.loss], feed_dict=feed_dict)
+            effective_epochs += 1
 
             # We record the loss every `loss_report` iterations
             if epoch > 0 and epoch % self.loss_report == 0:
@@ -295,13 +297,15 @@ class MultilayerPerceptron(BaseClassifier):
                             print('Validation accuracy unchanged for a large period', file=sys.stderr, flush=True)
                             break
 
-        print('Finished training', file=sys.stderr, flush=True)
+        print('Finished training wiht {} epochs'.format(effective_epochs),
+              file=sys.stderr, flush=True)
 
         accuracy, precision, recall, fscore, y_true, y_pred = self._evaluate(sess, 'test', True)
         print('Testing accuracy: %.3f' % accuracy, file=sys.stderr, flush=True)
 
         self.add_test_results(accuracy, precision, recall, fscore,
-                              classes=self.dataset.classes[self.cl_iteration])
+                              classes=self.dataset.classes[self.cl_iteration],
+                              y_true=y_true)
 
         self.test_predictions_results = pd.DataFrame(np.vstack([y_true, y_pred]).T,
                                                      columns=self.test_predictions_results.columns)

@@ -27,25 +27,32 @@ class ClassifierFactory(object):
 
 class MLPFactory(ClassifierFactory):
     """"""
-    def __init__(self, results_save_path, training_epochs, dropout_ratio=0.0):
+    def __init__(self, results_save_path, training_epochs, dropout_ratio=0.0,
+                 num_layers=1):
         self.results_save_path = results_save_path
         self.training_epochs = training_epochs
         self.dropout_ratio = dropout_ratio
+        self.num_layers = min(num_layers, 1)
 
     def get_classifier(self, dataset, experiment_name,
                        cl_iteration=1):
         batch_size = min(dataset.num_examples('train'), 2000,
                          dataset.num_examples('validation'),
                          dataset.num_examples('test'))
-        # The hidden layer is twice the size of the number of labels, with 
-        # a maximum of 500 and a minimum of 10.
-        num_labels = dataset.classes[1].shape[0]
-        hidden_layer = min(max(10, 2 * num_labels), 500)
+        if self.num_layers == 1:
+            # The hidden layer is twice the size of the number of labels, with
+            # a maximum of 500 and a minimum of 10.
+            num_labels = dataset.classes[1].shape[0]
+            hidden_layers = [min(max(10, 2 * num_labels), 500)]
+        else:
+            assert self.num_layers == 0
+            hidden_layers = []
+
         loss_report = min(batch_size, 250)
 
         classifier = MultilayerPerceptron(
             dataset, results_save_path=self.results_save_path,
-            experiment_name=experiment_name, layers=[hidden_layer],
+            experiment_name=experiment_name, layers=hidden_layers,
             save_model=True, cl_iteration=cl_iteration,
             batch_size=batch_size, training_epochs=self.training_epochs,
             loss_report=loss_report, dropout_ratios=[self.dropout_ratio])

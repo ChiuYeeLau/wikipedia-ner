@@ -6,7 +6,9 @@ prediction file has a prediction per line. The prediction class has to be an
 integer.
 """
 
+from __future__ import print_function, unicode_literals
 import argparse
+import pandas
 
 from scipy import stats
 
@@ -23,8 +25,7 @@ def read_filename_pairs(paired_filenames):
 def read_prediction(filename):
     """Returns an array-like object with the predictions from the file filename.
     """
-    with open(filename, 'r') as file_:
-        return [int(prediction) for prediction in file_.read().split()]
+    return pandas.read_csv(filename).prediction
 
 
 def significance_values(filename1, filename2):
@@ -33,25 +34,41 @@ def significance_values(filename1, filename2):
     prediction2 = read_prediction(filename2)
 
     if len(prediction1) != len(prediction2):
-        print 'Error: predictions have different sizes.'
+        print('Error: predictions have different sizes.')
         return
 
     return stats.ttest_rel(prediction1, prediction2)
 
 
-def main(paired_filenames):
-    filename_pairs = read_filename_pairs(paired_filenames)
+def main(args):
+    if args.paired_filenames is None:
+        assert args.filename1 is not None and args.filename2 is not None
+        filename_pairs = [(args.filename1, args.filename2)]
+    else:
+        filename_pairs = read_filename_pairs(args.paired_filenames)
     for filename1, filename2 in filename_pairs:
         t_statistic, p_value = significance_values(filename1, filename2)
-        print filename1, 'vs', filename2
-        print 'T Statistic', t_statistic
-        print 'P Value', p_value
+        print('{} vs {}'.format(filename1, filename2))
+        print('T Statistic {}'.format(t_statistic))
+        print('P Value {}'.format(p_value))
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('paired_filenames', type=unicode)
+    parser.add_argument('--paired_filenames', '-f', type=str, default=None,
+                        help='A file with paired names of path to csv '
+                             'prediction files. Each pair will be compared'
+                             'against the other.')
+    parser.add_argument('--filename1', '-1', type=str, default=None,
+                        help='If no paired filename is given, this is the name'
+                             'of the file with csv predictions to compare'
+                             'against filename2.')
+    parser.add_argument('--filename2', '-2', type=str, default=None,
+                        help='If no paired filename is given, this is the name'
+                             'of the file with csv predictions to compare'
+                             'against filename2.'
+                        )
 
     args = parser.parse_args()
 
-    main(args.paired_filenames)
+    main(args)

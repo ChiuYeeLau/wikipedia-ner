@@ -189,8 +189,7 @@ class ClassifierFactoryTest(unittest.TestCase):
     @patch('wikipedianer.classification.double_step_classifier'
            '.MultilayerPerceptron._save_results')
     def test_save_and_load_classifier(self, save_results_mock):
-        factory = MLPFactory(results_save_path=self.OUTPUT_DIR,
-                             training_epochs=10, layers=[10])
+        factory = MLPFactory(results_save_path=self.OUTPUT_DIR)
         model = factory.get_classifier(self.dataset,
                                        experiment_name='experiment')
         session = model.train(save_layers=False, close_session=False)
@@ -207,7 +206,7 @@ class ClassifierFactoryTest(unittest.TestCase):
            '.MultilayerPerceptron._save_results')
     def test_save_and_load_multiple_classifier(self, save_results_mock):
         factory = MLPFactory(results_save_path=self.OUTPUT_DIR,
-                             training_epochs=10, layers=[10])
+                             training_epochs=10)
         model = factory.get_classifier(self.dataset,
                                        experiment_name='experiment1')
         session = model.train(save_layers=False, close_session=False)
@@ -345,8 +344,7 @@ class DoubleStepClassifierTest(unittest.TestCase):
         safe_rmdir(self.OUTPUT_DIR)
         safe_mkdir(self.OUTPUT_DIR)
         classifier_factory = MLPFactory(
-            results_save_path=self.OUTPUT_DIR, training_epochs=10,
-            layers=[10])
+            results_save_path=self.OUTPUT_DIR, training_epochs=10)
         self.classifier.train(classifier_factory)
         original_results = self.classifier.evaluate()
         original_test, original_predictions = original_results[-2:]

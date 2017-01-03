@@ -60,10 +60,9 @@ class MultilayerPerceptron(BaseClassifier):
             print('Creating hidden layer %02d: %d -> %d' % (layer_idx, size_prev, size_current), file=sys.stderr, flush=True)
 
             layer_name = 'hidden_layer_%02d' % layer_idx
-
             try:
                 self.keep_probs_ratios.append(1.0 - dropout_ratios.pop(0))
-            except IndexError:
+            except (IndexError, TypeError):
                 self.keep_probs_ratios.append(1.0)
 
             with tf.name_scope(layer_name):

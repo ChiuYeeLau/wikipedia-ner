@@ -24,11 +24,14 @@ class ClassifierFactory(object):
     def get_classifier(self, dataset, experiment_name):
         raise NotImplementedError
 
+    def get_results_filename(self, experiment_name):
+        raise NotImplementedError
+
 
 class MLPFactory(ClassifierFactory):
     """"""
-    def __init__(self, results_save_path, training_epochs, dropout_ratio=0.0,
-                 num_layers=1):
+    def __init__(self, results_save_path, training_epochs=1000,
+                 dropout_ratio=0.0, num_layers=1):
         self.results_save_path = results_save_path
         self.training_epochs = training_epochs
         self.dropout_ratio = dropout_ratio
@@ -57,6 +60,10 @@ class MLPFactory(ClassifierFactory):
             batch_size=batch_size, training_epochs=self.training_epochs,
             loss_report=loss_report, dropout_ratios=[self.dropout_ratio])
         return classifier
+
+    def get_results_filename(self, experiment_name):
+        return os.path.join(self.results_save_path,
+                            'test_results_%s.csv' % experiment_name)
 
 
 class HeuristicClassifierFactory(ClassifierFactory):
@@ -241,39 +248,36 @@ class DoubleStepClassifier(object):
             new_dataset = self.create_train_dataset(hl_label_index)
             if not new_dataset:
                 continue
-            try:
-                classifier = classifier_factory.get_classifier(
-                    new_dataset, experiment_name=hl_label)
-            except Exception as e:
-                logging.error('Classifier {} not created. Error {}'.format(
-                    hl_label, e))
-                continue
 
+            test_results = None
             if self.use_trained:
-                # Check if the classifier can be loaded from file
+                # Read the test results from disk
                 try:
-                    results = classifier.evaluate(
-                        dataset_name='test', return_extras=True, restore=True)
-                    logging.info('Classifier for {} read from file'.format(
-                        hl_label))
-                    accuracy, precision, recall, fscore, y_true, _ = results
-                    classifier.add_test_results(
-                        accuracy, precision, recall, fscore,
-                        classes=self.dataset.classes[1], y_true=y_true)
+                    filename = classifier_factory.get_results_filename(hl_label)
+                    test_results = pandas.read_csv(filename)
+                    logging.info('Reading old results{}'.format(filename))
+                except Exception:
+                    pass
+
+            if test_results is None:
+                try:
+                    classifier = classifier_factory.get_classifier(
+                        new_dataset, experiment_name=hl_label)
                 except Exception as e:
-                    session = classifier.train(save_layers=False)
-            else:
+                    logging.error('Classifier {} not created. Error {}'.format(
+                        hl_label, e))
+                    continue
                 logging.info('Training classifier {}'.format(hl_label))
                 session = classifier.train(save_layers=False)
-            # self.low_level_models[hl_label] = (classifier, session)
+                test_results = classifier.test_results
+                # self.low_level_models[hl_label] = (classifier, session)
 
-            self.test_results[hl_label] = classifier.test_results
+            self.test_results[hl_label] = test_results
             self.test_results[hl_label]['hl_label'] = hl_label
             self.correctly_labeled += (
                 new_dataset.num_examples('test') *
-                classifier.test_results['accuracy'].max())
+                test_results['accuracy'].max())
             self.total_test_size += new_dataset.num_examples('test')
-            del classifier
 
     def _dataset_from_predictions(self, dataset_name, target_label_index,
                                   predicted_high_level_labels, new_labels):
@@ -318,9 +322,9 @@ class DoubleStepClassifier(object):
                 return
             try:
                 model = classifier_factory.get_classifier(new_dataset, hl_label)
-            except Exception as e:                                               
-                logging.error('Classifier {} not created. Error {}'.format(      
-                    hl_label, e))                                                
+            except Exception as e:
+                logging.error('Classifier {} not created. Error {}'.format(
+                    hl_label, e))
                 return
             load_model = True
             self.low_level_models[hl_label] = (model, None)

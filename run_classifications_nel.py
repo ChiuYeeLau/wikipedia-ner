@@ -54,6 +54,9 @@ def read_arguments():
     parser.add_argument('--evaluate-only', action='store_true',
                         help='Do not train the classifier, only perform'
                              'evaluation')
+    parser.add_argument('--use-trained', action='store_true',
+                        help='Check if classifier is already stored to avoid'
+                             'training.')
     parser.add_argument('--dropout-ratio', type=float, default=0.0,
                         help='The dropout ratio for the classifier.')
     parser.add_argument('--num-layers', type=int, default=1,
@@ -94,7 +97,7 @@ def main():
     """Main function of script."""
     args = read_arguments()
     classifier = double_step_classifier.DoubleStepClassifier(
-        dataset_class=HandcraftedFeaturesDataset)
+        dataset_class=HandcraftedFeaturesDataset, use_trained=args.use_trained)
 
     classifier.load_from_files(
         dataset_filepath=args.input_matrix_file,

@@ -81,7 +81,7 @@ class DoubleStepClassifier(object):
         -- The high level classifier already trained.
         -- The class of the low level classifier.
     """
-    def __init__(self, dataset_class=None):
+    def __init__(self, dataset_class=None, use_trained=False):
         """
         :param models_dirpath: string. The name of the directory where to store
             the trained models.
@@ -91,6 +91,7 @@ class DoubleStepClassifier(object):
         :param dataset_class: a subclass of dataset.Dataset
         """
         self.dataset = None
+        self.use_trained = use_trained
 
         self.hl_labels_name = None
         self.ll_labels_name = None
@@ -248,7 +249,22 @@ class DoubleStepClassifier(object):
                     hl_label, e))
                 continue
 
-            session = classifier.train(save_layers=False)
+            if self.use_trained:
+                # Check if the classifier can be loaded from file
+                try:
+                    results = classifier.evaluate(
+                        dataset_name='test', return_extras=True, restore=True)
+                    logging.info('Classifier for {} read from file'.format(
+                        hl_label))
+                    accuracy, precision, recall, fscore, y_true, _ = results
+                    classifier.add_test_results(
+                        accuracy, precision, recall, fscore,
+                        classes=self.dataset.classes[1], y_true=y_true)
+                except Exception as e:
+                    session = classifier.train(save_layers=False)
+            else:
+                logging.info('Training classifier {}'.format(hl_label))
+                session = classifier.train(save_layers=False)
             # self.low_level_models[hl_label] = (classifier, session)
 
             self.test_results[hl_label] = classifier.test_results
@@ -257,6 +273,7 @@ class DoubleStepClassifier(object):
                 new_dataset.num_examples('test') *
                 classifier.test_results['accuracy'].max())
             self.total_test_size += new_dataset.num_examples('test')
+            del classifier
 
     def _dataset_from_predictions(self, dataset_name, target_label_index,
                                   predicted_high_level_labels, new_labels):

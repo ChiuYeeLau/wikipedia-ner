@@ -24,7 +24,7 @@ def main():
                       'true and prediction.')
         return
     elements, counts = numpy.unique(test_dataset.true, return_counts=True)
-    counts = counts / test_dataset.true.shape[0]
+    counts = (counts / test_dataset.true.shape[0]).astype(numpy.float64)
     random_predictions = numpy.random.choice(
         elements, size=test_dataset.true.shape, p=counts)
 

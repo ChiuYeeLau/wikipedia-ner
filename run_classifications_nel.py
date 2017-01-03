@@ -32,7 +32,7 @@ def read_arguments():
     parser.add_argument('input_matrix_file', type=str,
                         help='Path of file with the numpy matrix used for'
                              'training')
-    parser.add_argument('--labels_filepath', '-hl,', type=str,
+    parser.add_argument('--labels_filepath', '-l,', type=str,
                         help='Path of file with the pickled labels to use')
     parser.add_argument('--high_level_model', type=str, default=None,
                         help='Path of file with the tensorflow model trained'
@@ -60,8 +60,10 @@ def read_arguments():
     parser.add_argument('--dropout-ratio', type=float, default=0.0,
                         help='The dropout ratio for the classifier.')
     parser.add_argument('--num-layers', type=int, default=1,
-                        help='Use a hidden layer in the mlp classifier. Possible'
-                             'values 0 or 1.')
+                        help='Use a hidden layer in the mlp classifier.'
+                             'Possible values 0 or 1.')
+    parser.add_argument('--training-epochs', type=int, default=1000,
+                        help='Number of epochs to train the mlp classifier')
 
 
     return parser.parse_args()
@@ -108,7 +110,8 @@ def main():
 
     if args.classifier == 'mlp':
         factory = double_step_classifier.MLPFactory(
-            results_save_path=args.results_dirname, training_epochs=1000,
+            results_save_path=args.results_dirname,
+            training_epochs=args.training_epochs,
             dropout_ratio=args.dropout_ratio, num_layers=args.num_layers)
 
     elif args.classifier == 'heuristic':

@@ -25,7 +25,8 @@ class ClassifierFactory(object):
         raise NotImplementedError
 
     def get_results_filename(self, experiment_name):
-        raise NotImplementedError
+        return os.path.join(self.results_save_path,
+                            'test_results_%s.csv' % experiment_name)
 
 
 class MLPFactory(ClassifierFactory):
@@ -60,10 +61,6 @@ class MLPFactory(ClassifierFactory):
             batch_size=batch_size, training_epochs=self.training_epochs,
             loss_report=loss_report, dropout_ratios=[self.dropout_ratio])
         return classifier
-
-    def get_results_filename(self, experiment_name):
-        return os.path.join(self.results_save_path,
-                            'test_results_%s.csv' % experiment_name)
 
 
 class HeuristicClassifierFactory(ClassifierFactory):

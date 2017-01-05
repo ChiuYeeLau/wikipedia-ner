@@ -92,7 +92,7 @@ class HeuristicClassifier(BaseClassifier):
     def evaluate(self, *args, **kwargs):
         if len(self.token_to_label_map) == 0:
             self.train()
-
+        logging.info('Obtaining predictions')
         y_pred = self.predict(self.dataset.datasets['test'].data)
         y_true = self.dataset.dataset_labels('test', 1)
         assert y_pred.shape[0] == y_true.shape[0]
@@ -130,8 +130,8 @@ class HeuristicClassifier(BaseClassifier):
         logging.info('Average labels per token: {}'.format(
             numpy.mean([len(x) for x in self.token_to_label_map.values()])))
 
-        accuracy, precision, recall, fscore, y_true, y_pred = self.evaluate()
+        # accuracy, precision, recall, fscore, y_true, y_pred = self.evaluate()
 
-        self.add_test_results(accuracy, precision, recall, fscore,
-                              classes=self.dataset.classes[1], y_true=y_true)
+        # self.add_test_results(accuracy, precision, recall, fscore,
+          #                     classes=self.dataset.classes[1], y_true=y_true)
 

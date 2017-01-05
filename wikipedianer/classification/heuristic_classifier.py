@@ -1,10 +1,12 @@
 """Heuristic classifier for Named Entity Linking using partial matches"""
 import logging
+import multiprocessing
 import numpy
 import pickle
 import random
 
 from collections import defaultdict
+from joblib import Parallel, delayed
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 from .base import BaseClassifier
 from .double_step_classifier import ClassifierFactory
@@ -31,6 +33,27 @@ class HeuristicClassifierFactory(ClassifierFactory):
         assert self.total_features == dataset.datasets['train'].data.shape[1]
         return HeuristicClassifier(dataset, self.token_features,
                                    self.prev_features, self.next_features)
+
+
+
+def predict_instance(classifier, instance):
+    token_index = classifier.get_token_index(instance, classifier.token_features)
+    possible_labels = classifier.token_to_label_map.get(token_index, [])
+    if len(possible_labels) is 0:
+        return random.randrange(
+            0, classifier.dataset.classes[1].shape[0])
+    prev_index = classifier.get_token_index(instance, classifier.prev_features)
+    next_index = classifier.get_token_index(instance, classifier.next_features)
+    max_score = 0
+    selected_label = None
+    for label in possible_labels:
+        ngrams = classifier.get_ngram_set(token_index, prev_index, next_index)
+        for possible_ngrams in classifier.n_gram_map.get(label, []):
+            label_score = len(ngrams.intersection(possible_ngrams))
+            if max_score < label_score:
+                max_score = label_score
+                selected_label = label
+    return selected_label
 
 
 class HeuristicClassifier(BaseClassifier):
@@ -65,29 +88,11 @@ class HeuristicClassifier(BaseClassifier):
         return feature_index[0]
 
     def predict(self, x_matrix):
-        predictions = []
-        random_predictions = 0
-        for instance in x_matrix:
-            token_index = self.get_token_index(instance, self.token_features)
-            possible_labels = self.token_to_label_map.get(token_index, [])
-            if len(possible_labels) is 0:
-                predictions.append(random.randrange(
-                    0, self.dataset.classes[1].shape[0]))
-                random_predictions += 1
-                continue
-            prev_index = self.get_token_index(instance, self.prev_features)
-            next_index = self.get_token_index(instance, self.next_features)
-            max_score = 0
-            selected_label = None
-            for label in possible_labels:
-                ngrams = self.get_ngram_set(token_index, prev_index, next_index)
-                for possible_ngrams in self.n_gram_map.get(label, []):
-                    label_score = len(ngrams.intersection(possible_ngrams))
-                    if max_score < label_score:
-                        max_score = label_score
-                        selected_label = label
-            predictions.append(selected_label)
-        return numpy.array(predictions)
+        num_cores = multiprocessing.cpu_count()
+        logging.info('Paralelizing over {} cores'.format(num_cores))
+        predictions = Parallel(n_jobs=num_cores)(delayed(
+            predict_instance)(self, instance) for instance in x_matrix)
+        return numpy.array(predictions).astype(numpy.int32)
 
     def evaluate(self, *args, **kwargs):
         if len(self.token_to_label_map) == 0:
@@ -105,7 +110,8 @@ class HeuristicClassifier(BaseClassifier):
         fscore = f1_score(y_true, y_pred, labels=labels, average=None)
         return accuracy, precision, recall, fscore, y_true, y_pred
 
-    def get_ngram_set(self, token, prev, next_):
+    @staticmethod
+    def get_ngram_set(token, prev, next_):
         return set([(token, ), (prev, token), (token, next_),
                     (prev, token, next_)])
 

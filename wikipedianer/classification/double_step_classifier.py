@@ -14,7 +14,6 @@ from sklearn.metrics import precision_score
 from sklearn.metrics import recall_score
 from tqdm import tqdm
 from .mlp import MultilayerPerceptron
-from .heuristic_classifier import HeuristicClassifier
 
 logging.basicConfig(level=logging.INFO)
 
@@ -62,14 +61,6 @@ class MLPFactory(ClassifierFactory):
             loss_report=loss_report, dropout_ratios=[self.dropout_ratio])
         return classifier
 
-
-class HeuristicClassifierFactory(ClassifierFactory):
-    def __init__(self, entities, features):
-        self.entities = entities
-        self.features = features
-
-    def get_classifier(self, dataset, experiment_name):
-        return HeuristicClassifier(dataset, self.entities, self.features)
 
 
 class DoubleStepClassifier(object):

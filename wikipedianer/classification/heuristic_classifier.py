@@ -34,7 +34,10 @@ class HeuristicClassifierFactory(ClassifierFactory):
         return HeuristicClassifier(dataset, self.token_features,
                                    self.prev_features, self.next_features)
 
+def get_ngram_set(token, prev, next_):
+    return set([(token, ), (prev, token), (token, next_), (prev, token, next_)])
 
+MAX_POSSIBLE_SCORE = len(get_ngram_set(None, None, None))
 
 def predict_instance(classifier, instance):
     token_index = classifier.get_token_index(instance, classifier.token_features)
@@ -47,12 +50,14 @@ def predict_instance(classifier, instance):
     max_score = 0
     selected_label = None
     for label in possible_labels:
-        ngrams = classifier.get_ngram_set(token_index, prev_index, next_index)
+        ngrams = get_ngram_set(token_index, prev_index, next_index)
         label_score = len(ngrams.intersection(classifier.n_gram_map.get(
             label, set())))
         if max_score < label_score:
             max_score = label_score
             selected_label = label
+        if max_score == MAX_POSSIBLE_SCORE:
+            break
     return selected_label
 
 
@@ -72,7 +77,7 @@ class HeuristicClassifier(BaseClassifier):
         self.dataset = dataset
         # A map from each token index in the training dataset to the
         # list of labels it has been tagged with.
-        self.token_to_label_map = defaultdict(list)
+        self.token_to_label_map = defaultdict(set)
         # A map from each label to a set of unigrams, bigrams and trigrams
         # (ordered) extracted from the label mentions in the train dataset.
         self.n_gram_map = defaultdict(set)
@@ -110,11 +115,6 @@ class HeuristicClassifier(BaseClassifier):
         fscore = f1_score(y_true, y_pred, labels=labels, average=None)
         return accuracy, precision, recall, fscore, y_true, y_pred
 
-    @staticmethod
-    def get_ngram_set(token, prev, next_):
-        return set([(token, ), (prev, token), (token, next_),
-                    (prev, token, next_)])
-
     def train(self, save_layers=False):
         # Count all instances
         no_token_instances = 0
@@ -127,8 +127,8 @@ class HeuristicClassifier(BaseClassifier):
             next_index = self.get_token_index(instance, self.next_features)
 
             label = self.dataset.datasets['train'].labels[index][1]
-            self.token_to_label_map[token_index].append(label)
-            self.n_gram_map[label].update(self.get_ngram_set(
+            self.token_to_label_map[token_index].add(label)
+            self.n_gram_map[label].update(get_ngram_set(
                 token_index, prev_index, next_index))
         logging.info('Training completed.')
         logging.info('No token instances: {0:.2f}'.format(

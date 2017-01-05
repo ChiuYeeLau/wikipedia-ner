@@ -21,6 +21,7 @@ import pandas
 logging.basicConfig(level=logging.INFO)
 
 from wikipedianer.classification import double_step_classifier
+from wikipedianer.classification import heuristic_classifier
 from wikipedianer.classification import logistic_regression
 from wikipedianer.classification import random_classifier
 from wikipedianer.dataset import HandcraftedFeaturesDataset
@@ -49,9 +50,6 @@ def read_arguments():
     parser.add_argument('--features_filename', type=str, default=None,
                         help='Path of file with the filtered features. Only '
                              'for heuristic classifier.')
-    parser.add_argument('--entities_filename', type=str, default=None,
-                        help='Path of jsonlines file with the entity labels. '
-                             'Only for heuristic classifier.')
     parser.add_argument('--evaluate-only', action='store_true',
                         help='Do not train the classifier, only perform'
                              'evaluation')
@@ -114,37 +112,8 @@ def main():
             dropout_ratio=args.dropout_ratio, num_layers=args.num_layers)
 
     elif args.classifier == 'heuristic':
-        # Read the entities
-        entities_database = defaultdict(set)
-        with jsonlines.open(args.entities_filename) as reader:
-            for entity in reader:
-                uri = entity['uri']
-                labels = entity['labels']
-                for label in labels:
-                    for word in label.split():
-                        entities_database[word].add(uri)
-
-        # Read the features
-        with open(args.features_filename, 'rb') as feature_file:
-            features = pickle.load(feature_file)
-            # Get indices for each current token
-        token_features = {
-            index: x.split('token:current=')[1]
-            for index, x in enumerate(features)
-            if x.startswith('token:current')}
-        factory = double_step_classifier.HeuristicClassifierFactory(
-            entities_database, token_features)
-        classifier.train(classifier_factory=factory)
-        classifier.save_to_file(results_dirname=args.results_dirname)
-        metrics = classifier.evaluate()
-
-        print('Accuracy {}'.format(metrics[0]))
-        print('Classes {}'.format(classifier.classes[1]))
-        print('Precision {}'.format(metrics[1]))
-        print('Recall {}'.format(metrics[2]))
-        print('F1 Score {}'.format(metrics[3]))
-        classifier.close_open_sessions()
-
+        factory = heuristic_classifier.HeuristicClassifierFactory(
+            args.features_filename)
     elif args.classifier == 'lr':
         factory = logistic_regression.LRClassifierFactory(
             save_models=True, results_save_path=args.results_dirname)
@@ -161,7 +130,6 @@ def main():
     logging.info('Starting evaluation')
     save_evaluation_results(classifier, args.results_dirname, factory)
     logging.info('All operations completed')
-
 
 
 if __name__ == '__main__':

@@ -48,11 +48,11 @@ def predict_instance(classifier, instance):
     selected_label = None
     for label in possible_labels:
         ngrams = classifier.get_ngram_set(token_index, prev_index, next_index)
-        for possible_ngrams in classifier.n_gram_map.get(label, []):
-            label_score = len(ngrams.intersection(possible_ngrams))
-            if max_score < label_score:
-                max_score = label_score
-                selected_label = label
+        label_score = len(ngrams.intersection(classifier.n_gram_map.get(
+            label, set())))
+        if max_score < label_score:
+            max_score = label_score
+            selected_label = label
     return selected_label
 
 
@@ -75,7 +75,7 @@ class HeuristicClassifier(BaseClassifier):
         self.token_to_label_map = defaultdict(list)
         # A map from each label to a set of unigrams, bigrams and trigrams
         # (ordered) extracted from the label mentions in the train dataset.
-        self.n_gram_map = defaultdict(list)
+        self.n_gram_map = defaultdict(set)
 
         self.token_features = token_features
         self.next_features = next_features
@@ -128,7 +128,7 @@ class HeuristicClassifier(BaseClassifier):
 
             label = self.dataset.datasets['train'].labels[index][1]
             self.token_to_label_map[token_index].append(label)
-            self.n_gram_map[label].append(self.get_ngram_set(
+            self.n_gram_map[label].update(self.get_ngram_set(
                 token_index, prev_index, next_index))
         logging.info('Training completed.')
         logging.info('No token instances: {0:.2f}'.format(
@@ -139,5 +139,5 @@ class HeuristicClassifier(BaseClassifier):
         # accuracy, precision, recall, fscore, y_true, y_pred = self.evaluate()
 
         # self.add_test_results(accuracy, precision, recall, fscore,
-          #                     classes=self.dataset.classes[1], y_true=y_true)
+        #                     classes=self.dataset.classes[1], y_true=y_true)
 

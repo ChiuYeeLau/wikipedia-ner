@@ -60,18 +60,26 @@ class NNeighborsClassifier(BaseClassifier):
         self.experiment_name = experiment_name
         self.trained = False
 
-    def predict(self, x_matrix):
-        return self.classifier.predict(x_matrix[:, self.valid_features])
+    def predict(self, dataset_name):
+        x_matrix = self.dataset.datasets[dataset_name].data[
+                   :, self.valid_features]
+        y_pred = numpy.zeros(self.dataset.num_examples(dataset_name),
+                             dtype=numpy.int32)
+        batch_size = min(self.dataset.num_examples(dataset_name), 2000)
+
+        for step, dataset_chunk in self.dataset.traverse_dataset(
+                dataset_name, batch_size):
+            end = min(step + batch_size,
+                      self.dataset.num_examples(dataset_name))
+            y_pred[step:end] = self.classifier.predict(x_matrix[step:end])
+        return y_pred
 
     def evaluate(self, dataset_name='test', restore=False, *args, **kwargs):
         if restore and not self.trained:
             self.read()
         logging.info('Obtaining predictions')
-        y_pred = self.predict(self.dataset.datasets[dataset_name].data)
+        y_pred = self.predict(dataset_name)
         y_true = self.dataset.dataset_labels(dataset_name, 1)
-        predictions = pandas.DataFrame(numpy.vstack([y_true, y_pred]).T,
-                                       columns=['true', 'prediction'])
-        predictions.to_csv(self.get_predictions_filename(), index=False)
         assert y_pred.shape[0] == y_true.shape[0]
         return self.get_metrics(y_true, y_pred, return_extras=True)
 
@@ -88,15 +96,11 @@ class NNeighborsClassifier(BaseClassifier):
         self.add_test_results(accuracy, precision, recall, fscore,
                               classes=self.dataset.classes[1], y_true=y_true)
         self.save()
+        self.test_results.to_csv(self.get_results_filename(), index=False)
 
     def get_save_filename(self):
         return os.path.join(self.results_save_path,
                             '{}_knn.model'.format(self.experiment_name))
-
-    def get_predictions_filename(self):
-        return os.path.join(
-            self.results_save_path,
-            'test_predictions_{}.csv'.format(self.experiment_name))
 
     def get_results_filename(self):
         return os.path.join(
@@ -104,6 +108,7 @@ class NNeighborsClassifier(BaseClassifier):
             'test_results_{}.csv'.format(self.experiment_name))
 
     def save(self):
+        logging.info('Saving model to file')
         with open(self.get_save_filename(), 'wb') as out_file:
             pickle.dump(self.classifier, out_file)
 

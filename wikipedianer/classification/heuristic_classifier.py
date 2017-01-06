@@ -7,7 +7,8 @@ import random
 
 from collections import defaultdict
 from joblib import Parallel, delayed
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+from sklearn.metrics import (accuracy_score, precision_score, recall_score,
+                             f1_score)
 from .base import BaseClassifier
 from .double_step_classifier import ClassifierFactory
 

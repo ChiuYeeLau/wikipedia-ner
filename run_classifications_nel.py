@@ -24,6 +24,7 @@ from wikipedianer.classification import double_step_classifier
 from wikipedianer.classification import heuristic_classifier
 from wikipedianer.classification import logistic_regression
 from wikipedianer.classification import random_classifier
+from wikipedianer.classification import nn_classifier
 from wikipedianer.dataset import HandcraftedFeaturesDataset
 
 
@@ -121,6 +122,9 @@ def main():
             save_models=True, results_save_path=args.results_dirname)
     elif args.classifier == 'random':
         factory = random_classifier.RandomClassifierFactory()
+    elif args.classifier == 'knn':
+        factory = nn_classifier.NNeighborsClassifierFactory(
+            args.features_filename, args.results_dirname)
 
     if not args.evaluate_only:
         classifier.train(classifier_factory=factory)

@@ -45,13 +45,13 @@ class LRCLassifier(BaseClassifier):
         # Train
         self.model.fit(
             self.dataset.datasets['train'].data,
-            self.dataset.datasets['train'].labels[:,self.cl_iteration])
+            self.dataset.datasets['train'].labels[:, self.cl_iteration])
 
         # Get accuracy on test dataset
         accuracy, precision, recall, fscore, y_true, y_pred = self.evaluate(
             'test', return_extras=True)
         predictions_results = pandas.DataFrame(numpy.vstack([y_true, y_pred]).T,
-                                                    columns=['true', 'prediction'])
+                                               columns=['true', 'prediction'])
         predictions_results.to_csv(self.get_predictions_filename(), index=False)
         self.add_test_results(accuracy, precision, recall, fscore,
                               self.dataset.classes[1])

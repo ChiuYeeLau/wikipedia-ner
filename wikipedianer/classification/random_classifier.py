@@ -40,7 +40,7 @@ class RandomClassifier(BaseClassifier):
         self.add_test_results(accuracy, precision, recall, fscore,
                               self.dataset.classes[1])
 
-    def evaluate(self, dataset_name='test', return_extras=False, *args,
+    def evaluate(self, dataset_name='test', return_extras=True, *args,
                  **kwargs):
         y_true = self.dataset.datasets[dataset_name].labels[:,self.cl_iteration]
         if self.unique_elements is None or self.probabilities is None:
@@ -49,17 +49,4 @@ class RandomClassifier(BaseClassifier):
             self.unique_elements, size=self.dataset.num_examples(dataset_name),
             p=self.probabilities)
 
-        accuracy = metrics.accuracy_score(y_true, y_pred.astype(y_true.dtype))
-        if not return_extras:
-            return accuracy
-        else:
-            labels = numpy.arange(
-                self.dataset.output_size(self.cl_iteration))
-            precision = metrics.precision_score(y_true, y_pred, labels=labels,
-                                                average=None)
-            recall = metrics.recall_score(y_true, y_pred, labels=labels,
-                                          average=None)
-            fscore = metrics.f1_score(y_true, y_pred, labels=labels,
-                                      average=None)
-
-            return accuracy, precision, recall, fscore, y_true, y_pred
+        return self.get_metrics(y_true, y_pred, return_extras=return_extras)

@@ -193,19 +193,7 @@ class MultilayerPerceptron(BaseClassifier):
                 self.predict(sess, dataset_chunk)
 
         y_true = self.dataset.dataset_labels(dataset_name, self.cl_iteration)
-        accuracy = accuracy_score(y_true, y_pred.astype(y_true.dtype))
-
-        if not return_extras:
-            return accuracy
-        else:
-            precision = precision_score(y_true, y_pred, labels=np.arange(self.dataset.output_size(self.cl_iteration)),
-                                        average=None)
-            recall = recall_score(y_true, y_pred, labels=np.arange(self.dataset.output_size(self.cl_iteration)),
-                                  average=None)
-            fscore = f1_score(y_true, y_pred, labels=np.arange(self.dataset.output_size(self.cl_iteration)),
-                              average=None)
-
-            return accuracy, precision, recall, fscore, y_true, y_pred
+        return self.get_metrics(y_true, y_pred, return_extras=return_extras)
 
     def _save_results(self, save_layers):
         # Train loss

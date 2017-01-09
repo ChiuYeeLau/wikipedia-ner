@@ -8,14 +8,19 @@ import sys
 import tensorflow as tf
 
 from wikipedianer.classification.mlp import MultilayerPerceptron
-from wikipedianer.dataset import HandcraftedFeaturesDataset
+from wikipedianer.dataset import HandcraftedFeaturesDataset, WordVectorsDataset
 from wikipedianer.pipeline.util import CL_ITERATIONS
 
 
 def run_classifier(dataset_path, labels_path, indices_path, results_save_path, pre_trained_weights_save_path,
-                   cl_iterations, layers=list(), dropout_ratios=list(), save_models=list(), completed_iterations=list(),
-                   learning_rate=0.01, epochs=10000, batch_size=2100, loss_report=250, batch_normalization=False):
-    dataset = HandcraftedFeaturesDataset(dataset_path, labels_path, indices_path)
+                   cl_iterations, word_vectors_path=None, layers=list(), dropout_ratios=list(), save_models=list(),
+                   completed_iterations=list(), learning_rate=0.01, epochs=10000, batch_size=2100, loss_report=250,
+                   batch_normalization=False, workers=None, debug_word_vectors=False):
+    if word_vectors_path or debug_word_vectors:
+        dataset = WordVectorsDataset(dataset_path, labels_path, indices_path, word_vectors_path, dtype=np.float32,
+                                     workers=workers, debug=debug_word_vectors)
+    else:
+        dataset = HandcraftedFeaturesDataset(dataset_path, labels_path, indices_path, dtype=np.float32)
 
     experiments_names = []
 

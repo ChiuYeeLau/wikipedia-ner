@@ -4,7 +4,6 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 import gensim
 import itertools
-import multiprocessing
 import numpy as np
 try:
     import cPickle as pickle
@@ -153,10 +152,8 @@ class HandcraftedFeaturesDataset(Dataset):
 class WordVectorsDataset(Dataset):
     debug_size = 50
 
-    def __init__(self, dataset_path, labels_path, indices_path, word_vectors_path, dtype=np.float32,
-                 workers=None, debug=False):
+    def __init__(self, dataset_path, labels_path, indices_path, word_vectors_path, dtype=np.float32, debug=False):
         super(WordVectorsDataset, self).__init__(dataset_path, labels_path, indices_path, dtype)
-        self.workers = workers if workers is not None else multiprocessing.cpu_count()
         self.debug = debug
         self.__load_word_vectors__(word_vectors_path)
 
@@ -228,8 +225,7 @@ class WordVectorsDataset(Dataset):
         return np.concatenate(vector)
 
     def _data_slice_to_vectors(self, data_slice):
-        pool = multiprocessing.Pool(processes=self.workers)
-        return pool.map(self._word_window_to_vector, data_slice)
+        return np.vstack([self._word_window_to_vector(ww) for ww in data_slice])
 
     def next_batch(self, batch_size, cl_iteration):
         start = self._index_in_epoch

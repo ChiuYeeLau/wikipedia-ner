@@ -150,8 +150,6 @@ class HandcraftedFeaturesDataset(Dataset):
 
 
 class WordVectorsDataset(Dataset):
-    debug_size = 50
-
     def __init__(self, dataset_path, labels_path, indices_path, word_vectors_path, dtype=np.float32, debug=False):
         super(WordVectorsDataset, self).__init__(dataset_path, labels_path, indices_path, dtype)
         self.debug = debug
@@ -199,14 +197,11 @@ class WordVectorsDataset(Dataset):
     def __load_word_vectors__(self, word_vectors_path):
         print('Loading word vectors', file=sys.stderr)
         if self.debug:
-            self._word_vector_model = {word[np.random.randint(2)]: np.random.rand(self.debug_size)
-                                       for word in itertools.chain(*self.train_dataset) if word[0] != '<W>'}
-            self._input_size = self.debug_size * len(self.train_dataset[0])
-            self._vector_size = self.debug_size
+            self._word_vector_model = gensim.models.Word2Vec()
         else:
             self._word_vector_model = gensim.models.Word2Vec.load_word2vec_format(word_vectors_path, binary=True)
-            self._input_size = self._word_vector_model.vector_size * len(self.train_dataset[0])
-            self._vector_size = self._word_vector_model.vector_size
+        self._input_size = self._word_vector_model.vector_size * len(self.train_dataset[0])
+        self._vector_size = self._word_vector_model.vector_size
 
     def _one_hot_encoding(self, slice_, cl_iteration):
         return np.eye(self.output_size(cl_iteration), dtype=self.dtype)[slice_.astype(np.int32)]

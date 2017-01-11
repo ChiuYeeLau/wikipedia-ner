@@ -254,15 +254,11 @@ class WordVectorsDataset(Dataset):
         self.classes = tuple([cls[0] for cls in classes])
 
         print('Filtering and splitting dataset', file=sys.stderr, flush=True)
-        filtered_indices = set(indices['filtered_indices'])
-        dataset = [element for idx, element in enumerate(dataset) if idx in filtered_indices]
+        dataset = [dataset[i] for i in indices['filtered_indices']]
 
-        train_indices = set(indices['train_indices'])
-        self.train_dataset = [element for idx, element in enumerate(dataset) if idx in train_indices]
-        test_indices = set(indices['test_indices'])
-        self.test_dataset = [element for idx, element in enumerate(dataset) if idx in test_indices]
-        validation_indices = set(indices['validation_indices'])
-        self.validation_dataset = [element for idx, element in enumerate(dataset) if idx in validation_indices]
+        self.train_dataset = [dataset[i] for i in indices['train_indices']]
+        self.test_dataset = [dataset[i] for i in indices['test_indices']]
+        self.validation_dataset = [dataset[i] for i in indices['validation_indices']]
 
         integer_labels = np.stack([cls[1] for cls in classes]).T
 

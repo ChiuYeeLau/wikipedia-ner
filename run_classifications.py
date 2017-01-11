@@ -3,11 +3,15 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 import argparse
+import numpy as np
 import os
 import sys
 
 from wikipedianer.pipeline.classification import run_classifier
 from wikipedianer.pipeline.util import CL_ITERATIONS
+
+# To avoid error induced by chance
+np.random.seed(0)
 
 
 if __name__ == '__main__':

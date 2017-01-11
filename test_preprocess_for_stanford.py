@@ -19,12 +19,12 @@ from collections import defaultdict
 from preprocess_for_stanford import DocumentsFilter
 from wikipedianer.corpus.parser import WikipediaCorpusColumnParser
 
-TEST_DIRNAME = 'test_files'
+TEST_DIRNAME = 'test_files/stanford_preprocess/'
 OUTPUT_DIRNAME = os.path.join(TEST_DIRNAME, 'generated')
 
-CATEGORY_A = 'wordnet_adjudicator'
-CATEGORY_B = 'wordnet_criminal_record'
-CATEGORY_C = 'wordnet_court'
+CATEGORY_A = 'wordnet_adjudicator_109769636'
+CATEGORY_B = 'wordnet_criminal_record_106490173'
+CATEGORY_C = 'wordnet_court_108329453'
 
 PERSONS = [CATEGORY_A]
 
@@ -69,7 +69,7 @@ class StanfordPreprocessTests(unittest.TestCase):
 
     def test_filter_sentences_no_ner(self):
         """Sentences without a named entity are filtered out."""
-        self.run_script('categories')
+        self.run_script('yago')
         train_documents = self._read_documents('train.conll')
         self.assertEqual(5, len(train_documents))
         for document in train_documents:
@@ -82,7 +82,7 @@ class StanfordPreprocessTests(unittest.TestCase):
 
     def test_category_names(self):
         """Test if the category names are correct."""
-        self.run_script('categories')
+        self.run_script('yago')
         counts = defaultdict(lambda: 0)
         train_documents = self._read_documents('train.conll')
         for document in train_documents:
@@ -98,42 +98,16 @@ class StanfordPreprocessTests(unittest.TestCase):
         self.run_script('ner')
 
         train_documents = self._read_documents('train.conll')
-        self.assertEqual(6, len(train_documents))
-        for document in train_documents:
-            # Only tag I and O
-            self.assertEqual(2, len(set(document.tags)))
-
         test_documents = self._read_documents('test.conll')
-        self.assertEqual(2, len(test_documents))
-        for document in test_documents:
-            self.assertEqual(2, len(set(document.tags)))
+        self.assertEqual(8, len(train_documents) + len(test_documents))
 
-    def test_person_label(self):
-        """Test if the wordnet_categories are correctly assigned as person."""
-        self.run_script('person')
-        counts = defaultdict(lambda: 0)
-        train_documents = self._read_documents('train.conll')
         self.assertEqual(6, len(train_documents))
-
-        for document in train_documents:
-            for category in set(document.tags):
-                counts[category] += 1
-        self.assertIn('person', counts)
-        self.assertEqual(3, counts['person'])
-        self.assertIn('not_person', counts)
-        self.assertEqual(3, counts['not_person'])
-
-        counts = defaultdict(lambda: 0)
-        test_documents = self._read_documents('test.conll')
         self.assertEqual(2, len(test_documents))
+        for document in train_documents:
+            self.assertEqual(3, len(set(document.tags)))
 
         for document in test_documents:
-            for category in set(document.tags):
-                counts[category] += 1
-        self.assertIn('person', counts)
-        self.assertEqual(1, counts['person'])
-        self.assertIn('not_person', counts)
-        self.assertEqual(1, counts['not_person'])
+            self.assertEqual(3, len(set(document.tags)))
 
 
 class DocumentsFilterTests(unittest.TestCase):

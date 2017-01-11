@@ -2,11 +2,11 @@
 
 from __future__ import absolute_import, unicode_literals
 
-import cPickle
 import numpy as np
+import re
 from collections import defaultdict
 from nltk.corpus import stopwords
-from .base import Sentence, Word, WORDNET_CATEGORIES_LEGAL, WORDNET_CATEGORIES_MOVIES, YAGO_RELATIONS_MOVIES
+from .base import Sentence, Word
 
 
 STOPWORDS_SET = set(stopwords.words())
@@ -24,7 +24,7 @@ class InstanceExtractor(object):
         self.disjunctive_right_window = int(kwargs.get('disjunctive_right_window', 0))
         self.tag_sequence_window = int(kwargs.get('tag_sequence_window', 0))
         self.gazetteer = kwargs.get('gazetteer', set())
-        self.sloppy_gazetteer = kwargs.get('sloppy_gazetteer', {})
+        self.sloppy_gazetteer = kwargs.get('sloppy_gazetteer', set())
         self.valid_indices = kwargs.get('valid_indices', set())
 
     def _features_for_word(self, word, sentence, named_entity=None):
@@ -84,6 +84,7 @@ class InstanceExtractor(object):
 
     def get_instances_for_sentence(self, sentence, word_idx):
         """
+        Return an instance and all its labels
         :param sentence: wikipedianer.corpus.base.Sentence
         :param word_idx: int
         """
@@ -94,14 +95,53 @@ class InstanceExtractor(object):
             if unit.name == "Word":
                 if not self.valid_indices or word_idx in self.valid_indices:
                     instances.append(self._features_for_word(unit, sentence))
-                    labels.append(unit.short_label)
+                    labels.append(unit.labels)
                 word_idx += 1
             else:
                 for word in unit:
                     if not self.valid_indices or word_idx in self.valid_indices:
                         instances.append(self._features_for_word(word, sentence, unit))
-                        labels.append(word.short_label)
+                        labels.append(word.labels)
                     word_idx += 1
+
+        return instances, labels, word_idx
+
+
+class WindowWordExtractor(object):
+    _filler_tag = "<W>"
+    _filler_quantity = 2
+
+    def __init__(self, window_size=5, valid_indices=None):
+        self.window_size = window_size
+        self.valid_indices = valid_indices if valid_indices is not None else set()
+
+    def _window_for_word(self, word, sentence):
+        full_word_window = sentence.get_left_window(word.idx, self.window_size) + [word] + \
+                           sentence.get_right_window(word.idx, self.window_size)
+
+        word_window_tokens = [word.tokens for word in full_word_window]
+
+        # Padding the window vector in case the predicate is located near the start or end of the sentence
+        if word.idx - self.window_size < 0:  # Pad to left if the predicate is near to the start
+            for _ in range(abs(word.idx - self.window_size)):
+                word_window_tokens.insert(0, (self._filler_tag,) * self._filler_quantity)
+
+        if word.idx + self.window_size + 1 > len(sentence):
+            # Pad to right if the predicate is near to the end
+            for _ in range(word.idx + self.window_size + 1 - len(sentence)):
+                word_window_tokens.append((self._filler_tag,) * self._filler_quantity)
+
+        return word_window_tokens
+
+    def get_instances_for_sentence(self, sentence, word_idx):
+        instances = []
+        labels = []
+
+        for word in sentence:
+            if not self.valid_indices or word_idx in self.valid_indices:
+                instances.append(self._window_for_word(word, sentence))
+                labels.append(word.labels)
+            word_idx += 1
 
         return instances, labels, word_idx
 
@@ -152,7 +192,7 @@ class WordVectorsExtractor(object):
         for word in sentence:
             if not self.valid_indices or word_idx in self.valid_indices:
                 instances.append(self._vectors_for_word(word, sentence))
-                labels.append(word.short_label)
+                labels.append(word.labels)
             word_idx += 1
 
         return instances, labels, word_idx
@@ -172,39 +212,46 @@ class WikipediaCorpusColumnParser(object):
 
         with open(self.file_path, 'r') as f:
             for line in f:
-                line = line.decode('utf-8').strip()
+                line = line.strip()
 
                 if line == "":
-                    s = Sentence(words[:], has_named_entity)
+                    yield Sentence(words[:], has_named_entity)
                     words = []
                     has_named_entity = False
-                    yield s
                 else:
                     if self.keep_originals:
                         original_line = line
-                    _, token, tag, class_string, head, dep = line.split()
+
+                    try:
+                        _, token, tag, uri_label, yago_labels, lkif_labels, entity_labels = line.split()
+                    except ValueError:
+                        _, token, tag, uri_label, yago_labels, lkif_labels = line.split()
+                        # TODO: Copy lkif labels until final entity labels are ready to go
+                        entity_labels = lkif_labels
 
                     widx = len(words)
-                    is_doc_start = class_string.endswith('-DOC')
+                    is_doc_start = uri_label.endswith('-DOC')
 
-                    if not class_string.strip().startswith('O'):
+                    if not uri_label.strip().startswith('O'):
                         has_named_entity = True
-                        class_string = class_string.split('-DOC', 1)[0]
-                        ner_tag, resources = class_string.split('-', 1)
-                        wiki_uri, yago_uri, categories = resources.split('#', 3)
-                        categories = categories.split('|')
-                        wordnet_categories = [wc.split('-', 1)[0] for wc in categories
-                                              if wc.split('-', 1)[0] in WORDNET_CATEGORIES_MOVIES or
-                                              wc.split('-', 1)[0] in WORDNET_CATEGORIES_LEGAL]
-                        yago_relations = [yr.split('-', 1)[0] for yr in categories
-                                          if yr.split('-', 1)[0] in YAGO_RELATIONS_MOVIES]
+                        uri_label = re.sub(r'-DOC$', '', uri_label)
+                        yago_labels = re.sub(r'-DOC$', '', yago_labels)
+                        lkif_labels = re.sub(r'-DOC$', '', lkif_labels)
+                        entity_labels = re.sub(r'-DOC$', '', entity_labels)
 
-                        words.append(Word(widx, token, tag, dep, head, ner_tag, yago_uri, wiki_uri,
-                                          wordnet_categories, yago_relations, is_doc_start,
-                                          original_string=original_line))
+                        ner_tag, uri_label = uri_label.split('-', 1)
+                        yago_labels = re.sub(r'^[BI]-', '', yago_labels).split('|')
+                        lkif_labels = re.sub(r'^[BI]-', '', lkif_labels).split('|')
+                        entity_labels = re.sub(r'^[BI]-', '', entity_labels).split('|')
+
+                        if yago_labels[0] == '' or lkif_labels[0] == '' or entity_labels[0] == '':
+                            words.append(Word(widx, token, tag, 'O', is_doc_start=is_doc_start,
+                                              original_string=original_line))
+                        else:
+                            words.append(Word(widx, token, tag, ner_tag, uri_label, yago_labels, lkif_labels,
+                                              entity_labels, is_doc_start, original_string=original_line))
                     elif self.remove_stop_words and token in STOPWORDS_SET:
                         continue
                     else:
-                        words.append(Word(widx, token, tag, dep, head, 'O',
-                                          is_doc_start=is_doc_start,
+                        words.append(Word(widx, token, tag, 'O', is_doc_start=is_doc_start,
                                           original_string=original_line))

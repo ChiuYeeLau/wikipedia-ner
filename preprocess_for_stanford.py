@@ -12,18 +12,19 @@ entities, the target will be 'wordnet_categories'. On the other hand,
 only to recognize named entities, the target will be 'ner_tag' or 'is_ner'.
 
 If the target attribute is multiple, them the first target will be selected
+
+IMPORTANT run with python 3 to avoid encoding errors
 """
 
 import argparse
+import logging
+logging.basicConfig(level=logging.INFO)
 import numpy
 import pickle
 import os
 import utils
 
-from contextlib import nested
-from operator import itemgetter
-
-from wikipedianer.corpus.base import Word
+from tqdm import tqdm
 from wikipedianer.corpus.parser import WikipediaCorpusColumnParser
 from wikipedianer.dataset.preprocess import labels_filterer
 from wikipedianer.dataset.preprocess import StratifiedSplitter
@@ -32,78 +33,44 @@ from wikipedianer.dataset.preprocess import StratifiedSplitter
 DEFAULT_TARGET = 'O'
 
 
-def get_person_from_map(uri, mapping):
-    if uri != DEFAULT_TARGET and uri in mapping:
-        maps = mapping[uri]
-        if 'wordnet_person_100007846' in maps:
-            return 'person'
-        return 'not_person'
-    return DEFAULT_TARGET
-
-
-def get_lkif_class(uri, mapping):
-    if uri != DEFAULT_TARGET and uri in mapping:
-        maps = mapping[uri]
-        for lkif_class in utils.LKIF_CLASSES:
-            if lkif_class in maps:
-                return lkif_class
-    return DEFAULT_TARGET
-
-
 # Map of tasks to the name of the field of wikipedianer.corpus.base.Word
-# used to obtain the target. The field function of the map contains a
-# function to apply to the target once is obtained from the Word instance.
+# used to obtain the target.
 TASKS_MAP = {
-    'ner': {
-        'target': 'ner_tag',
-        # Merge tags I and B
-        'funct': lambda tag: 'I' if not tag.startswith('O')
-            else DEFAULT_TARGET
-    },
-    'person': {
-        'target': 'wordnet_categories',
-        'funct': lambda tag: utils.NE_CATEGORY_PERSON_LEGAL_MAP.get(
-            tag, tag)
-    },
-    'categories': {
-        'target': 'wordnet_categories',
-        'funct': lambda tag: utils.NE_CATEGORY_LABEL_LEGAL_MAP.get(
-            tag, tag)
-    },
-    'person_mapped': {
-        'target': 'yago_uri',
-        'funct': get_person_from_map
-    },
-    'lkif_mapped' : {
-        'target': 'yago_uri',
-        'funct': get_lkif_class
-    }
+    'ner': 'ner_tag',
+    'entity': 'entity_labels',
+    'lkif': 'lkif_labels',
+    'entity_mapped': 'yago_labels',
+    'yago': 'yago_labels'
 }
+
+POSSIBLE_PREFIXES = ('B-', 'I-')
 
 
 def read_arguments():
     """Parses the arguments from the stdin and returns an object."""
     parser = argparse.ArgumentParser()
-    parser.add_argument('input_dirname', type=unicode,
+    parser.add_argument('input_dirname', type=str,
                         help='Path of directory with the files to preprocess')
-    parser.add_argument('task_name', type=unicode, default='ner',
+    parser.add_argument('task_name', type=str, default='ner',
                         help='Task to preprocess the dataset for. Valid options'
-                        'are ner, categories or person.')
-    parser.add_argument('--output_dirname', '-o', type=unicode,
+                        'are ner, entity or lkif.')
+    parser.add_argument('--output_dirname', '-o', type=str,
                         help='Name of the directory to save the output file')
     parser.add_argument('--splits', '-s', type=float, nargs=3,
                         help='Proportions of entities to include in training, '
                              'testing and evaluation partitions. For example '
                              '0.70 0.20 0.10')
-    parser.add_argument('--mappings_filepath', '-m', type=unicode,
-                        help='Pickled file with mappings to use to process'
-                             'the labels.')
     parser.add_argument('--use_filtered', '-f', action='store_true',
                         help='Use the filtered versions of the file, located'
                              'in the folder named filtered. If there are not'
                              'present, create them.')
-    parser.add_argument('--indices', type=unicode,
+    parser.add_argument('--indices', type=str,
                         help='File with pickled documents indices to use.')
+    parser.add_argument('--mapping_file', type=str,
+                        help='File with pickled file with the classes mapping.')
+    parser.add_argument('--reduce_by', type=float, default=1.0,
+                        help='Maximum number of documents in each partition of'
+                             'the dataset.')
 
     return parser.parse_args()
 
@@ -141,21 +108,21 @@ class DocumentsFilter(object):
         with open(output_filepath, 'w') as output_file:
             parser = WikipediaCorpusColumnParser(file_path=input_filepath,
                                                  keep_originals=True)
-            for document in parser:
+            for document in tqdm(parser):
                 if not document.has_named_entity:
                     continue
                 output_file.write(
-                    u'\n'.join(document.get_original_strings()).encode("utf-8"))
-                output_file.write(u'\n\n')  # new_document
+                    '\n'.join(document.get_original_strings()))
+                output_file.write('\n\n')  # new_document
 
     def filter_documents(self):
         """Read documents from input_dir, filter and write into a filtered dir.
         """
-        print 'Filtering documents'
+        logging.info('Filtering documents')
         utils.safe_mkdir(self.output_dirpath)
         for input_filepath, output_filepath in zip(
             self.input_filepaths, self.output_filepaths):
-            print 'Reading file: {}'.format(input_filepath)
+            logging.info('Reading file: {}'.format(input_filepath))
             self.write_file(input_filepath, output_filepath)
 
 
@@ -172,19 +139,15 @@ class StanfordPreprocesser(object):
     """
 
     def __init__(self, input_dirname, task_name, output_dirname, splits,
-                 mappings_filepath, indices_filepath):
+                 indices_filepath, reduce_by=-1, mapping=None):
         self.input_dirname = input_dirname
         if not task_name in TASKS_MAP:
             raise ValueError('The name of the task is incorrect.')
         self.task_name = task_name
-        self.target_field = TASKS_MAP[task_name]['target']
+        self.target_field = TASKS_MAP[task_name]
         self.output_dirname = output_dirname
         self.splits = splits if splits else []
-        self.mappings_filepath = mappings_filepath
-        self.mapping = None
-        if self.mappings_filepath and self.task_name.endswith('mapped'):
-            with open(self.mappings_filepath, 'r') as mappings_file:
-                self.mapping = pickle.load(mappings_file)
+        self.reduce_by = reduce_by
 
         # Lists indices of filtered documents and their corresponding labels.
         # If a document has multiple labels, one is selected randomly.
@@ -206,9 +169,10 @@ class StanfordPreprocesser(object):
 
         self.indices_filepath = indices_filepath
         if self.indices_filepath:
-            with open(self.indices_filepath) as indices_file:
+            with open(self.indices_filepath, 'rb') as indices_file:
                 (self.train_doc_index, self.test_doc_index,
                     self.validation_doc_index) = pickle.load(indices_file)
+        self.mapping = mapping
 
     def preprocess(self):
         """Runs all the preprocess tasks."""
@@ -218,78 +182,74 @@ class StanfordPreprocesser(object):
             self.split_corpus()
         self.write_splits()
 
-    def add_label(self, document):
-        """Adds the target field from the document to the labels list."""
-        labels_in_document = document.get_unique_properties(self.target_field)
-        assert len(labels_in_document) >= 1
-        # TODO(mili) do something better
-        self.labels.append(self.process_target(labels_in_document.pop()))
-
     def read_documents(self):
         """Adds all documents and labels to the inputs labels and documents."""
         current_document_index = 0
         for file_path in self.file_paths:
-            print "Reading file: {}".format(file_path)
+            logging.info("Reading file: {}".format(file_path))
             parser = WikipediaCorpusColumnParser(file_path=file_path)
             for document in parser:
-                if document.has_named_entity:
+                labels = document.get_unique_properties(self.target_field)
+                if len(labels) >= 1:
                     self.documents.append(current_document_index)
-                    self.add_label(document)
+                    self.labels.append(self.process_target(labels.pop()))
                 current_document_index += 1
+        self.documents = numpy.array(self.documents)
 
     def process_target(self, target):
         """Returns a processed target for the word."""
+        original_target = target
         if isinstance(target, list):
             target = target[0] if len(target) > 0 else DEFAULT_TARGET
-        if target is None or target == u'':
-            target = DEFAULT_TARGET
-        if self.mapping:
-            target = TASKS_MAP[self.task_name]['funct'](target, self.mapping)
-        else:
-            target = TASKS_MAP[self.task_name]['funct'](target)
-        return target
+        if self.mapping is not None and target != DEFAULT_TARGET:
+            prefix = target[:2]
+            if prefix in POSSIBLE_PREFIXES:
+                target = self.mapping.get(target.replace(prefix, ''))
+            else:
+                target = self.mapping.get(target)
+                prefix = ''
+            if target:
+                return prefix + target
+            logging.warning('Label {} outside mapping'.format(original_target))
+        return target if target and target != '' else DEFAULT_TARGET
 
     def filter_labels(self):
         """Filter the labels and documents with less than 3 occurrences"""
+        logging.info('Filtering out labels')
         filtered_indices = labels_filterer(self.labels)
         self.labels = numpy.array(self.labels)[filtered_indices]
-        self.documents = [
-            doc_index for index, doc_index in enumerate(self.documents)
-            if index in filtered_indices]
+        self.documents = self.documents[filtered_indices]
 
     def split_corpus(self):
         """Splits dataset into train, test and validation."""
-        print "Splitting dataset."
+        logging.info("Splitting labels.")
         splitter = StratifiedSplitter(self.labels)
         # This split returns the filtered indexes of self.labels (equivalent to
         # self.documents) corresponding to each split. These are not absolute
         # document indices
+        logging.info('Splitting documents')
         train_index, test_index, validation_index = (
-            splitter.get_splitted_dataset_indices(*self.splits))
+            splitter.get_splitted_dataset_indices(
+                *self.splits, reduce_by=self.reduce_by))
 
         if not len(train_index) or not len(test_index):
             raise ValueError("ERROR not enough instances to split")
-
-        self.train_doc_index = [
-            doc_index for index, doc_index in enumerate(self.documents)
-            if index in train_index]
-        self.test_doc_index = [
-            doc_index for index, doc_index in enumerate(self.documents)
-            if index in test_index]
-        self.validation_doc_index = [
-            doc_index for index, doc_index in enumerate(self.documents)
-            if index in validation_index]
+        if isinstance(self.documents, list):
+            self.documents = numpy.array(self.documents)
+        self.train_doc_index = self.documents[train_index]
+        self.test_doc_index = self.documents[test_index]
+        self.validation_doc_index = self.documents[validation_index]
 
     def write_document(self, document, output_file):
         """Writes the document into the output file with proper format."""
         for word in document:
             if not hasattr(word, self.target_field):
-                print 'Warning: skipping word {} without target field'.format(
-                    word)
+                logging.warning('Skipping word {} without target field'.format(
+                    word))
                 continue
             target = self.process_target(getattr(word, self.target_field))
             new_line = u'{}\t{}\t{}\n'.format(word.token, word.tag, target)
-            output_file.write(new_line.encode("utf-8"))
+            output_file.write(new_line)
         output_file.write('\n')
 
     def write_splits(self):
@@ -297,29 +257,32 @@ class StanfordPreprocesser(object):
         """
         if not self.output_dirname:
             return
-        print "Writing {} documents".format(len(self.documents))
-        print "Train dataset size {}".format(len(self.train_doc_index))
-        print "Test dataset size {}".format(len(self.test_doc_index))
-        print "Validation dataset size {}".format(len(self.validation_doc_index))
+        utils.safe_mkdir(self.output_dirname)
+        logging.info("Writing {} documents".format(len(self.documents)))
+        logging.info("Train dataset size {}".format(len(self.train_doc_index)))
+        logging.info("Test dataset size {}".format(len(self.test_doc_index)))
+        logging.info("Validation dataset size {}".format(
+            len(self.validation_doc_index)))
         current_document_index = 0
 
         if not self.indices_filepath:
-            print "Saving absolute indices"
+            logging.info("Saving absolute indices")
             indices_filename = os.path.join(self.output_dirname,
                                             'split_indices.pickle')
-            with open(indices_filename, 'w') as indices_file:
+            with open(indices_filename, 'wb') as indices_file:
                 pickle.dump((self.train_doc_index, self.test_doc_index,
                              self.validation_doc_index), indices_file)
 
         train_filename = os.path.join(self.output_dirname, 'train.conll')
         test_filename = os.path.join(self.output_dirname, 'test.conll')
         val_filename = os.path.join(self.output_dirname, 'validation.conll')
-        with nested(open(train_filename, 'w'), open(test_filename, 'w'),
-                    open(val_filename, 'w')) as (train_f, test_f, val_f):
+        with open(train_filename, 'w') as train_f, \
+                open(test_filename, 'w') as test_f, \
+                open(val_filename, 'w') as val_f:
             for file_path in self.file_paths:
-                print "Reading file: {}".format(file_path)
+                logging.info("Writing file: {}".format(file_path))
                 parser = WikipediaCorpusColumnParser(file_path=file_path)
-                for document in parser:
+                for document in tqdm(parser):
                     if current_document_index in self.train_doc_index:
                         self.write_document(document, train_f)
                     elif current_document_index in self.test_doc_index:
@@ -341,9 +304,12 @@ def main():
                                      DocumentsFilter.OUTPUT_DIRNAME)
     else:
         input_dirname = args.input_dirname
+    with open(args.mapping_file, 'rb') as map_file:
+        mapping = pickle.load(map_file)
     processer = StanfordPreprocesser(input_dirname, args.task_name,
                                      args.output_dirname, args.splits,
-                                     args.mappings_filepath, args.indices)
+                                     args.indices, args.reduce_by,
+                                     mapping=mapping)
 
     processer.preprocess()
 

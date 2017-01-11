@@ -4,12 +4,15 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 import argparse
-import cPickle
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 import gensim
 import numpy as np
 import os
 import sys
-from scipy.sparse import csr_matrix, coo_matrix
+from scipy.sparse import coo_matrix
 from tqdm import tqdm
 from wikipedianer.corpus.parser import InstanceExtractor, WordVectorsExtractor
 from wikipedianer.corpus.parser import WikipediaCorpusColumnParser
@@ -33,7 +36,7 @@ def process_sentences(parser, total_sentences, instance_extractor, features):
         assert len(sentence_words) == len(sent_instances)
         sentence_matrix = []
         for instance in sent_instances:
-            for feature, value in instance.iteritems():
+            for feature, value in instance.items():
                 if feature in features:
                     rows.append(row_count)
                     cols.append(features[feature])
@@ -54,16 +57,19 @@ def parse_to_feature_matrix(input_file, output_dir, resources_dir,
 
     with open(os.path.join(resources_dir, "gazetteer.pickle"),
               "rb") as gazetteer_file:
-        gazetteer = cPickle.load(gazetteer_file)
+        gazetteer = pickle.load(gazetteer_file)
 
-    with open(os.path.join(resources_dir, "sloppy_gazetteer.pickle"),
-              "rb") as sloppy_gazetteer_file:
-        sloppy_gazetteer = cPickle.load(sloppy_gazetteer_file)
+    try:
+        with open(os.path.join(resources_dir, "sloppy_gazetteer.pickle"),
+                  "rb") as sloppy_gazetteer_file:
+            sloppy_gazetteer = pickle.load(sloppy_gazetteer_file)
+    except FileNotFoundError:
+        sloppy_gazetteer = set()
 
     with open(os.path.join(resources_dir, "filtered_features_names.pickle"),
               "rb") as features_file:
         features = {feature: idx
-                    for idx, feature in enumerate(cPickle.load(features_file))}
+                    for idx, feature in enumerate(pickle.load(features_file))}
 
     instance_extractor = InstanceExtractor(
         token=True,
@@ -93,7 +99,7 @@ def parse_to_feature_matrix(input_file, output_dir, resources_dir,
 
     with open(os.path.join(output_dir, 'evaluation_words.pickle'),
               'wb') as output_file:
-        cPickle.dump(words, output_file)
+        pickle.dump(words, output_file)
 
 
 def parse_to_word_vectors(input_file, output_dir, wordvectors, window, total_sentences, debug):
@@ -129,20 +135,20 @@ def parse_to_word_vectors(input_file, output_dir, wordvectors, window, total_sen
     np.savez_compressed(os.path.join(output_dir, 'evaluation_dataset_word_vectors.npz'), dataset=dataset_matrix)
 
     with open(os.path.join(output_dir, 'evaluation_words_word_vectors.pickle'), 'wb') as f:
-        cPickle.dump(words, f)
+        pickle.dump(words, f)
 
 
 def parse_arguments():
     """Returns the stdin arguments"""
     arg_parse = argparse.ArgumentParser()
-    arg_parse.add_argument("input_file", type=unicode,
+    arg_parse.add_argument("input_file", type=str,
                            help="Path to the text file (in column format).")
-    arg_parse.add_argument("output_dir", type=unicode,
+    arg_parse.add_argument("output_dir", type=str,
                            help="Path to store the output files")
-    arg_parse.add_argument("--resources", type=unicode, default=None,
+    arg_parse.add_argument("--resources", type=str, default=None,
                            help="Path where the resources for handcrafted "
                                 "features are stored")
-    arg_parse.add_argument("--wordvectors", type=unicode, default=None,
+    arg_parse.add_argument("--wordvectors", type=str, default=None,
                            help="Path to the word vectors file")
     arg_parse.add_argument("--total_sentences", type=int, default=0,
                            help="Number of sentences of the file")

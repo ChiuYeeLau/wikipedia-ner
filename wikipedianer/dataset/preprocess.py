@@ -98,10 +98,9 @@ class StratifiedSplitter(object):
                 train_count * validation_size), np.ones(n_cls)).astype(np.int32)
             train_count -= validation_count
         # Reduce the train size
-        print(train_count)
-        train_count = np.maximum(np.round(train_count * reduce_by),
-                                 np.ones(n_cls)).astype(np.int32)
-        print(train_count)
+        if reduce_by != 1.0:
+            train_count = np.maximum(np.round(train_count * reduce_by),
+                                     np.ones(n_cls)).astype(np.int32)
 
 
         train_indices = []

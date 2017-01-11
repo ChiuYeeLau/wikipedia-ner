@@ -14,7 +14,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('dataset_path',
                         type=str,
-                        help='Path to the dataset matrix file.')
+                        help='Path to the dataset file.')
     parser.add_argument('labels_path',
                         type=str,
                         help='Path to the labels file.')
@@ -24,6 +24,11 @@ if __name__ == '__main__':
     parser.add_argument('results_save_path',
                         type=str,
                         help='Path to the directory to store the results.')
+    parser.add_argument('--word_vectors_path',
+                        type=str,
+                        default=None,
+                        help='Path to word vectors models file. ' +
+                             'If given it assumes the classification uses word vectors.')
     parser.add_argument('--weights_save_path',
                         type=str,
                         default='',
@@ -66,6 +71,8 @@ if __name__ == '__main__':
                         nargs='+')
     parser.add_argument('--batch_normalization',
                         action='store_true')
+    parser.add_argument('--debug_word_vectors',
+                        action='store_true')
 
     args = parser.parse_args()
 
@@ -92,7 +99,8 @@ if __name__ == '__main__':
 
     run_classifier(dataset_path=args.dataset_path, labels_path=args.labels_path, indices_path=args.indices_path,
                    results_save_path=args.results_save_path, pre_trained_weights_save_path=args.weights_save_path,
-                   cl_iterations=cl_iterations, layers=args.layers, dropout_ratios=args.dropout_ratios,
-                   save_models=save_models, completed_iterations=completed_iterations,
-                   learning_rate=args.learning_rate, epochs=args.epochs, batch_size=args.batch_size,
-                   loss_report=args.loss_report, batch_normalization=args.batch_normalization)
+                   cl_iterations=cl_iterations, word_vectors_path=args.word_vectors_path, layers=args.layers,
+                   dropout_ratios=args.dropout_ratios, save_models=save_models,
+                   completed_iterations=completed_iterations, learning_rate=args.learning_rate, epochs=args.epochs,
+                   batch_size=args.batch_size, loss_report=args.loss_report,
+                   batch_normalization=args.batch_normalization, debug_word_vectors=args.debug_word_vectors)

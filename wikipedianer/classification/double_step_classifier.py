@@ -62,7 +62,6 @@ class MLPFactory(ClassifierFactory):
         return classifier
 
 
-
 class DoubleStepClassifier(object):
     """Double step classifier.
     The classification process has two stages:

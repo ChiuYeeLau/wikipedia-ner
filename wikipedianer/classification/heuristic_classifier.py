@@ -35,10 +35,12 @@ class HeuristicClassifierFactory(ClassifierFactory):
         return HeuristicClassifier(dataset, self.token_features,
                                    self.prev_features, self.next_features)
 
+
 def get_ngram_set(token, prev, next_):
     return set([(token, ), (prev, token), (token, next_), (prev, token, next_)])
 
 MAX_POSSIBLE_SCORE = len(get_ngram_set(None, None, None))
+
 
 def predict_instance(classifier, instance):
     token_index = classifier.get_token_index(instance, classifier.token_features)

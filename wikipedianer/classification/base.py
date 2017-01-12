@@ -45,6 +45,7 @@ class BaseClassifier(object):
             return accuracy, precision, recall, fscore, y_true, y_pred
 
     def evaluate(self, dataset_name, *args, **kwargs):
+        """Returns accuracy, precision, recall, fscore, y_true, y_pred"""
         raise NotImplementedError
 
     def train(self, *args, **kwargs):

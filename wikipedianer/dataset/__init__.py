@@ -65,6 +65,11 @@ class Dataset(object):
                            cl_iterations=cl_iterations)
         self._add_datasets()
 
+    def load_for_evaluation(self, dataset, classes):
+        self.classes = classes
+        self.test_dataset = dataset
+        self._add_datasets()
+
     def _add_datasets(self):
         self.datasets = {
             'train': DataTuple(self.train_dataset, self.train_labels),
@@ -231,9 +236,12 @@ class HandcraftedFeaturesDataset(Dataset):
 
 
 class WordVectorsDataset(Dataset):
-    def __init__(self, dataset_path, labels_path, indices_path, word_vectors_path, dtype=np.float32, debug=False):
+    def __init__(self, dataset_path='', labels_path='', indices_path='',
+                 word_vectors_path=None, dtype=np.float32, debug=False):
         super(WordVectorsDataset, self).__init__(dataset_path, labels_path, indices_path, dtype)
         self.debug = debug
+        if word_vectors_path is None:
+            raise ValueError('Must provide a valid word_vectors_path')
         self.__load_word_vectors__(word_vectors_path)
 
     def __load_data__(self, dataset_path, labels_path, indices_path, cl_iterations=enumerate(CL_ITERATIONS)):

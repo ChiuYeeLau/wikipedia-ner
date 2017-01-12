@@ -195,7 +195,8 @@ class MultilayerPerceptron(BaseClassifier):
         y_true = self.dataset.dataset_labels(dataset_name, self.cl_iteration)
         return self.get_metrics(y_true, y_pred, return_extras=return_extras)
 
-    def _save_results(self, save_layers):
+
+    def _save_results(self, save_layers, sess):
         # Train loss
         np.savetxt(os.path.join(self.results_save_path, 'train_loss_record_%s.txt' % self.experiment_name),
                    np.array(self.train_loss_record, dtype=np.float32), fmt='%.3f', delimiter=',')
@@ -222,8 +223,8 @@ class MultilayerPerceptron(BaseClassifier):
 
             for layer_idx, (weights, biases) in enumerate(zip(self.weights, self.biases)):
                 layer_name = 'hidden_layer_%02d' % layer_idx
-                weights_dict[layer_name] = weights.eval()
-                biases_dict[layer_name] = biases.eval()
+                weights_dict[layer_name] = weights.eval(session=sess)
+                biases_dict[layer_name] = biases.eval(session=sess)
 
             np.savez_compressed(file_name_weights, **weights_dict)
             np.savez_compressed(file_name_biases, **biases_dict)
@@ -269,7 +270,6 @@ class MultilayerPerceptron(BaseClassifier):
                         print('Validation accuracy converging: delta_acc %.3f' % delta_acc, file=sys.stderr,
                               flush=True)
                         break
-
                     # If there hasn't been any significant change in the last 5 iterations, stop
                     if len(self.validation_accuracy_record) >= 5 and self.validation_accuracy_record[-1] >= 0.95:
                         change = (max(self.validation_accuracy_record[-5:]) -
@@ -298,7 +298,7 @@ class MultilayerPerceptron(BaseClassifier):
                                                      columns=self.test_predictions_results.columns)
 
         print('Saving results', file=sys.stderr, flush=True)
-        self._save_results(save_layers)
+        self._save_results(save_layers, sess)
 
         self.save_model(sess)
         if close_session:

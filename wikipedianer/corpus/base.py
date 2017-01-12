@@ -191,8 +191,11 @@ class Sentence(object):
         for word in [w for w in self._words if w.is_ner]:
             if word.is_ner_start:
                 named_entities.append([])
-
-            named_entities[-1].append(word)
+            
+            if len(named_entities) == 0:
+                named_entities.append([word])
+            else:
+                named_entities[-1].append(word)
 
         return named_entities
 

@@ -20,8 +20,7 @@ def run_classifier(dataset_path, labels_path, indices_path, results_save_path, p
         dataset = WordVectorsDataset(dataset_path, labels_path, indices_path, word_vectors_path, dtype=np.float32,
                                      debug=debug_word_vectors)
     else:
-        dataset = HandcraftedFeaturesDataset()
-        dataset.load_from_files(dataset_path, labels_path, indices_path, dtype=np.int32)
+        dataset = HandcraftedFeaturesDataset(dataset_path, labels_path, indices_path, dtype=np.float32)
 
     experiments_names = []
 

@@ -71,7 +71,7 @@ def read_arguments():
 
 def save_evaluation_results(classifier, dirname, classifier_factory):
     accuracy, precision, recall, fscore, y_true, y_pred = classifier.evaluate(
-        classifier_factory=classifier_factory
+        classifier_factory=classifier_factory,
     )
     evaluation_results = pandas.DataFrame(
         columns=['accuracy', 'class', 'precision', 'recall', 'fscore'])
@@ -106,6 +106,8 @@ def main():
         labels_filepath=args.labels_filepath,
         labels=((3, 'wordnet'), (4, 'uri')),
         indices_filepath=args.indices)
+    factory = None
+
     if args.classifier == 'mlp':
         factory = double_step_classifier.MLPFactory(
             results_save_path=args.results_dirname,
@@ -124,15 +126,11 @@ def main():
         factory = nn_classifier.NNeighborsClassifierFactory(
             args.features_filename, args.results_dirname)
 
-    if args.classifier == 'mlp':
-        classifier.close_open_sessions()
-
-    if not args.evaluate_only:
-        classifier.train(classifier_factory=factory, save_models=False)
-        classifier.save_to_file(results_dirname=args.results_dirname)
-
     logging.info('Starting evaluation')
     save_evaluation_results(classifier, args.results_dirname, factory)
+
+    if args.classifier == 'mlp':
+        classifier.close_open_sessions()
     logging.info('All operations completed')
 
 

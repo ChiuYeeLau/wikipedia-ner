@@ -14,6 +14,7 @@ import sys
 from collections import namedtuple
 from scipy.sparse import csr_matrix
 from sklearn.preprocessing import normalize
+from tqdm import tqdm
 from wikipedianer.pipeline.util import CL_ITERATIONS
 
 
@@ -21,7 +22,7 @@ DataTuple = namedtuple('DataTuple', ['data', 'labels'])
 
 
 class Dataset(object):
-    def __init__(self, dtype=np.float32):
+    def __init__(self, dataset_path='', labels_path='', indices_path='', dtype=np.float32):
         self.classes = ()
 
         self.train_dataset = np.array([])
@@ -32,11 +33,17 @@ class Dataset(object):
 
         self.validation_dataset = np.array([])
         self.validation_labels = np.array([])
+
         self.dtype = dtype
+
+        self.datasets = {}
+
+        if dataset_path != '' and labels_path != '' and indices_path != '':
+            self.__load_data__(dataset_path, labels_path, indices_path)
+            self._add_datasets()
 
         self._epochs_completed = 0
         self._index_in_epoch = 0
-        self.datasets = {}
 
         self.indices = None
 
@@ -56,7 +63,6 @@ class Dataset(object):
         """
         self.__load_data__(dataset_path, labels_path, indices_path,
                            cl_iterations=cl_iterations)
-
         self._add_datasets()
 
     def _add_datasets(self):
@@ -108,7 +114,7 @@ class Dataset(object):
         self._add_datasets()
 
     def __load_data__(self, dataset_path, labels_path, indices_path,
-                      cl_iterations):
+                      cl_iterations=enumerate(CL_ITERATIONS)):
         raise NotImplementedError
 
     def _one_hot_encoding(self, slice_, cl_iteration):
@@ -157,13 +163,12 @@ class HandcraftedFeaturesDataset(Dataset):
 
         classes = []
 
-        print('Getting classes for each iteration', file=sys.stderr)
+        print('Getting classes for each iteration', file=sys.stderr, flush=True)
         for idx, iteration in cl_iterations:
             replaced_labels = np.array([label[idx] for label in labels])
             classes.append(np.unique(replaced_labels, return_inverse=True))
 
-        print('Normalizing dataset', file=sys.stderr)
-
+        print('Normalizing dataset', file=sys.stderr, flush=True)
         dataset = dataset[indices['filtered_indices']]
         dataset = normalize(dataset.astype(self.dtype), norm='max', axis=0)
 
@@ -231,7 +236,7 @@ class WordVectorsDataset(Dataset):
         self.debug = debug
         self.__load_word_vectors__(word_vectors_path)
 
-    def __load_data__(self, dataset_path, labels_path, indices_path):
+    def __load_data__(self, dataset_path, labels_path, indices_path, cl_iterations=enumerate(CL_ITERATIONS)):
         print('Loading dataset from file %s' % dataset_path, file=sys.stderr, flush=True)
         with open(dataset_path, 'rb') as f:
             dataset = pickle.load(f)
@@ -247,7 +252,7 @@ class WordVectorsDataset(Dataset):
 
         classes = []
         print('Getting classes for each iteration', file=sys.stderr, flush=True)
-        for idx, iteration in enumerate(CL_ITERATIONS):
+        for idx, iteration in cl_iterations:
             replaced_labels = np.array([label[idx] for label in labels])
             classes.append(np.unique(replaced_labels, return_inverse=True))
 

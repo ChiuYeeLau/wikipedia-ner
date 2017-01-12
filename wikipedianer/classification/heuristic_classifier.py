@@ -38,6 +38,7 @@ def get_ngram_set(token, prev, next_):
 
 MAX_POSSIBLE_SCORE = len(get_ngram_set(None, None, None))
 
+
 def predict_instance(classifier, instance):
     token_index = classifier.get_token_index(instance, classifier.token_features)
     possible_labels = classifier.token_to_label_map.get(token_index, [])

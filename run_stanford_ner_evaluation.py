@@ -8,7 +8,6 @@ cut -f 1,3 test.conll > test2.conll
 import csv
 import argparse
 import logging
-
 import shlex
 import subprocess
 import os
@@ -17,7 +16,6 @@ import utils
 from sklearn import metrics
 
 logging.basicConfig(level=logging.INFO)
-
 
 
 def parse_arguments():

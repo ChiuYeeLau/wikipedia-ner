@@ -227,6 +227,7 @@ class StanfordPreprocesser(object):
         # This split returns the filtered indexes of self.labels (equivalent to
         # self.documents) corresponding to each split. These are not absolute
         # document indices
+        logging.info('Splitting documents')
         train_index, test_index, validation_index = (
             splitter.get_splitted_dataset_indices(
                 *self.splits, ignore_warnings=True, reduce_by=self.reduce_by))

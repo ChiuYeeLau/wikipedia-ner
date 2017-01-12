@@ -7,6 +7,7 @@ import numpy
 from sklearn.metrics import (accuracy_score, precision_score, recall_score,
                              f1_score)
 
+
 class BaseClassifier(object):
     def __init__(self):
         self.test_results = pandas.DataFrame(

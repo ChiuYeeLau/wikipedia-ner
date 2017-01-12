@@ -21,7 +21,7 @@ DataTuple = namedtuple('DataTuple', ['data', 'labels'])
 
 
 class Dataset(object):
-    def __init__(self, dataset_path, labels_path, indices_path, dtype=np.float32):
+    def __init__(self, dtype=np.float32):
         self.classes = ()
 
         self.train_dataset = np.array([])
@@ -60,7 +60,7 @@ class Dataset(object):
         self._add_datasets()
 
     def _add_datasets(self):
-        self._datasets = {
+        self.datasets = {
             'train': DataTuple(self.train_dataset, self.train_labels),
             'test': DataTuple(self.test_dataset, self.test_labels),
             'validation': DataTuple(self.validation_dataset,
@@ -115,7 +115,7 @@ class Dataset(object):
         raise NotImplementedError
 
     def num_examples(self, dataset_name='train'):
-        return self._datasets[dataset_name].labels.shape[0]
+        return self.datasets[dataset_name].labels.shape[0]
 
     @property
     def input_size(self):
@@ -325,7 +325,7 @@ class WordVectorsDataset(Dataset):
         return self._vector_size
 
     def traverse_dataset(self, dataset_name, batch_size):
-        dataset, _ = self._datasets[dataset_name]
+        dataset, _ = self.datasets[dataset_name]
 
         for step in tqdm(np.arange(len(dataset), step=batch_size)):
             yield step, self._data_slice_to_vectors(dataset[step:min(step+batch_size, len(dataset))])

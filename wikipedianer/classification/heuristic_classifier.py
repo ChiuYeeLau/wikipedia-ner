@@ -1,12 +1,10 @@
 """Heuristic classifier for Named Entity Linking using partial matches"""
 import logging
-import multiprocessing
 import numpy
 import pickle
 import random
 
 from collections import defaultdict
-from joblib import Parallel, delayed
 from sklearn.metrics import (accuracy_score, precision_score, recall_score,
                              f1_score)
 from .base import BaseClassifier

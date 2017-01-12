@@ -76,7 +76,8 @@ class DoubleStepClassifier(object):
         -- The high level classifier already trained.
         -- The class of the low level classifier.
     """
-    def __init__(self, dataset_class=None, use_trained=False):
+    def __init__(self, dataset_class=None, use_trained=False,
+                 dtype=numpy.int32):
         """
         :param models_dirpath: string. The name of the directory where to store
             the trained models.
@@ -100,6 +101,7 @@ class DoubleStepClassifier(object):
         # The accuracy is the total
         self.correctly_labeled = 0
         self.total_test_size = 0
+        self.dtype = dtype
 
     def load_from_files(self, dataset_filepath, labels_filepath,
                         labels, indices_filepath):
@@ -112,7 +114,7 @@ class DoubleStepClassifier(object):
             class. The index is the position in the labels's tuples in filepath.
         :param indices_filepath:
         """
-        self.dataset = self.dataset_class()
+        self.dataset = self.dataset_class(dtype=self.dtype)
         self.dataset.load_from_files(
             dataset_filepath, labels_filepath, indices_filepath,
             cl_iterations=labels)
@@ -219,7 +221,7 @@ class DoubleStepClassifier(object):
             train_y, test_y, validation_y, indices)
         return new_dataset
 
-    def train(self, classifier_factory):
+    def train(self, classifier_factory, save_models=True):
         """Trains the classifier.
 
         :param low_level_classifier_class: python class. The class to
@@ -256,9 +258,13 @@ class DoubleStepClassifier(object):
                         hl_label, e))
                     continue
                 logging.info('Training classifier {}'.format(hl_label))
-                session = classifier.train(save_layers=False)
+                if save_models:
+                    session = classifier.train(save_layers=False,
+                                               close_session=False)
+                    self.low_level_models[hl_label] = (classifier, session)
+                else:
+                    classifier.train(save_layers=False)
                 test_results = classifier.test_results
-                # self.low_level_models[hl_label] = (classifier, session)
 
             self.test_results[hl_label] = test_results
             self.test_results[hl_label]['hl_label'] = hl_label

@@ -3,6 +3,7 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 import gensim
+import itertools
 import numpy as np
 try:
     import cPickle as pickle
@@ -60,8 +61,8 @@ class Dataset(object):
         :param cl_iterations: a list of tuples with the index and the name of
             the labels to use
         """
-        self.__load_data__(dataset_path, labels_path, indices_path, cl_iterations=cl_iterations)
-
+        self.__load_data__(dataset_path, labels_path, indices_path,
+                           cl_iterations=cl_iterations)
         self._add_datasets()
 
     def _add_datasets(self):
@@ -112,7 +113,8 @@ class Dataset(object):
 
         self._add_datasets()
 
-    def __load_data__(self, dataset_path, labels_path, indices_path, cl_iterations=enumerate(CL_ITERATIONS)):
+    def __load_data__(self, dataset_path, labels_path, indices_path,
+                      cl_iterations=enumerate(CL_ITERATIONS)):
         raise NotImplementedError
 
     def _one_hot_encoding(self, slice_, cl_iteration):
@@ -124,7 +126,7 @@ class Dataset(object):
     @property
     def input_size(self):
         raise NotImplementedError
-    
+
     def output_size(self, cl_iteration):
         return self.classes[cl_iteration].shape[0]
 
@@ -191,7 +193,10 @@ class HandcraftedFeaturesDataset(Dataset):
             self.validation_labels = []
 
     def _one_hot_encoding(self, slice_, cl_iteration):
-        return np.eye(self.output_size(cl_iteration), dtype=self.dtype)[slice_.astype(np.int32)]
+        if isinstance(slice_, csr_matrix):
+            slice_ = slice_.toarray()
+        return np.eye(self.output_size(cl_iteration),
+                      dtype=self.train_dataset.dtype)[slice_.astype(np.int32)]
 
     def next_batch(self, batch_size, cl_iteration):
         start = self._index_in_epoch
@@ -221,7 +226,7 @@ class HandcraftedFeaturesDataset(Dataset):
     def traverse_dataset(self, dataset_name, batch_size):
         dataset, _ = self.datasets[dataset_name]
 
-        for step in tqdm(np.arange(dataset.shape[0], step=batch_size)):
+        for step in np.arange(dataset.shape[0], step=batch_size):
             yield step, dataset[step:min(step+batch_size, dataset.shape[0])].toarray()
 
 

@@ -1,12 +1,10 @@
 """Heuristic classifier for Named Entity Linking using partial matches"""
 import logging
-import multiprocessing
 import numpy
 import pickle
 import random
 
 from collections import defaultdict
-from joblib import Parallel, delayed
 from sklearn.metrics import (accuracy_score, precision_score, recall_score,
                              f1_score)
 from .base import BaseClassifier
@@ -34,7 +32,6 @@ class HeuristicClassifierFactory(ClassifierFactory):
         assert self.total_features == dataset.datasets['train'].data.shape[1]
         return HeuristicClassifier(dataset, self.token_features,
                                    self.prev_features, self.next_features)
-
 
 def get_ngram_set(token, prev, next_):
     return set([(token, ), (prev, token), (token, next_), (prev, token, next_)])

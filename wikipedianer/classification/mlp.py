@@ -195,6 +195,7 @@ class MultilayerPerceptron(BaseClassifier):
         y_true = self.dataset.dataset_labels(dataset_name, self.cl_iteration)
         return self.get_metrics(y_true, y_pred, return_extras=return_extras)
 
+
     def _save_results(self, save_layers, sess):
         # Train loss
         np.savetxt(os.path.join(self.results_save_path, 'train_loss_record_%s.txt' % self.experiment_name),
@@ -269,7 +270,6 @@ class MultilayerPerceptron(BaseClassifier):
                         print('Validation accuracy converging: delta_acc %.3f' % delta_acc, file=sys.stderr,
                               flush=True)
                         break
-
                     # If there hasn't been any significant change in the last 5 iterations, stop
                     if len(self.validation_accuracy_record) >= 5 and self.validation_accuracy_record[-1] >= 0.95:
                         change = (max(self.validation_accuracy_record[-5:]) -
@@ -311,4 +311,3 @@ class MultilayerPerceptron(BaseClassifier):
             save_path = self.saver.save(sess, self._get_save_path())
             print('Model saved in file %s' % save_path, file=sys.stderr,
                   flush=True)
-

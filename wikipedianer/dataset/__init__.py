@@ -126,7 +126,7 @@ class Dataset(object):
         raise NotImplementedError
 
     def num_examples(self, dataset_name='train'):
-        return self.datasets[dataset_name].labels.shape[0]
+        return self.datasets[dataset_name].data.shape[0]
 
     @property
     def input_size(self):
@@ -226,11 +226,12 @@ class HandcraftedFeaturesDataset(Dataset):
 
     @property
     def input_size(self):
-        return self.train_dataset.shape[1]
+        if self.train_dataset.shape[0] != 0:
+            return self.train_dataset.shape[1]
+        return self.test_dataset.shape[1]
 
     def traverse_dataset(self, dataset_name, batch_size):
         dataset, _ = self.datasets[dataset_name]
-
         for step in np.arange(dataset.shape[0], step=batch_size):
             yield step, dataset[step:min(step+batch_size, dataset.shape[0])].toarray()
 

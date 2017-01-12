@@ -89,9 +89,6 @@ class DoubleStepClassifier(object):
         self.dataset = None
         self.use_trained = use_trained
 
-        self.hl_labels_name = None
-        self.ll_labels_name = None
-
         self.dataset_class = dataset_class
 
         self.low_level_models = {}
@@ -102,6 +99,7 @@ class DoubleStepClassifier(object):
         self.correctly_labeled = 0
         self.total_test_size = 0
         self.dtype = dtype
+        self.classes = ()
 
     def load_from_files(self, dataset_filepath, labels_filepath,
                         labels, indices_filepath):
@@ -119,12 +117,18 @@ class DoubleStepClassifier(object):
             dataset_filepath, labels_filepath, indices_filepath,
             cl_iterations=labels)
         self.classes = self.dataset.classes
-        self.hl_labels_name = labels[0][1]
-        self.ll_labels_name = labels[1][1]
+
+    def load_dataset(self, dataset):
+        """
+
+        :param dataset: an instance of Dataset.
+        :return:
+        """
+        self.dataset = dataset
+        self.classes = dataset.classes
 
     def load_from_arrays(self, x_matrix, hl_labels, ll_labels, train_indices,
-                         test_indices, validation_indices,
-                         hl_labels_name, ll_labels_name):
+                         test_indices, validation_indices):
         """
         Builds the internal matrix from the given arrays.
 
@@ -166,8 +170,6 @@ class DoubleStepClassifier(object):
             test_dataset=test_x, validation_dataset=validation_x,
             train_labels=integer_labels[train_indices],
             test_labels=test_labels, validation_labels=validation_labels)
-        self.ll_labels_name = ll_labels_name
-        self.hl_labels_name = hl_labels_name
 
     def _filter_dataset(self, dataset_name, target_label):
         dataset = self.dataset.datasets[dataset_name]

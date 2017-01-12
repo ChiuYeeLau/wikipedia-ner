@@ -101,9 +101,7 @@ class DoubleStepMockClassifierTest(unittest.TestCase):
             x_matrix, hl_labels=high_level_labels, ll_labels=low_level_labels,
             train_indices=range(train_size),
             test_indices=range(train_size, train_size+test_size),
-            validation_indices=range(train_size+test_size, self.num_examples),
-            hl_labels_name=util.CL_ITERATIONS[-2],
-            ll_labels_name=util.CL_ITERATIONS[-1])
+            validation_indices=range(train_size+test_size, self.num_examples))
 
     def test_evaluate(self):
         factory = MockClassifierFactory()
@@ -253,15 +251,12 @@ class DoubleStepClassifierTest(unittest.TestCase):
             '11', '00', '01',
             '01', '00', '11', '00'
         ]
-        hl_labels_name = util.CL_ITERATIONS[-2]
-        ll_labels_name = util.CL_ITERATIONS[-1]
 
         self.classifier = DoubleStepClassifier(
             dataset_class=HandcraftedFeaturesDataset)
         self.classifier.load_from_arrays(
             x_matrix, hl_labels, ll_labels, train_indices,
-            test_indices, validation_indices, hl_labels_name,
-            ll_labels_name)
+            test_indices, validation_indices)
 
     @patch('wikipedianer.classification.double_step_classifier.'
            'MultilayerPerceptron.save_model')

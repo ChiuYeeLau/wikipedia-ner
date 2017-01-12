@@ -15,7 +15,8 @@ class MultilayerPerceptron(BaseClassifier):
     def __init__(self, dataset, pre_trained_weights_save_path='', results_save_path='',
                  experiment_name='', cl_iteration=0, layers=[],
                  learning_rate=0.01, training_epochs=10000, batch_size=2100, loss_report=250, pre_weights=None,
-                 pre_biases=None, save_model=False, dropout_ratios=None, batch_normalization=False):
+                 pre_biases=None, save_model=False, dropout_ratios=None, batch_normalization=False,
+                 ignore_batch_size=False):
         """
         :type dataset: wikipedianer.dataset.Dataset
         :type pre_trained_weights_save_path: str
@@ -33,7 +34,8 @@ class MultilayerPerceptron(BaseClassifier):
         :type batch_normalization: bool
         """
         super(MultilayerPerceptron, self).__init__()
-        self.check_batch_size(batch_size, dataset)
+        if not ignore_batch_size:
+            self.check_batch_size(batch_size, dataset)
 
         self.dataset = dataset
         if self.dataset.classes[1].shape[0] > 10000:
@@ -156,42 +158,51 @@ class MultilayerPerceptron(BaseClassifier):
             assert batch_size <= dataset.num_examples('validation'), \
                 error_message
 
-    def predict(self, sess, x_matrix):
-        assert x_matrix.shape[0] <= self.batch_size
-        feed_dict = {
-            self.X: x_matrix
-        }
+    def predict(self, dataset_name, sess=None, restore=False, model_name=None):
+        if restore and self.saver is not None:
+            sess = self._restore(model_name)
+        y_pred = np.zeros(self.dataset.num_examples(dataset_name),
+                          dtype=np.int32)
+        print('Running evaluation for dataset %s' % dataset_name,
+              file=sys.stderr, flush=True)
+        for step, dataset_chunk in self.dataset.traverse_dataset(
+                dataset_name, self.batch_size):
+            feed_dict = {
+                self.X: dataset_chunk
+            }
 
-        for keep_prob in self.keep_probs:
-            feed_dict[keep_prob] = 1.0
+            for keep_prob in self.keep_probs:
+                feed_dict[keep_prob] = 1.0
 
-        return sess.run(self.y_pred, feed_dict=feed_dict)
+            y_pred[step:min(step + self.batch_size,
+                            self.dataset.num_examples(dataset_name))] = \
+                sess.run(self.y_pred, feed_dict=feed_dict)
+        return y_pred
 
     def _get_save_path(self):
         return os.path.join(self.results_save_path,
                             '%s.model' % self.experiment_name)
 
+    def _restore(self, model_name):
+        session = tf.Session()
+        # The values in the new session are completely independent
+        # to previous sessions
+        if not model_name:
+            model_name = self._get_save_path()
+        print('Loading model from file {}'.format(model_name))
+        self.saver.restore(session, model_name)
+        return session
+
     def evaluate(self, dataset_name, session=None, return_extras=False,
-                 restore=False):
+                 restore=False, model_name=None):
         if restore and self.saver is not None:
-            session = tf.Session()
-            # The values in the new session are completely independent
-            # to previous sessions
-            print('Loading model from file {}'.format(
-                self._get_save_path()))
-            self.saver.restore(session, self._get_save_path())
+            session = self._restore(model_name)
 
         return self._evaluate(session, dataset_name, return_extras)
 
     def _evaluate(self, sess, dataset_name, return_extras=False):
-        y_pred = np.zeros(self.dataset.num_examples(dataset_name), dtype=np.int32)
-
         print('Running evaluation for dataset %s' % dataset_name, file=sys.stderr, flush=True)
-        for step, dataset_chunk in self.dataset.traverse_dataset(dataset_name, self.batch_size):
-
-            y_pred[step:min(step+self.batch_size, self.dataset.num_examples(dataset_name))] =\
-                self.predict(sess, dataset_chunk)
-
+        y_pred = self.predict(sess=sess, dataset_name=dataset_name)
         y_true = self.dataset.dataset_labels(dataset_name, self.cl_iteration)
         return self.get_metrics(y_true, y_pred, return_extras=return_extras)
 

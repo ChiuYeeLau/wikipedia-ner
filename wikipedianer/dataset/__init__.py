@@ -3,7 +3,6 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 import gensim
-import itertools
 import numpy as np
 try:
     import cPickle as pickle
@@ -13,7 +12,7 @@ import sys
 
 from collections import namedtuple
 from scipy.sparse import csr_matrix
-from sklearn.preprocessing import normalize
+from sklearn.preprocessing import MaxAbsScaler
 from tqdm import tqdm
 from wikipedianer.pipeline.util import CL_ITERATIONS
 
@@ -148,7 +147,8 @@ class HandcraftedFeaturesDataset(Dataset):
                       cl_iterations=enumerate(CL_ITERATIONS)):
         print('Loading dataset from file %s' % dataset_path, file=sys.stderr)
         dataset = np.load(dataset_path)
-        dataset = csr_matrix((dataset['data'], dataset['indices'], dataset['indptr']), shape=dataset['shape'])
+        dataset = csr_matrix((dataset['data'], dataset['indices'], dataset['indptr']), shape=dataset['shape'],
+                             dtype=self.dtype)
 
         print('Loading labels from file %s' % labels_path, file=sys.stderr)
         with open(labels_path, 'rb') as f:
@@ -169,7 +169,7 @@ class HandcraftedFeaturesDataset(Dataset):
 
         print('Normalizing dataset', file=sys.stderr)
         dataset = dataset[indices['filtered_indices']]
-        dataset = normalize(dataset.astype(self.dtype), norm='max', axis=0)
+        dataset = MaxAbsScaler().fit_transform(dataset)
 
         self.train_dataset = dataset[indices['train_indices']]
         self.classes = tuple([cls[0] for cls in classes])

@@ -7,8 +7,8 @@ import tensorflow as tf
 import numpy as np
 import pandas as pd
 import sys
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 from .base import BaseClassifier
+from tqdm import tqdm, trange
 
 
 class MultilayerPerceptron(BaseClassifier):
@@ -57,7 +57,7 @@ class MultilayerPerceptron(BaseClassifier):
 
         # Create the layers
         for layer_idx, (size_prev, size_current) in enumerate(zip([self.dataset.input_size] + layers, layers)):
-            print('Creating hidden layer %02d: %d -> %d' % (layer_idx, size_prev, size_current), file=sys.stderr, flush=True)
+            print('Creating hidden layer %02d: %d -> %d' % (layer_idx, size_prev, size_current), file=sys.stderr)
 
             layer_name = 'hidden_layer_%02d' % layer_idx
             try:
@@ -102,7 +102,7 @@ class MultilayerPerceptron(BaseClassifier):
             else:
                 last_layer = layers[-1]
             print('Creating softmax layer: %d -> %d' % (last_layer, self.dataset.output_size(self.cl_iteration)),
-                  file=sys.stderr, flush=True)
+                  file=sys.stderr)
             if pre_weights and 'softmax_layer' in pre_weights:
                 weights = tf.Variable(pre_weights['softmax_layer'], name='weights')
             else:
@@ -186,7 +186,7 @@ class MultilayerPerceptron(BaseClassifier):
     def _evaluate(self, sess, dataset_name, return_extras=False):
         y_pred = np.zeros(self.dataset.num_examples(dataset_name), dtype=np.int32)
 
-        print('Running evaluation for dataset %s' % dataset_name, file=sys.stderr, flush=True)
+        tqdm.write('Running evaluation for dataset %s' % dataset_name, file=sys.stderr)
         for step, dataset_chunk in self.dataset.traverse_dataset(dataset_name, self.batch_size):
 
             y_pred[step:min(step+self.batch_size, self.dataset.num_examples(dataset_name))] =\
@@ -211,7 +211,7 @@ class MultilayerPerceptron(BaseClassifier):
             os.path.join(self.results_save_path, 'test_predictions_%s.csv' % self.experiment_name), index=False)
 
         if save_layers:
-            print('Saving weights and biases', file=sys.stderr, flush=True)
+            print('Saving weights and biases', file=sys.stderr)
             file_name_weights = os.path.join(self.pre_trained_weights_save_path,
                                              "%s_weights.npz" % self.experiment_name)
             file_name_biases = os.path.join(self.pre_trained_weights_save_path,
@@ -233,7 +233,7 @@ class MultilayerPerceptron(BaseClassifier):
         sess.run(tf.initialize_all_variables())
 
         effective_epochs = 0
-        for epoch in np.arange(self.training_epochs):
+        for epoch in trange(self.training_epochs):
             batch_dataset, batch_labels = self.dataset.next_batch(self.batch_size, self.cl_iteration)
 
             feed_dict = {
@@ -249,25 +249,24 @@ class MultilayerPerceptron(BaseClassifier):
 
             # We record the loss every `loss_report` iterations
             if epoch > 0 and epoch % self.loss_report == 0:
-                print('Epoch %d: loss = %.3f' % (epoch, loss), file=sys.stderr, flush=True)
+                tqdm.write('Epoch %d: loss = %.3f' % (epoch, loss), file=sys.stderr)
                 self.train_loss_record.append(loss)
 
             # We check the validation accuracy every `loss_report`*2 iterations
             if epoch > 0 and epoch % (self.loss_report * 4) == 0:
                 accuracy = self._evaluate(sess, 'validation')
-                print('Validation accuracy: %.3f' % accuracy, file=sys.stderr, flush=True)
+                tqdm.write('Validation accuracy: %.3f' % accuracy, file=sys.stderr)
                 self.validation_accuracy_record.append(accuracy)
 
                 if round(accuracy, 2) == 1 or (self.cl_iteration < 2 and accuracy >= 0.99):
-                    print('Validation accuracy maxed: %.2f' % round(accuracy, 1), file=sys.stderr, flush=True)
+                    tqdm.write('Validation accuracy maxed: %.2f' % round(accuracy, 1), file=sys.stderr)
                     break
 
                 if len(self.validation_accuracy_record) >= 2:
                     delta_acc = max(self.validation_accuracy_record) - accuracy
 
                     if delta_acc > 0.01:
-                        print('Validation accuracy converging: delta_acc %.3f' % delta_acc, file=sys.stderr,
-                              flush=True)
+                        tqdm.write('Validation accuracy converging: delta_acc %.3f' % delta_acc, file=sys.stderr)
                         break
 
                     # If there hasn't been any significant change in the last 5 iterations, stop
@@ -275,20 +274,19 @@ class MultilayerPerceptron(BaseClassifier):
                         change = (max(self.validation_accuracy_record[-5:]) -
                                   min(self.validation_accuracy_record[-5:]))
                         if change < 0.01:
-                            print('Validation accuracy unchanged for a large period', file=sys.stderr, flush=True)
+                            tqdm.write('Validation accuracy unchanged for a large period', file=sys.stderr)
                             break
                     elif len(self.validation_accuracy_record) >= 10 and self.validation_accuracy_record[-1] >= 0.85:
                         change = (max(self.validation_accuracy_record[-10:]) -
                                   min(self.validation_accuracy_record[-10:]))
                         if change < 0.01:
-                            print('Validation accuracy unchanged for a large period', file=sys.stderr, flush=True)
+                            tqdm.write('Validation accuracy unchanged for a large period', file=sys.stderr)
                             break
 
-        print('Finished training wiht {} epochs'.format(effective_epochs),
-              file=sys.stderr, flush=True)
+        print('Finished training wiht %d epochs' % effective_epochs, file=sys.stderr)
 
         accuracy, precision, recall, fscore, y_true, y_pred = self._evaluate(sess, 'test', True)
-        print('Testing accuracy: %.3f' % accuracy, file=sys.stderr, flush=True)
+        print('Testing accuracy: %.3f' % accuracy, file=sys.stderr)
 
         self.add_test_results(accuracy, precision, recall, fscore,
                               classes=self.dataset.classes[self.cl_iteration],
@@ -297,7 +295,7 @@ class MultilayerPerceptron(BaseClassifier):
         self.test_predictions_results = pd.DataFrame(np.vstack([y_true, y_pred]).T,
                                                      columns=self.test_predictions_results.columns)
 
-        print('Saving results', file=sys.stderr, flush=True)
+        print('Saving results', file=sys.stderr)
         self._save_results(save_layers, sess)
 
         self.save_model(sess)
@@ -307,8 +305,7 @@ class MultilayerPerceptron(BaseClassifier):
 
     def save_model(self, sess):
         if self.saver is not None:
-            print('Saving model', file=sys.stderr, flush=True)
+            print('Saving model', file=sys.stderr)
             save_path = self.saver.save(sess, self._get_save_path())
-            print('Model saved in file %s' % save_path, file=sys.stderr,
-                  flush=True)
+            print('Model saved in file %s' % save_path, file=sys.stderr)
 

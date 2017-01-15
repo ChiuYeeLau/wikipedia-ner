@@ -4,15 +4,23 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 import argparse
-import cPickle
 import gensim
 import numpy as np
 import os
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 import sys
-from scipy.sparse import csr_matrix, coo_matrix
+
+from scipy.sparse import coo_matrix
 from tqdm import tqdm
 from wikipedianer.corpus.parser import InstanceExtractor, WordVectorsExtractor
 from wikipedianer.corpus.parser import WikipediaCorpusColumnParser
+
+
+if sys.version_info.major == 3:
+    unicode = str
 
 
 def process_sentences(parser, total_sentences, instance_extractor, features):
@@ -31,7 +39,6 @@ def process_sentences(parser, total_sentences, instance_extractor, features):
             sentence, 0)
 
         assert len(sentence_words) == len(sent_instances)
-        sentence_matrix = []
         for instance in sent_instances:
             for feature, value in instance.iteritems():
                 if feature in features:
@@ -50,20 +57,20 @@ def process_sentences(parser, total_sentences, instance_extractor, features):
 
 def parse_to_feature_matrix(input_file, output_dir, resources_dir,
                             total_sentences):
-    print('Loading resources', file=sys.stderr, flush=True)
+    print('Loading resources', file=sys.stderr)
 
     with open(os.path.join(resources_dir, "gazetteer.pickle"),
               "rb") as gazetteer_file:
-        gazetteer = cPickle.load(gazetteer_file)
+        gazetteer = pickle.load(gazetteer_file)
 
     with open(os.path.join(resources_dir, "sloppy_gazetteer.pickle"),
               "rb") as sloppy_gazetteer_file:
-        sloppy_gazetteer = cPickle.load(sloppy_gazetteer_file)
+        sloppy_gazetteer = pickle.load(sloppy_gazetteer_file)
 
     with open(os.path.join(resources_dir, "filtered_features_names.pickle"),
               "rb") as features_file:
         features = {feature: idx
-                    for idx, feature in enumerate(cPickle.load(features_file))}
+                    for idx, feature in enumerate(pickle.load(features_file))}
 
     instance_extractor = InstanceExtractor(
         token=True,
@@ -79,13 +86,13 @@ def parse_to_feature_matrix(input_file, output_dir, resources_dir,
         sloppy_gazetteer=sloppy_gazetteer
     )
     print('Getting instances from corpus {}'.format(input_file),
-          file=sys.stderr, flush=True)
+          file=sys.stderr)
 
     parser = WikipediaCorpusColumnParser(input_file)
     dataset_matrix, words = process_sentences(parser, total_sentences,
                                               instance_extractor, features)
 
-    print('Saving matrix and words', file=sys.stderr, flush=True)
+    print('Saving matrix and words', file=sys.stderr)
     np.savez_compressed(
         os.path.join(output_dir, 'evaluation_dataset.npz'),
         data=dataset_matrix.data, indices=dataset_matrix.indices,
@@ -93,11 +100,11 @@ def parse_to_feature_matrix(input_file, output_dir, resources_dir,
 
     with open(os.path.join(output_dir, 'evaluation_words.pickle'),
               'wb') as output_file:
-        cPickle.dump(words, output_file)
+        pickle.dump(words, output_file)
 
 
 def parse_to_word_vectors(input_file, output_dir, wordvectors, window, total_sentences, debug):
-    print('Loading vectors', file=sys.stderr, flush=True)
+    print('Loading vectors', file=sys.stderr)
     if not debug:
         word2vec_model = gensim.models.Word2Vec.load_word2vec_format(wordvectors, binary=True)
     else:
@@ -108,7 +115,7 @@ def parse_to_word_vectors(input_file, output_dir, wordvectors, window, total_sen
     instances = []
     words = []
 
-    print('Getting instances from corpus {}'.format(input_file), file=sys.stderr, flush=True)
+    print('Getting instances from corpus {}'.format(input_file), file=sys.stderr)
 
     parser = WikipediaCorpusColumnParser(input_file)
 
@@ -122,14 +129,14 @@ def parse_to_word_vectors(input_file, output_dir, wordvectors, window, total_sen
         instances.extend(sentence_instances)
         words.extend(sentence_words)
 
-    print('Saving matrix and words', file=sys.stderr, flush=True)
+    print('Saving matrix and words', file=sys.stderr)
 
     dataset_matrix = np.vstack(instances)
 
     np.savez_compressed(os.path.join(output_dir, 'evaluation_dataset_word_vectors.npz'), dataset=dataset_matrix)
 
     with open(os.path.join(output_dir, 'evaluation_words_word_vectors.pickle'), 'wb') as f:
-        cPickle.dump(words, f)
+        pickle.dump(words, f)
 
 
 def parse_arguments():
@@ -157,19 +164,19 @@ if __name__ == "__main__":
 
     if args.resources is None and args.wordvectors is None:
         print('You have to give a resources path or a wordvectors path',
-              file=sys.stderr, flush=True)
+              file=sys.stderr)
         sys.exit(1)
 
     if args.resources is not None:
-        print('Parsing to handcrafted features matrix', file=sys.stderr, flush=True)
+        print('Parsing to handcrafted features matrix', file=sys.stderr)
         parse_to_feature_matrix(args.input_file, args.output_dir,
                                 args.resources, args.total_sentences)
 
     if args.wordvectors is not None:
-        print('Parsing to word vectors', file=sys.stderr, flush=True)
+        print('Parsing to word vectors', file=sys.stderr)
         parse_to_word_vectors(args.input_file, args.output_dir,
                               args.wordvectors, args.window,
                               args.total_sentences, args.debug)
 
-    print('All operations finished', file=sys.stderr, flush=True)
+    print('All operations finished', file=sys.stderr)
 

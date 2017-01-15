@@ -40,7 +40,7 @@ def process_sentences(parser, total_sentences, instance_extractor, features):
 
         assert len(sentence_words) == len(sent_instances)
         for instance in sent_instances:
-            for feature, value in instance.iteritems():
+            for feature, value in instance.items():
                 if feature in features:
                     rows.append(row_count)
                     cols.append(features[feature])
@@ -63,9 +63,12 @@ def parse_to_feature_matrix(input_file, output_dir, resources_dir,
               "rb") as gazetteer_file:
         gazetteer = pickle.load(gazetteer_file)
 
-    with open(os.path.join(resources_dir, "sloppy_gazetteer.pickle"),
-              "rb") as sloppy_gazetteer_file:
-        sloppy_gazetteer = pickle.load(sloppy_gazetteer_file)
+    try:
+        with open(os.path.join(resources_dir, "sloppy_gazetteer.pickle"),
+                  "rb") as sloppy_gazetteer_file:
+            sloppy_gazetteer = pickle.load(sloppy_gazetteer_file)
+    except FileNotFoundError:
+        sloppy_gazetteer = set()
 
     with open(os.path.join(resources_dir, "filtered_features_names.pickle"),
               "rb") as features_file:
@@ -142,14 +145,14 @@ def parse_to_word_vectors(input_file, output_dir, wordvectors, window, total_sen
 def parse_arguments():
     """Returns the stdin arguments"""
     arg_parse = argparse.ArgumentParser()
-    arg_parse.add_argument("input_file", type=unicode,
+    arg_parse.add_argument("input_file", type=str,
                            help="Path to the text file (in column format).")
-    arg_parse.add_argument("output_dir", type=unicode,
+    arg_parse.add_argument("output_dir", type=str,
                            help="Path to store the output files")
-    arg_parse.add_argument("--resources", type=unicode, default=None,
+    arg_parse.add_argument("--resources", type=str, default=None,
                            help="Path where the resources for handcrafted "
                                 "features are stored")
-    arg_parse.add_argument("--wordvectors", type=unicode, default=None,
+    arg_parse.add_argument("--wordvectors", type=str, default=None,
                            help="Path to the word vectors file")
     arg_parse.add_argument("--total_sentences", type=int, default=0,
                            help="Number of sentences of the file")

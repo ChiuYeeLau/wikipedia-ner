@@ -230,8 +230,9 @@ class StanfordPreprocesser(object):
         logging.info('Splitting documents')
         train_index, test_index, validation_index = (
             splitter.get_splitted_dataset_indices(
-                *self.splits, reduce_by=self.reduce_by))
+                *self.splits, ignore_warnings=True, reduce_by=self.reduce_by))
 
+        logging.info('Splitting documents')
         if not len(train_index) or not len(test_index):
             raise ValueError("ERROR not enough instances to split")
         if isinstance(self.documents, list):

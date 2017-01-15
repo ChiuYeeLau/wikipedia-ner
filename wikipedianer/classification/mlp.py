@@ -13,7 +13,7 @@ from tqdm import tqdm, trange
 
 class MultilayerPerceptron(BaseClassifier):
     def __init__(self, dataset, pre_trained_weights_save_path='', results_save_path='',
-                 experiment_name='', cl_iteration=0, layers=[],
+                 experiment_name='', cl_iteration=0, layers=list(),
                  learning_rate=0.01, training_epochs=10000, batch_size=2100, loss_report=250, pre_weights=None,
                  pre_biases=None, save_model=False, dropout_ratios=None, batch_normalization=False):
         """
@@ -268,7 +268,6 @@ class MultilayerPerceptron(BaseClassifier):
                     if delta_acc > 0.01:
                         tqdm.write('Validation accuracy converging: delta_acc %.3f' % delta_acc, file=sys.stderr)
                         break
-
                     # If there hasn't been any significant change in the last 5 iterations, stop
                     if len(self.validation_accuracy_record) >= 5 and self.validation_accuracy_record[-1] >= 0.95:
                         change = (max(self.validation_accuracy_record[-5:]) -
@@ -308,4 +307,3 @@ class MultilayerPerceptron(BaseClassifier):
             print('Saving model', file=sys.stderr)
             save_path = self.saver.save(sess, self._get_save_path())
             print('Model saved in file %s' % save_path, file=sys.stderr)
-

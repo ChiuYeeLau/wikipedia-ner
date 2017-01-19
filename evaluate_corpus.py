@@ -9,6 +9,7 @@ except ImportError:
     import pickle
 import logging
 import numpy as np
+import pandas
 import sys
 import os
 from wikipedianer.pipeline import util
@@ -18,7 +19,8 @@ from sklearn.preprocessing import normalize
 from tqdm import tqdm
 from wikipedianer.dataset import HandcraftedFeaturesDataset, WordVectorsDataset
 from wikipedianer.classification.mlp import MultilayerPerceptron
-from wikipedianer.classification.double_step_classifier import DoubleStepClassifier
+from wikipedianer.classification.double_step_classifier import (
+    DoubleStepClassifier, MLPFactory)
 
 logging.basicConfig(level=logging.INFO)
 
@@ -30,8 +32,7 @@ def read_arguments():
                              'expected. For the WordVectorDataset, a pickled'
                              'file is expected.')
     parser.add_argument('classes', type=str)
-    parser.add_argument('model', type=str,
-                        help='Path to the model to load.')
+    parser.add_argument('model', type=str, help='Path to the model(s) to load.')
     parser.add_argument('words', type=str)
     parser.add_argument('--task', type=str, default='URI',
                         help='Task to use as label. Possible values are:'
@@ -41,7 +42,10 @@ def read_arguments():
     parser.add_argument('--layers', type=int, nargs='+')
     parser.add_argument('--classifier', type=str, default='mlp',
                         help='Name of the classifier to evaluate. Default is'
-                             'mlp, possible values are mlp or nel.')
+                             'mlp, possible values are mlp or double-step.')
+    parser.add_argument('--hl_predictions', type=str,
+                        help='Path to file with the high level predictions to'
+                             'use with the DoubleStepClassifier.')
     parser.add_argument('--word_vectors', type=str, default=None,
                         help='Path to file with the word_vector model. If none'
                              'is provided, a HandcraftedFeatureDataset will be'
@@ -98,16 +102,24 @@ def main():
             experiment_name='evaluation', layers=layers_size,
             save_model=True, cl_iteration=iteration,
             batch_size=batch_size, ignore_batch_size=True)
-    elif args.classifier == 'nel':
+        y_pred = classifier.predict(dataset_name='test', restore=True,
+                                    model_name=args.model)
+    elif args.classifier == 'double-step':
         assert args.task == 'URI'
-        classifier = DoubleStepClassifier(use_trained=False, dtype=np.int32)
+        classifier = DoubleStepClassifier(use_trained=True, dtype=np.int32,
+                                          dataset_class=type(dataset))
+        dataset.classes = dataset.classes[-2:]  # Keep only the last 2 classes
+        iteration = 1
+        classifier.read_from_file(args.model)
         classifier.load_dataset(dataset)
+        factory = MLPFactory(results_save_path=args.model, num_layers=1)
+        hl_predictions = np.array(pandas.read_csv(args.hl_predictions)['0'])
+        y_pred = classifier.predict(
+            dataset_name='test', classifier_factory=factory,
+            predicted_high_level_labels=hl_predictions)
     if not classifier:
         logging.info('Classifier not created')
         return
-
-    y_pred = classifier.predict(dataset_name='test', restore=True,
-                                model_name=args.model)
 
     logging.info('Loading words of corpus from file {}'.format(args.words))
     with open(args.words, 'rb') as f:
@@ -115,8 +127,14 @@ def main():
 
     logging.info('Saving resulting corpus to dir {}'.format(
         args.results_save_path))
-    output_filename = os.path.join(args.results_save_path,
-                                   'predictions_{}.csv'.format(args.task))
+    # Save numeric predictions
+    output_filename = os.path.join(
+        args.results_save_path, 'predictions_{}.csv'.format(args.task))
+    pandas.DataFrame(y_pred).to_csv(output_filename, index=None)
+
+    # Save predictions for evaluation
+    output_filename = os.path.join(
+        args.results_save_path, 'readable_predictions_{}.csv'.format(args.task))
     with open(output_filename, 'wb') as outfile:
         for idx, (word_idx, token, tag, is_doc_start) in tqdm(enumerate(words)):
             word_label = dataset.classes[iteration][int(y_pred[idx])]

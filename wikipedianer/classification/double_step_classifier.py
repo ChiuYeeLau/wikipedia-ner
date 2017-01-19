@@ -38,7 +38,7 @@ class MLPFactory(ClassifierFactory):
         self.num_layers = min(num_layers, 1)
 
     def get_classifier(self, dataset, experiment_name,
-                       cl_iteration=1):
+                       cl_iteration=1, ignore_batch_size=False):
         batch_size = min(dataset.num_examples('train'), 2000,
                          dataset.num_examples('validation'),
                          dataset.num_examples('test'))
@@ -58,7 +58,8 @@ class MLPFactory(ClassifierFactory):
             experiment_name=experiment_name, layers=hidden_layers,
             save_model=True, cl_iteration=cl_iteration,
             batch_size=batch_size, training_epochs=self.training_epochs,
-            loss_report=loss_report, dropout_ratios=[self.dropout_ratio])
+            loss_report=loss_report, dropout_ratios=[self.dropout_ratio],
+            ignore_batch_size=ignore_batch_size)
         return classifier
 
 
@@ -100,6 +101,9 @@ class DoubleStepClassifier(object):
         self.total_test_size = 0
         self.dtype = dtype
         self.classes = ()
+
+        # A map to save the classes used to train the low level classifiers
+        self.low_level_trained_classes = {}
 
     def load_from_files(self, dataset_filepath, labels_filepath,
                         labels, indices_filepath):
@@ -186,6 +190,9 @@ class DoubleStepClassifier(object):
             label associated with the train dataset.
         :return: a new instance of Dataset.
         """
+        # numpy.unique returns sorted arrays, which guaranties that every
+        # time that we call create_train_dataset with the same parameters
+        # we obtain the same result and the same order of classes.
         train_x, train_y, train_indices = self._filter_dataset(
             'train', target_label_index)
         test_x, test_y, test_indices = self._filter_dataset(
@@ -239,6 +246,7 @@ class DoubleStepClassifier(object):
             # Calculate indices for this high level class.
             new_dataset = self.create_train_dataset(hl_label_index)
             if not new_dataset:
+                self.low_level_trained_classes[hl_label] = None
                 continue
 
             test_results = None
@@ -266,6 +274,8 @@ class DoubleStepClassifier(object):
                     self.low_level_models[hl_label] = (classifier, session)
                 else:
                     classifier.train(save_layers=False)
+                self.low_level_trained_classes[hl_label] = \
+                    classifier.dataset.classes
                 test_results = classifier.test_results
 
             self.test_results[hl_label] = test_results
@@ -296,6 +306,21 @@ class DoubleStepClassifier(object):
                 new_test_y[mask, 1] = new_index
         return test_x, test_y, test_indices[0]
 
+    def _get_dataset_for_factory(self, hl_label, hl_label_index):
+        """Return the minimal possible dataset to build a classifier."""
+        if hl_label in self.low_level_trained_classes:
+            if self.low_level_trained_classes[hl_label] is None:
+                return None
+            dataset = self.dataset_class(dtype=self.dtype)
+            dataset.classes = self.low_level_trained_classes[hl_label]
+        else:
+            dataset = self.create_train_dataset(hl_label_index)
+            if dataset is not None:
+                self.low_level_trained_classes[hl_label] = dataset.classes
+            else:
+                self.low_level_trained_classes[hl_label] = None
+        return dataset
+
     def _predict_for_label(self, hl_label_index, classifier_factory,
                            predicted_high_level_labels, dataset_name,
                            predictions):
@@ -309,15 +334,14 @@ class DoubleStepClassifier(object):
             if classifier_factory is None:
                 return
             # Read the model from file
-            new_dataset = self.create_train_dataset(hl_label_index)
-            # numpy.unique returns sorted arrays, which guaranties that every
-            # time that we call create_train_dataset with the same parameters
-            # we obtain the same result and the same order of classes.
+            new_dataset = self._get_dataset_for_factory(hl_label,
+                                                        hl_label_index)
             if not new_dataset:
                 logging.warning('Evaluation dataset could not be created.')
                 return
             try:
-                model = classifier_factory.get_classifier(new_dataset, hl_label)
+                model = classifier_factory.get_classifier(
+                    new_dataset, hl_label, ignore_batch_size=True)
             except Exception as e:
                 logging.error('Classifier {} not created. Error {}'.format(
                     hl_label, e))
@@ -345,6 +369,7 @@ class DoubleStepClassifier(object):
             model.dataset.add_dataset(dataset_name, test_x, test_y)
             results = model.evaluate(dataset_name, return_extras=True,
                                      restore=load_model, session=session)
+            # Restore old test dataset
             model.dataset.add_dataset(
                 dataset_name, original_test_dataset.data,
                 original_test_dataset.labels)
@@ -404,20 +429,26 @@ class DoubleStepClassifier(object):
                 session.close()
         self.low_level_models = {}
 
+    @staticmethod
+    def get_metadata_save_filename(results_dirname):
+        return os.path.join(results_dirname,
+                            'double_step_classifier.meta.pickle')
+
+    def read_from_file(self, results_dirname):
+        """Reads the classifier metadata from file."""
+        # Read metadata file
+        filename = self.get_metadata_save_filename(results_dirname)
+        with open(filename, 'rb') as input_file:
+            saved = pickle.load(input_file)
+        self.classes = saved['classes']
+        self.low_level_trained_classes = saved['low_level_trained_classes']
+
     def save_to_file(self, results_dirname):
         """Saves classifier metadata and test results to files"""
         to_save = {
-            'classes': self.classes
+            'classes': self.classes,
+            'low_level_trained_classes': self.low_level_trained_classes
         }
-        filename = os.path.join(results_dirname,
-                                'double_step_classifier.meta.pickle')
+        filename = self.get_metadata_save_filename(results_dirname)
         with open(filename, 'wb') as output_file:
             pickle.dump(to_save, output_file)
-
-        filename = os.path.join(results_dirname,
-                                'general_test_results.csv')
-        results = pandas.concat(self.test_results.values())
-        general_accuracy = self.correctly_labeled / self.total_test_size
-        results = results.append({'general_accuracy': general_accuracy},
-                                 ignore_index=True)
-        results.to_csv(filename, index=False)

@@ -92,7 +92,7 @@ def save_evaluation_results(classifier, dirname, classifier_factory):
                                    columns=['true', 'prediction'])
     predictions.to_csv(os.path.join(dirname, 'evaluation_predictions.csv'),
                        index=False)
-
+    classifier.save_to_file(dirname)
 
 
 def main():

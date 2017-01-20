@@ -26,24 +26,24 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    print('Loading dataset from file {}'.format(args.dataset), file=sys.stderr)
+    print('Loading dataset from file {}'.format(args.dataset), file=sys.stderr, flush=True)
     if args.word_vectors:
         dataset = np.load(args.dataset)['dataset']
     else:
         dataset = np.load(args.dataset)
         dataset = csr_matrix((dataset['data'], dataset['indices'], dataset['indptr']), shape=dataset['shape'])
 
-        print('Normalizing dataset', file=sys.stderr)
+        print('Normalizing dataset', file=sys.stderr, flush=True)
         dataset = normalize(dataset.astype(np.float32), norm='max', axis=0)
 
-    print('Loading classes from file {}'.format(args.classes), file=sys.stderr)
+    print('Loading classes from file {}'.format(args.classes), file=sys.stderr, flush=True)
     with open(args.classes, 'rb') as f:
         classes = np.array(cPickle.load(f))
 
-    print('Loading indices from file {}'.format(args.indices), file=sys.stderr)
+    print('Loading indices from file {}'.format(args.indices), file=sys.stderr, flush=True)
     indices = np.load(args.indices)
 
-    print('Getting test dataset', file=sys.stderr)
+    print('Getting test dataset', file=sys.stderr, flush=True)
     dataset = dataset[indices['filtered_indices']]
     dataset = dataset[indices['test_indices']]
 
@@ -59,11 +59,11 @@ if __name__ == "__main__":
 
         print('Building neural network with architecture: {}'
               .format(' -> '.join(map(str, [input_size] + layers_size + [output_size]))),
-              file=sys.stderr)
+              file=sys.stderr, flush=True)
 
         # Create the layers
         for layer_idx, (size_prev, size_current) in enumerate(zip([input_size] + layers_size, layers_size)):
-            print('Creating hidden layer {:02d}: {} -> {}'.format(layer_idx, size_prev, size_current), file=sys.stderr)
+            print('Creating hidden layer {:02d}: {} -> {}'.format(layer_idx, size_prev, size_current), file=sys.stderr, flush=True)
 
             layer_name = 'hidden_layer_{:02d}'.format(layer_idx)
 
@@ -81,7 +81,7 @@ if __name__ == "__main__":
 
         # The last layer is softmax
         with tf.name_scope('softmax_layer'):
-            print('Creating softmax layer: {} -> {}'.format(layers_size[-1], output_size), file=sys.stderr)
+            print('Creating softmax layer: {} -> {}'.format(layers_size[-1], output_size), file=sys.stderr, flush=True)
             weights_variable = tf.Variable(tf.zeros([layers_size[-1], output_size], dtype=tf.float32), name='weights')
             biases_variable = tf.Variable(tf.zeros([output_size]), name='biases')
             y_logits = tf.matmul(layers[-1], weights_variable) + biases_variable
@@ -90,12 +90,12 @@ if __name__ == "__main__":
 
         saver = tf.train.Saver()
 
-        print('Starting session for classification', file=sys.stderr)
+        print('Starting session for classification', file=sys.stderr, flush=True)
         with tf.Session() as sess:
-            print('Loading model from file {}'.format(args.model), file=sys.stderr)
+            print('Loading model from file {}'.format(args.model), file=sys.stderr, flush=True)
             saver.restore(sess, args.model)
 
-            print('Running classification for dataset {}'.format(args.dataset), file=sys.stderr)
+            print('Running classification for dataset {}'.format(args.dataset), file=sys.stderr, flush=True)
             for step in tqdm(np.arange(dataset.shape[0], step=args.batch_size)):
                 dataset_chunk = dataset[step:min(step+args.batch_size, dataset.shape[0])]
                 feed_dict = {
@@ -104,7 +104,7 @@ if __name__ == "__main__":
 
                 y_pred[step:min(step+args.batch_size, dataset.shape[0])] = sess.run(classification, feed_dict=feed_dict)
 
-    print('Saving results to file {}'.format(args.results), file=sys.stderr)
+    print('Saving results to file {}'.format(args.results), file=sys.stderr, flush=True)
     np.savetxt(args.results, y_pred, fmt='%d'.encode('utf-8'))
 
-    print('All finished', file=sys.stderr)
+    print('All finished', file=sys.stderr, flush=True)

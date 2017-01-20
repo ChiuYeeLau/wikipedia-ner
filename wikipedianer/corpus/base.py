@@ -2,7 +2,6 @@
 
 from __future__ import absolute_import, unicode_literals
 
-import re
 from collections import defaultdict
 
 WORDNET_CATEGORIES_MOVIES = {
@@ -42,65 +41,56 @@ YAGO_RELATIONS_MOVIES = {
 class Word(object):
     name = "Word"
 
-    def __init__(self, idx, token, tag, dep, head, ner_tag, yago_uri='',
-                 wiki_uri='', wordnet_categories=None, yago_relations=None,
-                 is_doc_start=False, original_string=''):
+    def __init__(self, idx, token, tag, ner_tag, uri_label='', yago_labels=list(), lkif_labels=list(),
+                 entity_labels=list(), is_doc_start=False, original_string=''):
         self.idx = int(idx)
         self.token = token
         self.tag = tag.upper()
-        self.dep = dep
-        self.head = int(head)
         self.ner_tag = ner_tag
-        self.yago_uri = yago_uri
-        self.wiki_uri = wiki_uri
-        self.wordnet_categories = wordnet_categories if wordnet_categories is not None else []
-        self.yago_relations = yago_relations if yago_relations is not None else []
+        self.uri_label = uri_label
+        self.yago_labels = yago_labels
+        self.lkif_labels = lkif_labels
+        self.entity_labels = entity_labels
         self.is_doc_start = is_doc_start
         self.original_string = original_string
 
     def __to_string__(self):
-        return '{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}'.format(
+        return '{}\t{}\t{}\t{}\t{}\t{}'.format(
             self.token,
             self.tag,
-            self.head,
-            self.dep,
-            self.ner_tag,
-            self.yago_uri,
-            self.wiki_uri,
-            '|'.join(self.wordnet_categories),
-            '|'.join(self.yago_relations)
+            self.uri_label,
+            '|'.join(self.yago_labels),
+            '|'.join(self.lkif_labels),
+            '|'.join(self.entity_labels)
         ).strip()
 
-    def __unicode__(self):
-        return self.__to_string__()
-
     def __str__(self):
-        return self.__to_string__().encode('utf-8')
+        return self.__to_string__()
 
     def __repr__(self):
         return str(self)
 
     def __eq__(self, other):
-        return (self.original_string == other.original_string)
+        return self.original_string == other.original_string
 
     @property
-    def label(self):
+    def labels(self):
         if self.is_ner:
-            return '{}-{}:{}:{}:{}'.format(self.ner_tag, self.yago_uri, self.wiki_uri,
-                                           '|'.join(self.wordnet_categories), '|'.join(self.yago_relations))
+            return ('I-%s' % self.uri_label, self.yago_labels,
+                    self.lkif_labels, self.entity_labels, 'I')
         else:
-            return '{}'.format(self.ner_tag)
+            return 'O', ['O'], ['O'], ['O'], 'O'
 
     @property
-    def short_label(self):
+    def io_label(self):
         if self.is_ner:
-            return '{}-{}'.format(self.ner_tag, self.yago_uri)
+            return 'I-{}'.format(self.uri_label)
         else:
-            return '{}'.format(self.ner_tag)
+            return 'O'
 
     @property
     def is_ner(self):
-        return not self.ner_tag.startswith('O')
+        return not self.ner_tag == 'O'
 
     @property
     def is_ner_start(self):
@@ -124,12 +114,13 @@ class Word(object):
         :return: A list of all possible combinations of a token or a lemma, ordered by importance
         """
 
-        return [
+        return (
             self.token,
             self.token.lower(),
-            self.token.capitalize(),
-            self.token.upper()
-        ]
+            # FIXME: Is it better to add the following?
+            # self.token.capitalize(),
+            # self.token.upper()
+        )
 
 
 class NamedEntity(object):
@@ -142,6 +133,9 @@ class NamedEntity(object):
         for word in self._words:
             yield word
 
+    def __repr__(self):
+        return ' '.join([word.token for word in self._words])
+
     @property
     def entity_gazette(self):
         return ' '.join([word.token for word in self._words])
@@ -153,7 +147,7 @@ class Sentence(object):
         self.has_named_entity = has_named_entity
 
     def __to_string__(self):
-        return '\n'.join(map(lambda (i, w): '{}\t{}'.format(i, w), enumerate(self, start=1)))
+        return '\n'.join(map(lambda w: '%s\t%s' % (w[0], w[1]), enumerate(self, start=1)))
 
     def __iter__(self):
         for word in self._words:
@@ -161,9 +155,6 @@ class Sentence(object):
 
     def __getitem__(self, item):
         return self._words[item]
-
-    def __unicode__(self):
-        return self.__to_string__()
 
     def __str__(self):
         return self.__to_string__()
@@ -184,11 +175,7 @@ class Sentence(object):
 
     @property
     def labels(self):
-        return [word.short_label for word in self]
-
-    @property
-    def io_labels(self):
-        return [re.sub(r"^B-", "I-", word.short_label) for word in self]
+        return [word.io_label for word in self]
 
     def get_gazettes(self):
         gazettes = defaultdict(int)
@@ -204,8 +191,11 @@ class Sentence(object):
         for word in [w for w in self._words if w.is_ner]:
             if word.is_ner_start:
                 named_entities.append([])
-
-            named_entities[-1].append(word)
+            
+            if len(named_entities) == 0:
+                named_entities.append([word])
+            else:
+                named_entities[-1].append(word)
 
         return named_entities
 

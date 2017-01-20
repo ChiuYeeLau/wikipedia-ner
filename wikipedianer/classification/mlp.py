@@ -2,48 +2,67 @@
 
 from __future__ import absolute_import, print_function, unicode_literals
 
+import os
 import tensorflow as tf
 import numpy as np
-import os
+import pandas as pd
 import sys
-from sklearn.metrics import accuracy_score, precision_score, recall_score
-from tqdm import tqdm
 from .base import BaseClassifier
+from tqdm import tqdm, trange
 
 
 class MultilayerPerceptron(BaseClassifier):
-    def __init__(self, dataset, labels, train_indices, test_indices, validation_indices, saves_dir, results_dir,
-                 experiment_name, layers, learning_rate=0.01, training_epochs=1500, batch_size=2000, loss_report=50,
-                 pre_weights=None, pre_biases=None, save_model=False, dropout_ratios=None, dynamic_layer=None,
-                 batch_normalization=False):
-        super(MultilayerPerceptron, self).__init__(dataset, labels, train_indices, test_indices, validation_indices)
+    def __init__(self, dataset, pre_trained_weights_save_path='', results_save_path='',
+                 experiment_name='', cl_iteration=0, layers=list(),
+                 learning_rate=0.01, training_epochs=10000, batch_size=2100, loss_report=250, pre_weights=None,
+                 pre_biases=None, save_model=False, dropout_ratios=None, batch_normalization=False):
+        """
+        :type dataset: wikipedianer.dataset.Dataset
+        :type pre_trained_weights_save_path: str
+        :type results_save_path: str
+        :type experiment_name: str
+        :type layers: list[int]
+        :type learning_rate: float
+        :type training_epochs: int
+        :type batch_size: int
+        :type loss_report: int
+        :type pre_weights: np.ndarray
+        :type pre_biases: np.ndarray
+        :type save_model: bool
+        :type dropout_ratios: list(float)
+        :type batch_normalization: bool
+        """
+        super(MultilayerPerceptron, self).__init__()
+        self.check_batch_size(batch_size, dataset)
 
-        assert batch_size <= self.train_dataset.shape[0]
+        self.dataset = dataset
+        if self.dataset.classes[1].shape[0] > 10000:
+            raise Exception('The number of labels is too big for the MLP'
+                            'classifier')
+        self.cl_iteration = cl_iteration
 
-        self.X = tf.placeholder(tf.float32, shape=(None, self.input_size), name='X')
-        self.y = tf.placeholder(tf.float32, shape=(None, self.output_size), name='y')
+        self.X = tf.placeholder(tf.float32, shape=(None, self.dataset.input_size), name='X')
+        self.y = tf.placeholder(tf.float32, shape=(None, self.dataset.output_size(self.cl_iteration)), name='y')
         self.training_epochs = training_epochs
         self.batch_size = batch_size
-        self.train_offset = 0
 
         self.layers = [self.X]
-        self.dynamic_layer = dynamic_layer
         self.weights = []
         self.biases = []
         self.keep_probs = []
         self.keep_probs_ratios = []
 
         dropout_ratios = [] if dropout_ratios is None else dropout_ratios
+        self.var_names = {}
 
         # Create the layers
-        for layer_idx, (size_prev, size_current) in enumerate(zip([self.input_size] + layers, layers)):
-            print('Creating hidden layer {:02d}: {} -> {}'.format(layer_idx, size_prev, size_current), file=sys.stderr)
+        for layer_idx, (size_prev, size_current) in enumerate(zip([self.dataset.input_size] + layers, layers)):
+            print('Creating hidden layer %02d: %d -> %d' % (layer_idx, size_prev, size_current), file=sys.stderr)
 
-            layer_name = 'hidden_layer_{:02d}'.format(layer_idx)
-
+            layer_name = 'hidden_layer_%02d' % layer_idx
             try:
                 self.keep_probs_ratios.append(1.0 - dropout_ratios.pop(0))
-            except IndexError:
+            except (IndexError, TypeError):
                 self.keep_probs_ratios.append(1.0)
 
             with tf.name_scope(layer_name):
@@ -55,11 +74,13 @@ class MultilayerPerceptron(BaseClassifier):
                                             stddev=1.0 / np.sqrt(size_prev)),
                         name='weights'
                     )
+                self.var_names['layer_{}_weights'.format(layer_idx)] = weights
 
                 if pre_biases and layer_name in pre_biases:
                     biases = tf.Variable(pre_biases[layer_name], name='biases')
                 else:
                     biases = tf.Variable(tf.zeros([size_current]), name='biases')
+                self.var_names['layer_{}_biases'.format(layer_idx)] = biases
 
                 keep_prob = tf.placeholder(tf.float32, name='keep_prob')
                 layer = tf.nn.relu(tf.matmul(self.layers[-1], weights) + biases)
@@ -77,23 +98,26 @@ class MultilayerPerceptron(BaseClassifier):
         # The last layer is for the classifier
         with tf.name_scope('softmax_layer'):
             if len(layers) == 0:
-                last_layer = self.input_size
+                last_layer = self.dataset.input_size
             else:
                 last_layer = layers[-1]
-            print('Creating softmax layer: {} -> {}'.format(last_layer, self.output_size), file=sys.stderr)
+            print('Creating softmax layer: %d -> %d' % (last_layer, self.dataset.output_size(self.cl_iteration)),
+                  file=sys.stderr)
             if pre_weights and 'softmax_layer' in pre_weights:
                 weights = tf.Variable(pre_weights['softmax_layer'], name='weights')
             else:
                 weights = tf.Variable(
-                    tf.truncated_normal([last_layer, self.output_size],
+                    tf.truncated_normal([last_layer, self.dataset.output_size(self.cl_iteration)],
                                         stddev=1.0 / np.sqrt(last_layer)),
                     name='weights'
                 )
+            self.var_names['softmax_weights'] = weights
 
             if pre_biases and 'softmax_layer' in pre_biases:
                 biases = tf.Variable(pre_biases['softmax_layer'], name='biases')
             else:
-                biases = tf.Variable(tf.zeros([self.output_size]), name='biases')
+                biases = tf.Variable(tf.zeros([self.dataset.output_size(self.cl_iteration)]), name='biases')
+            self.var_names['softmax_biases'] = biases
 
             self.y_logits = tf.matmul(self.layers[-1], weights) + biases
 
@@ -110,196 +134,176 @@ class MultilayerPerceptron(BaseClassifier):
         tf.scalar_summary(self.loss.op.name, self.loss)
         self.train_step = tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss, global_step=global_step)
 
-        self.init = tf.initialize_all_variables()
+        # self.init = tf.initialize_all_variables()
 
         # results and saves
-        self.saves_dir = saves_dir
+        self.pre_trained_weights_save_path = pre_trained_weights_save_path
         self.experiment_name = experiment_name
-        self.results_dir = results_dir
-        self.results = dict(
-            loss=[],
-            test_accuracy=[],
-            validation_accuracy=[],
-            test_precision=[],
-            validation_precision=[],
-            test_recall=[],
-            validation_recall=[],
-            test_predictions=[]
-        )
+        self.results_save_path = results_save_path
+        self.train_loss_record = []
+        self.validation_accuracy_record = []
+        self.test_predictions_results = pd.DataFrame(columns=['true', 'prediction'])
         self.loss_report = loss_report
-        self.saver = tf.train.Saver() if save_model else None
+        self.saver = tf.train.Saver(self.var_names) if save_model else None
 
-    def _next_batch(self):
-        start = self.train_offset
-        self.train_offset += self.batch_size
+    def check_batch_size(self, batch_size, dataset):
+        error_message = ('The batch size cannot be larger than the number of '
+                         'examples training, test or validation datasets')
+        assert batch_size <= dataset.num_examples('train'), error_message
+        if dataset.num_examples('test') > 1:
+            assert batch_size <= dataset.num_examples('test'), error_message
+        if dataset.num_examples('validation') > 1:
+            assert batch_size <= dataset.num_examples('validation'), \
+                error_message
 
-        if self.train_offset > self.train_dataset.shape[0]:
-            perm = np.arange(self.train_dataset.shape[0])
-            np.random.shuffle(perm)
-            self.train_dataset = self.train_dataset[perm]
-            self.train_labels = self.train_labels[perm]
-            start = 0
-            self.train_offset = self.batch_size
+    def predict(self, sess, x_matrix):
+        assert x_matrix.shape[0] <= self.batch_size
+        feed_dict = {
+            self.X: x_matrix
+        }
 
-        end = self.train_offset
+        for keep_prob in self.keep_probs:
+            feed_dict[keep_prob] = 1.0
 
-        one_hot_labels = np.eye(self.output_size, dtype=self.train_dataset.dtype)[self.train_labels[start:end]]
+        return sess.run(self.y_pred, feed_dict=feed_dict)
 
-        if hasattr(self.train_dataset, 'toarray'):
-            return self.train_dataset[start:end].toarray(), one_hot_labels
-        else:
-            return self.train_dataset[start:end], one_hot_labels
+    def _get_save_path(self):
+        return os.path.join(self.results_save_path,
+                            '%s.model' % self.experiment_name)
 
-    def _evaluate(self, sess, dataset, labels, dataset_name, return_predictions=False):
-        y_pred = np.zeros(dataset.shape[0], dtype=np.int32)
+    def evaluate(self, dataset_name, session=None, return_extras=False,
+                 restore=False):
+        if restore and self.saver is not None:
+            session = tf.Session()
+            # The values in the new session are completely independent
+            # to previous sessions
+            print('Loading model from file {}'.format(
+                self._get_save_path()))
+            self.saver.restore(session, self._get_save_path())
 
-        print('Running evaluation for dataset {}'.format(dataset_name), file=sys.stderr)
-        for step in tqdm(np.arange(dataset.shape[0], step=self.batch_size)):
-            dataset_chunk = dataset[step:min(step+self.batch_size, dataset.shape[0])]
-            feed_dict = {
-                self.X: dataset_chunk.toarray() if hasattr(dataset_chunk, 'toarray') else dataset_chunk
-            }
+        return self._evaluate(session, dataset_name, return_extras)
 
-            for keep_prob in self.keep_probs:
-                feed_dict[keep_prob] = 1.0
+    def _evaluate(self, sess, dataset_name, return_extras=False):
+        y_pred = np.zeros(self.dataset.num_examples(dataset_name), dtype=np.int32)
 
-            y_pred[step:min(step+self.batch_size, dataset.shape[0])] = sess.run(self.y_pred, feed_dict=feed_dict)
+        tqdm.write('Running evaluation for dataset %s' % dataset_name, file=sys.stderr)
+        for step, dataset_chunk in self.dataset.traverse_dataset(dataset_name, self.batch_size):
 
-        if not return_predictions:
-            return accuracy_score(labels, y_pred.astype(labels.dtype)), \
-                precision_score(labels, y_pred.astype(labels.dtype), average=None,
-                                labels=np.arange(self.classes.shape[0])), \
-                recall_score(labels, y_pred.astype(labels.dtype), average=None, labels=np.arange(self.classes.shape[0]))
-        else:
-            return accuracy_score(labels, y_pred.astype(labels.dtype)), \
-                precision_score(labels, y_pred.astype(labels.dtype), average=None,
-                                labels=np.arange(self.classes.shape[0])), \
-                recall_score(labels, y_pred.astype(labels.dtype), average=None,
-                             labels=np.arange(self.classes.shape[0])), \
-                y_pred
+            y_pred[step:min(step+self.batch_size, self.dataset.num_examples(dataset_name))] =\
+                self.predict(sess, dataset_chunk)
 
-    def _add_results(self, dataset, accuracy, precision, recall, predictions=None):
-        self.results['{}_accuracy'.format(dataset)].append(accuracy)
-        self.results['{}_precision'.format(dataset)].append(precision)
-        self.results['{}_recall'.format(dataset)].append(recall)
+        y_true = self.dataset.dataset_labels(dataset_name, self.cl_iteration)
+        return self.get_metrics(y_true, y_pred, return_extras=return_extras)
 
-        if predictions is not None:
-            self.results['{}_predictions'.format(dataset)] = predictions
+    def _save_results(self, save_layers, sess):
+        # Train loss
+        np.savetxt(os.path.join(self.results_save_path, 'train_loss_record_%s.txt' % self.experiment_name),
+                   np.array(self.train_loss_record, dtype=np.float32), fmt='%.3f', delimiter=',')
 
-    def _save_results(self):
-        header = ','.join(self.classes).encode('utf-8')
-
-        # Loss
-        np.savetxt(os.path.join(self.results_dir, 'loss_{}.txt'.format(self.experiment_name)),
-                   np.array(self.results['loss'], dtype=np.float32),
-                   fmt='%.3f'.encode('utf-8'), delimiter=','.encode('utf-8'))
+        # Validation accuracy
+        np.savetxt(os.path.join(self.results_save_path, 'validation_accuracy_record_%s.txt' % self.experiment_name),
+                   np.array(self.validation_accuracy_record, dtype=np.float32), fmt='%.3f', delimiter=',')
 
         # Test
-        np.savetxt(os.path.join(self.results_dir, 'test_accuracy_{}.txt'.format(self.experiment_name)),
-                   np.array(self.results['test_accuracy'], dtype=np.float32),
-                   fmt='%.3f'.encode('utf-8'), delimiter=','.encode('utf-8'))
-        np.savetxt(os.path.join(self.results_dir, 'test_precision_{}.txt'.format(self.experiment_name)),
-                   np.array(self.results['test_precision'], dtype=np.float32),
-                   fmt='%.3f'.encode('utf-8'), delimiter=','.encode('utf-8'),
-                   header=header)
-        np.savetxt(os.path.join(self.results_dir, 'test_recall_{}.txt'.format(self.experiment_name)),
-                   np.array(self.results['test_recall'], dtype=np.float32),
-                   fmt='%.3f'.encode('utf-8'), delimiter=','.encode('utf-8'),
-                   header=header)
+        self.test_results.to_csv(os.path.join(self.results_save_path, 'test_results_%s.csv' % self.experiment_name),
+                                 index=False)
+        self.test_predictions_results.to_csv(
+            os.path.join(self.results_save_path, 'test_predictions_%s.csv' % self.experiment_name), index=False)
 
-        with open(os.path.join(self.results_dir, 'test_predictions_{}.txt'.format(self.experiment_name)), 'w') as f:
-            for idx, pred_label in enumerate(self.results['test_predictions']):
-                print("{},{},{},{}".format(pred_label, self.classes[pred_label],
-                                           self.test_labels[idx], self.classes[self.test_labels[idx]]).encode("utf-8"),
-                      file=f)
+        if save_layers:
+            print('Saving weights and biases', file=sys.stderr)
+            file_name_weights = os.path.join(self.pre_trained_weights_save_path,
+                                             "%s_weights.npz" % self.experiment_name)
+            file_name_biases = os.path.join(self.pre_trained_weights_save_path,
+                                            "%s_biases.npz" % self.experiment_name)
 
-        # Validation
-        np.savetxt(os.path.join(self.results_dir, 'validation_accuracy_{}.txt'.format(self.experiment_name)),
-                   np.array(self.results['validation_accuracy'], dtype=np.float32),
-                   fmt='%.3f'.encode('utf-8'), delimiter=','.encode('utf-8'))
-        np.savetxt(os.path.join(self.results_dir, 'validation_precision_{}.txt'.format(self.experiment_name)),
-                   np.array(self.results['validation_precision'], dtype=np.float32),
-                   fmt='%.3f'.encode('utf-8'), delimiter=','.encode('utf-8'),
-                   header=header)
-        np.savetxt(os.path.join(self.results_dir, 'validation_recall_{}.txt'.format(self.experiment_name)),
-                   np.array(self.results['validation_recall'], dtype=np.float32),
-                   fmt='%.3f'.encode('utf-8'), delimiter=','.encode('utf-8'),
-                   header=header)
+            weights_dict = {}
+            biases_dict = {}
 
-    def train(self, layer_indexes=None, save_layers=True):
-        with tf.Session() as sess:
-            sess.run(tf.initialize_all_variables())
+            for layer_idx, (weights, biases) in enumerate(zip(self.weights, self.biases)):
+                layer_name = 'hidden_layer_%02d' % layer_idx
+                weights_dict[layer_name] = weights.eval(session=sess)
+                biases_dict[layer_name] = biases.eval(session=sess)
 
-            print('Training classifier', file=sys.stderr)
-            for epoch in np.arange(self.training_epochs):
-                batch_dataset, batch_labels = self._next_batch()
+            np.savez_compressed(file_name_weights, **weights_dict)
+            np.savez_compressed(file_name_biases, **biases_dict)
 
-                feed_dict = {
-                    self.X: batch_dataset,
-                    self.y: batch_labels
-                }
+    def train(self, save_layers=True, close_session=True):
+        sess = tf.Session()
+        sess.run(tf.initialize_all_variables())
 
-                for idx, keep_prob in enumerate(self.keep_probs):
-                    feed_dict[keep_prob] = self.keep_probs_ratios[idx]
+        effective_epochs = 0
+        for epoch in trange(self.training_epochs):
+            batch_dataset, batch_labels = self.dataset.next_batch(self.batch_size, self.cl_iteration)
 
-                _, loss = sess.run([self.train_step, self.loss], feed_dict=feed_dict)
+            feed_dict = {
+                self.X: batch_dataset,
+                self.y: batch_labels
+            }
 
-                if epoch > 0 and epoch % self.loss_report == 0:
-                    print('Epoch {}: loss = {:.3f}'.format(epoch, loss), file=sys.stderr)
-                    self.results['loss'].append(loss)
+            for idx, keep_prob in enumerate(self.keep_probs):
+                feed_dict[keep_prob] = self.keep_probs_ratios[idx]
 
-                if epoch > 0 and epoch % (self.loss_report * 2) == 0:
-                    accuracy, precision, recall = self._evaluate(sess, self.validation_dataset, self.validation_labels,
-                                                                 'Validation')
-                    print('Validation accuracy: {:.3f}'.format(accuracy), file=sys.stderr)
-                    self._add_results('validation', accuracy, precision, recall)
+            _, loss = sess.run([self.train_step, self.loss], feed_dict=feed_dict)
+            effective_epochs += 1
 
-                    if len(self.results['validation_accuracy']) >= 2:
-                        delta_acc = max(self.results['validation_accuracy']) - accuracy
+            # We record the loss every `loss_report` iterations
+            if epoch > 0 and epoch % self.loss_report == 0:
+                tqdm.write('Epoch %d: loss = %.3f' % (epoch, loss), file=sys.stderr)
+                self.train_loss_record.append(loss)
 
-                        if delta_acc > 0.01:
-                            print('Validation accuracy converging: ' +
-                                  'delta_acc {:.3f}' .format(delta_acc),
-                                  file=sys.stderr)
+            # We check the validation accuracy every `loss_report`*2 iterations
+            if epoch > 0 and epoch % (self.loss_report * 4) == 0:
+                accuracy = self._evaluate(sess, 'validation')
+                tqdm.write('Validation accuracy: %.3f' % accuracy, file=sys.stderr)
+                self.validation_accuracy_record.append(accuracy)
+
+                if round(accuracy, 2) == 1 or (self.cl_iteration < 2 and accuracy >= 0.99):
+                    tqdm.write('Validation accuracy maxed: %.2f' % round(accuracy, 1), file=sys.stderr)
+                    break
+
+                if len(self.validation_accuracy_record) >= 2:
+                    delta_acc = max(self.validation_accuracy_record) - accuracy
+
+                    if delta_acc > 0.01:
+                        tqdm.write('Validation accuracy converging: delta_acc %.3f' % delta_acc, file=sys.stderr)
+                        break
+                    # If there hasn't been any significant change in the last 5 iterations, stop
+                    if len(self.validation_accuracy_record) >= 5 and self.validation_accuracy_record[-1] >= 0.95:
+                        change = (max(self.validation_accuracy_record[-5:]) -
+                                  min(self.validation_accuracy_record[-5:]))
+                        if change < 0.01:
+                            tqdm.write('Validation accuracy unchanged for a large period', file=sys.stderr)
+                            break
+                    elif len(self.validation_accuracy_record) >= 10 and self.validation_accuracy_record[-1] >= 0.85:
+                        change = (max(self.validation_accuracy_record[-10:]) -
+                                  min(self.validation_accuracy_record[-10:]))
+                        if change < 0.01:
+                            tqdm.write('Validation accuracy unchanged for a large period', file=sys.stderr)
                             break
 
-                    if accuracy >= 0.999:
-                        print('Validation accuracy maxed: {:.2f}'.format(accuracy), file=sys.stderr)
-                        break
+        print('Finished training wiht %d epochs' % effective_epochs, file=sys.stderr)
 
-            print('Finished training', file=sys.stderr)
+        accuracy, precision, recall, fscore, y_true, y_pred = self._evaluate(sess, 'test', True)
+        print('Testing accuracy: %.3f' % accuracy, file=sys.stderr)
 
-            accuracy, precision, recall, predictions = self._evaluate(sess, self.test_dataset,
-                                                                      self.test_labels, 'Test', True)
-            print('Testing accuracy: {:.3f}'.format(accuracy), file=sys.stderr)
-            self._add_results('test', accuracy, precision, recall, predictions)
+        self.add_test_results(accuracy, precision, recall, fscore,
+                              classes=self.dataset.classes[self.cl_iteration],
+                              y_true=y_true)
 
-            print('Saving weights and biases', file=sys.stderr)
-            file_name_weights = os.path.join(self.saves_dir, "{}_weights.npz".format(self.experiment_name))
-            file_name_biases = os.path.join(self.saves_dir, "{}_biases.npz".format(self.experiment_name))
+        self.test_predictions_results = pd.DataFrame(np.vstack([y_true, y_pred]).T,
+                                                     columns=self.test_predictions_results.columns)
 
-            if save_layers:
-                weights_dict = {}
-                biases_dict = {}
+        print('Saving results', file=sys.stderr)
+        self._save_results(save_layers, sess)
 
-                for layer_idx, (weights, biases) in enumerate(zip(self.weights, self.biases)):
-                    if layer_indexes is not None and layer_idx not in layer_indexes:
-                        continue
-                    layer_name = 'softmax_layer' if layer_idx == self.dynamic_layer \
-                        else 'hidden_layer_{:02d}'.format(layer_idx)
-                    weights_dict[layer_name] = weights.eval()
-                    biases_dict[layer_name] = biases.eval()
+        self.save_model(sess)
+        if close_session:
+            sess.close()
+        return sess
 
-                np.savez_compressed(file_name_weights, **weights_dict)
-                np.savez_compressed(file_name_biases, **biases_dict)
-
-            print('Saving results', file=sys.stderr)
-            self._save_results()
-
-            if self.saver is not None:
-                print('Saving model', file=sys.stderr)
-                save_path = self.saver.save(sess,
-                                            os.path.join(self.results_dir, '{}.model'.format(self.experiment_name))
-                                            )
-                print('Model saved in file {}'.format(save_path), file=sys.stderr)
-
+    def save_model(self, sess):
+        if self.saver is not None:
+            print('Saving model', file=sys.stderr)
+            save_path = self.saver.save(sess, self._get_save_path())
+            print('Model saved in file %s' % save_path, file=sys.stderr)

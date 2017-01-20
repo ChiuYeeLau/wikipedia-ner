@@ -3,139 +3,108 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 import argparse
-import cPickle as pickle
 import numpy as np
 import os
 import sys
-import tensorflow as tf
 
-from scipy.sparse import csr_matrix
-from sklearn.preprocessing import normalize
-from utils import LABELS_REPLACEMENT
-from wikipedianer.classification.mlp import MultilayerPerceptron
+from wikipedianer.pipeline.classification import run_classifier
+from wikipedianer.pipeline.util import CL_ITERATIONS
+
+# To avoid error induced by chance
+np.random.seed(0)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("dataset", type=unicode)
-    parser.add_argument("labels", type=unicode)
-    parser.add_argument("mappings", type=unicode)
-    parser.add_argument("indices_dir", type=unicode)
-    parser.add_argument("results_dir", type=unicode)
-    parser.add_argument("saves_dir", type=unicode)
-    parser.add_argument("--mappings_kind", type=unicode, default='NEU', nargs='+')
-    parser.add_argument("--experiment_kind", type=unicode, default='legal')
-    parser.add_argument("--learning_rate", type=float, default=0.01)
-    parser.add_argument("--epochs", type=int, default=1500)
-    parser.add_argument("--batch_size", type=int, default=2000)
-    parser.add_argument("--loss_report", type=int, default=50)
-    parser.add_argument("--layers", type=lambda x: map(int, x.split(',')), nargs='+', default=[[]])
-    parser.add_argument("--dynamic_layers", type=int, nargs='+', default=None)
-    parser.add_argument("--dropout_ratios", type=float, default=None, nargs='+')
-    parser.add_argument("--batch_normalization", action='store_true')
+    parser.add_argument('dataset_path',
+                        type=str,
+                        help='Path to the dataset file.')
+    parser.add_argument('labels_path',
+                        type=str,
+                        help='Path to the labels file.')
+    parser.add_argument('indices_path',
+                        type=str,
+                        help='Path to the indices file.')
+    parser.add_argument('results_save_path',
+                        type=str,
+                        help='Path to the directory to store the results.')
+    parser.add_argument('--word_vectors_path',
+                        type=str,
+                        default=None,
+                        help='Path to word vectors models file. ' +
+                             'If given it assumes the classification uses word vectors.')
+    parser.add_argument('--weights_save_path',
+                        type=str,
+                        default='',
+                        help='Path to save the pre-trained weights.')
+    parser.add_argument('--layers',
+                        type=int,
+                        nargs='+',
+                        default=[],
+                        help='Layers of the network.')
+    parser.add_argument('--cl_iterations',
+                        type=str,
+                        nargs='+',
+                        default=[],
+                        help='Strings to determine the iterations in CL.')
+    parser.add_argument('--save_models',
+                        type=str,
+                        default=[],
+                        nargs='+',
+                        help='String to determine the models of the experiment to save.')
+    parser.add_argument('--completed_iterations',
+                        type=str,
+                        default=[],
+                        nargs='+',
+                        help='Iterations completed and ready to do a follow up')
+    parser.add_argument('--learning_rate',
+                        type=float,
+                        default=0.01)
+    parser.add_argument('--epochs',
+                        type=int,
+                        default=10000)
+    parser.add_argument('--batch_size',
+                        type=int,
+                        default=2100)
+    parser.add_argument('--loss_report',
+                        type=int,
+                        default=250)
+    parser.add_argument('--dropout_ratios',
+                        type=float,
+                        default=[],
+                        nargs='+')
+    parser.add_argument('--batch_normalization',
+                        action='store_true')
+    parser.add_argument('--debug_word_vectors',
+                        action='store_true')
 
     args = parser.parse_args()
 
-    args.mappings_kind = [args.mappings_kind] if isinstance(args.mappings_kind, unicode) else args.mappings_kind
+    if not args.layers:
+        print('You have to provide a valid architecture.', file=sys.stderr)
+        sys.exit(os.EX_USAGE)
 
-    for mapping_kind in args.mappings_kind:
-        if mapping_kind not in LABELS_REPLACEMENT[args.experiment_kind]:
-            print('Not a valid replacement {}'.format(mapping_kind), file=sys.stderr)
-            sys.exit(1)
+    args.layers = [args.layers] if isinstance(args.layers, int) else args.layers
 
-    if len(args.mappings_kind) != len(args.layers):
-        print('Layers and mappings don\'t have the same amount of items', file=sys.stderr)
-        sys.exit(1)
+    if not args.cl_iterations:
+        print('You have to provide a valid set of iterations for CL', file=sys.stderr)
+        sys.exit(os.EX_USAGE)
 
-    args.dynamic_layers = [args.dynamic_layers] if isinstance(args.dynamic_layers, int) else args.dynamic_layers
+    args.cl_iterations = [args.cl_iterations] if isinstance(args.cl_iterations, str) else args.cl_iterations
+    cl_iterations = [CL_ITERATIONS.index(cl_iter) for cl_iter in args.cl_iterations]
 
-    if args.dynamic_layers is not None and len(args.dynamic_layers) != len(args.layers) - 1:
-        print('The number of dynamic layers must be one less than the number of layers', file=sys.stderr)
-        sys.exit(1)
+    save_models = [cl_iter in set(args.save_models) for cl_iter in CL_ITERATIONS]
 
     args.dropout_ratios = [args.dropout_ratios] if isinstance(args.dropout_ratios, int) else args.dropout_ratios
 
-    print('Loading dataset from file {}'.format(args.dataset), file=sys.stderr)
+    args.completed_iterations = [args.completed_iterations] if isinstance(args.completed_iterations, str) \
+        else args.completed_iterations
+    completed_iterations = [CL_ITERATIONS.index(cl_iter) for cl_iter in args.completed_iterations]
 
-    dataset = np.load(args.dataset)
-    dataset = csr_matrix((dataset['data'], dataset['indices'], dataset['indptr']), shape=dataset['shape'])
-
-    print('Loading labels from file {}'.format(args.labels), file=sys.stderr)
-    with open(args.labels, 'rb') as f:
-        labels = pickle.load(f)
-
-    print('Loading class mappings from file {}'.format(args.mappings), file=sys.stderr)
-    with open(args.mappings, 'rb') as f:
-        class_mappings = pickle.load(f)
-
-    experiments_name = []
-
-    for idx, mapping_kind in enumerate(args.mappings_kind):
-        if len(args.layers) > 0:
-            experiment_name = "{}_{}".format("{}".format(
-                "_".join(args.mappings_kind[:idx+1])), "_".join([unicode(l) for l in args.layers[idx]])
-            )
-        else:
-            experiment_name = "{}".format("{}".format("_".join(args.mappings_kind[:idx+1])))
-        experiments_name.append(experiment_name)
-
-        print('Running experiment: {}'.format(experiment_name), file=sys.stderr)
-
-        print('Replacing the labels', file=sys.stderr)
-        replacement_function = LABELS_REPLACEMENT[args.experiment_kind][mapping_kind]
-        experiment_labels = list(replacement_function(labels, class_mappings))
-
-        print('Loading indices for train, test and validation', file=sys.stderr)
-        indices = np.load(os.path.join(args.indices_dir, "{}_indices.npz".format(mapping_kind)))
-
-        print('Filtering dataset and labels according to indices', file=sys.stderr)
-        experiment_dataset = dataset[indices['filtered_indices']]
-        experiment_labels = np.array(experiment_labels)[indices['filtered_indices']]
-
-        print('Normalizing dataset', file=sys.stderr)
-        experiment_dataset = normalize(experiment_dataset.astype(np.float32), norm='max', axis=0)
-
-        if len(experiments_name) > 1:
-            print('Loading previous weights and biases', file=sys.stderr)
-            pre_weights = np.load(os.path.join(args.saves_dir, '{}_weights.npz'.format(experiments_name[-2])))
-            pre_biases = np.load(os.path.join(args.saves_dir, '{}_biases.npz'.format(experiments_name[-2])))
-        else:
-            pre_weights = None
-            pre_biases = None
-
-        dynamic_layer = args.dynamic_layers.pop(0) \
-            if args.dynamic_layers is not None and len(args.dynamic_layers) > 0 else None
-
-        save_model = True if idx >= len(args.mappings_kind) - 2 else False
-
-        with tf.Graph().as_default() as g:
-            tf.set_random_seed(1234)
-
-            do_ratios = args.dropout_ratios[:] if args.dropout_ratios is not None else None
-
-            print('Creating multilayer perceptron', file=sys.stderr)
-            mlp = MultilayerPerceptron(dataset=experiment_dataset, labels=experiment_labels,
-                                       train_indices=indices['train_indices'], test_indices=indices['test_indices'],
-                                       validation_indices=indices['validation_indices'], saves_dir=args.saves_dir,
-                                       results_dir=args.results_dir, experiment_name=experiment_name,
-                                       layers=args.layers[idx], learning_rate=args.learning_rate,
-                                       training_epochs=args.epochs, batch_size=args.batch_size,
-                                       loss_report=args.loss_report, pre_weights=pre_weights, pre_biases=pre_biases,
-                                       save_model=save_model, dropout_ratios=do_ratios,
-                                       dynamic_layer=dynamic_layer, batch_normalization=args.batch_normalization)
-
-            print('Training the classifier', file=sys.stderr)
-            mlp.train()
-
-        # Releasing some memory
-        del pre_weights
-        del pre_biases
-        del experiment_dataset
-        del experiment_labels
-        del indices
-        del mlp
-        del g
-
-        print('Finished experiment {}'.format(experiment_name), file=sys.stderr)
-
-    print('Finished all the experiments', file=sys.stderr)
+    run_classifier(dataset_path=args.dataset_path, labels_path=args.labels_path, indices_path=args.indices_path,
+                   results_save_path=args.results_save_path, pre_trained_weights_save_path=args.weights_save_path,
+                   cl_iterations=cl_iterations, word_vectors_path=args.word_vectors_path, layers=args.layers,
+                   dropout_ratios=args.dropout_ratios, save_models=save_models,
+                   completed_iterations=completed_iterations, learning_rate=args.learning_rate, epochs=args.epochs,
+                   batch_size=args.batch_size, loss_report=args.loss_report,
+                   batch_normalization=args.batch_normalization, debug_word_vectors=args.debug_word_vectors)

@@ -1,0 +1,22 @@
+1	car	NN	O	O	O
+2	.	.	O	O	O
+
+1	the	DT	O	O	O
+2	Brabham	NNP	B-Brabham	B-wordnet_adjudicator_109769636	B-LKIF_class
+3	Racing	NNP	I-Brabham	I-wordnet_adjudicator_109769636	I-LKIF_class
+4	Organisation	NNP	I-Brabham	I-wordnet_adjudicator_109769636	I-LKIF_class
+
+1	such	JJ	O	O	O
+2	as	IN	O	O	O
+3	Rob	NNP	B-Rob_Walker_Racing_Team	B-wordnet_criminal_record_106490173	B-LKIF_class
+4	Walker	NNP	I-Rob_Walker_Racing_Team	I-wordnet_criminal_record_106490173	I-LKIF_class
+5	or	CC	O	O	O
+6	Jo	NNP	O	O	O
+7	Siffert	NNP	O	O	O
+8	.	.	O	O	O
+
+1	the	DT	O	O	O
+2	Brabham	NNP	B-Brabham	B-wordnet_adjudicator_109769636	B-LKIF_class
+3	Racing	NNP	I-Brabham	I-wordnet_adjudicator_109769636	I-LKIF_class
+4	Organisation	NNP	I-Brabham	I-wordnet_adjudicator_109769636	I-LKIF_class
+

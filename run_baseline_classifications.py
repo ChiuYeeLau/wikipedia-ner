@@ -34,14 +34,14 @@ def run_classifier(model_name, model_class, features_type, dataset, labels, clas
 
     model = model_class(**configs)
 
-    print('Fitting model', file=sys.stderr)
+    print('Fitting model', file=sys.stderr, flush=True)
     model.fit(dataset[indices['train_indices']], labels[indices['train_indices']])
 
-    print('Classifying test set', file=sys.stderr)
+    print('Classifying test set', file=sys.stderr, flush=True)
     y_true = labels[indices['test_indices']]
     y_pred = model.predict(dataset[indices['test_indices']])
 
-    print('Saving classification results', file=sys.stderr)
+    print('Saving classification results', file=sys.stderr, flush=True)
     save_dir = os.path.join(args.results_dir, model_name, features_type)
     if os.path.exists(save_dir):
         shutil.rmtree(save_dir)
@@ -64,10 +64,10 @@ def run_classifier(model_name, model_class, features_type, dataset, labels, clas
     np.savetxt(os.path.join(save_dir, 'test_recall_NEU.txt'), np.array([recall], dtype=np.float32),
                fmt='%.3f'.encode('utf-8'), delimiter=','.encode('utf-8'), header=header)
 
-    print('Saving model', file=sys.stderr)
+    print('Saving model', file=sys.stderr, flush=True)
     joblib.dump(model, os.path.join(save_dir, '{}_model.pkl'.format(model_name)))
 
-    print('Finished handcrafted experiment for classifier {}'.format(model_name), file=sys.stderr)
+    print('Finished handcrafted experiment for classifier {}'.format(model_name), file=sys.stderr, flush=True)
 
 
 if __name__ == "__main__":
@@ -84,78 +84,78 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    print('Loading dataset from file {}'.format(args.dataset), file=sys.stderr)
+    print('Loading dataset from file {}'.format(args.dataset), file=sys.stderr, flush=True)
 
     # First run on handcrafted dataset
     dataset = np.load(args.dataset)
     dataset = csr_matrix((dataset['data'], dataset['indices'], dataset['indptr']), shape=dataset['shape'])
 
-    print('Loading labels from file {}'.format(args.labels), file=sys.stderr)
+    print('Loading labels from file {}'.format(args.labels), file=sys.stderr, flush=True)
     with open(args.labels, 'rb') as f:
         labels = pickle.load(f)
 
     replacement_function = LABELS_REPLACEMENT[args.experiment_kind][args.mapping_kind]
     mappings = np.load(args.mappings) if args.mappings is not None else None
 
-    print('Replacing the labels', file=sys.stderr)
+    print('Replacing the labels', file=sys.stderr, flush=True)
     labels = list(replacement_function(labels, mappings))
 
-    print('Loading indices for train, test and validation', file=sys.stderr)
+    print('Loading indices for train, test and validation', file=sys.stderr, flush=True)
     indices = np.load(args.indices)
 
-    print('Filtering dataset and labels according to indices', file=sys.stderr)
+    print('Filtering dataset and labels according to indices', file=sys.stderr, flush=True)
     dataset = dataset[indices['filtered_indices']]
     labels = np.array(labels)[indices['filtered_indices']]
     classes, integer_labels = np.unique(labels, return_inverse=True)
 
-    print('Normalizing dataset', file=sys.stderr)
+    print('Normalizing dataset', file=sys.stderr, flush=True)
     dataset = normalize(dataset.astype(np.float32), norm='max', axis=0)
 
     for model_name, model_class in MODELS:
-        print('Running handcrafted features dataset with {} classifier'.format(model_name), file=sys.stderr)
+        print('Running handcrafted features dataset with {} classifier'.format(model_name), file=sys.stderr, flush=True)
 
         try:
             run_classifier(model_name, model_class, 'handcrafted', dataset, integer_labels, classes, indices)
         except Exception as e:
-            print('The classifier {} throw an exception: {}'.format(model_name, e), file=sys.stderr)
+            print('The classifier {} throw an exception: {}'.format(model_name, e), file=sys.stderr, flush=True)
         finally:  # Release memory
             gc.collect()
 
-        print('Finished handcrafted experiments with {} classifier'.format(model_name), file=sys.stderr)
+        print('Finished handcrafted experiments with {} classifier'.format(model_name), file=sys.stderr, flush=True)
 
     if args.wvdataset is None or args.wvlabels is None:
-        print('Finished all experiments', file=sys.stderr)
+        print('Finished all experiments', file=sys.stderr, flush=True)
         sys.exit(os.EX_OK)
     else:
-        print('Finished all handcrafted experiments', file=sys.stderr)
+        print('Finished all handcrafted experiments', file=sys.stderr, flush=True)
 
     print('Loading dataset from file {}. Filtering dataset according to indices'.format(args.wvdataset),
-          file=sys.stderr)
+          file=sys.stderr, flush=True)
 
     dataset = np.load(args.wvdataset)['dataset'][indices['filtered_indices']]
 
-    print('Loading word vectors labels from file {}'.format(args.wvlabels), file=sys.stderr)
+    print('Loading word vectors labels from file {}'.format(args.wvlabels), file=sys.stderr, flush=True)
     with open(args.wvlabels, 'rb') as f:
         labels = pickle.load(f)
 
-    print('Replacing the labels', file=sys.stderr)
+    print('Replacing the labels', file=sys.stderr, flush=True)
     labels = list(replacement_function(labels, mappings))
 
-    print('Loading indices for train, test and validation', file=sys.stderr)
+    print('Loading indices for train, test and validation', file=sys.stderr, flush=True)
     indices = np.load(args.indices)
 
-    print('Filtering labels according to indices', file=sys.stderr)
+    print('Filtering labels according to indices', file=sys.stderr, flush=True)
     labels = np.array(labels)[indices['filtered_indices']]
     classes, integer_labels = np.unique(labels, return_inverse=True)
 
     for model_name, model_class in MODELS:
-        print('Running word vectors dataset with {} classifier'.format(model_name), file=sys.stderr)
+        print('Running word vectors dataset with {} classifier'.format(model_name), file=sys.stderr, flush=True)
 
         try:
             run_classifier(model_name, model_class, 'wordvectors', dataset, labels, classes, indices)
         except Exception as e:
-            print('The classifier {} throw an exception with message {}'.format(model_name, e.message), file=sys.stderr)
+            print('The classifier {} throw an exception with message {}'.format(model_name, e.message), file=sys.stderr, flush=True)
 
-        print('Finished word vectors experiments with {} classifier'.format(model_name), file=sys.stderr)
+        print('Finished word vectors experiments with {} classifier'.format(model_name), file=sys.stderr, flush=True)
 
     print('Finished all experiments')

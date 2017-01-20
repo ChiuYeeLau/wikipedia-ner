@@ -42,6 +42,9 @@ def read_arguments():
                              'with high level labels')
     parser.add_argument('--results_dirname', '-r', type=str,
                         help='Path of directory to save results')
+    parser.add_argument('--high_level_predictions', type=str,
+                        help='Path to csv prediction file with a true and '
+                             'a prediction column')
     parser.add_argument('--indices', '-i', type=str,
                         help='Path of file with the numpy matrix containing'
                              'the split indices training/testing/validation')
@@ -51,9 +54,6 @@ def read_arguments():
     parser.add_argument('--features_filename', type=str, default=None,
                         help='Path of file with the filtered features. Only '
                              'for heuristic classifier.')
-    parser.add_argument('--evaluate-only', action='store_true',
-                        help='Do not train the classifier, only perform'
-                             'evaluation')
     parser.add_argument('--use-trained', action='store_true',
                         help='Check if classifier is already stored to avoid'
                              'training.')
@@ -69,9 +69,18 @@ def read_arguments():
     return parser.parse_args()
 
 
-def save_evaluation_results(classifier, dirname, classifier_factory):
+def get_high_level_predictions(high_level_predictions_filename):
+    if high_level_predictions_filename is None:
+        return None
+    predictions = pandas.read_csv(high_level_predictions_filename)
+    return predictions.prediction
+
+
+def save_evaluation_results(classifier, dirname, classifier_factory,
+                            predicted_high_level_labels):
     accuracy, precision, recall, fscore, y_true, y_pred = classifier.evaluate(
         classifier_factory=classifier_factory,
+        predicted_high_level_labels=predicted_high_level_labels
     )
     evaluation_results = pandas.DataFrame(
         columns=['accuracy', 'class', 'precision', 'recall', 'fscore'])
@@ -127,7 +136,10 @@ def main():
             args.features_filename, args.results_dirname)
 
     logging.info('Starting evaluation')
-    save_evaluation_results(classifier, args.results_dirname, factory)
+    high_level_predictions = get_high_level_predictions(
+        args.high_level_predictions)
+    save_evaluation_results(classifier, args.results_dirname, factory,
+                            high_level_predictions)
 
     if args.classifier == 'mlp':
         classifier.close_open_sessions()

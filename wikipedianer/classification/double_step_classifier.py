@@ -348,7 +348,6 @@ class DoubleStepClassifier(object):
             self.low_level_models[hl_label] = (model, None)
         else:
             model, session = self.low_level_models[hl_label]
-
         # Replace the dataset_name with a new one filtered from
         # the instances with hl_label_index in predicted_high_level_labels
         original_test_dataset = model.dataset.datasets[dataset_name]
@@ -405,7 +404,6 @@ class DoubleStepClassifier(object):
             load_model = True
         else:
             model, session = self.low_level_models[hl_label]
-
         results = model.evaluate(dataset_name, return_extras=True,
                                  restore=load_model, session=session)
         test_indices = model.dataset.indices[dataset_name]

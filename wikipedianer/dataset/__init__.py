@@ -241,9 +241,9 @@ class WordVectorsDataset(Dataset):
                  word_vectors_path=None, dtype=np.float32, debug=False):
         super(WordVectorsDataset, self).__init__(dataset_path, labels_path, indices_path, dtype)
         self.debug = debug
-        if word_vectors_path is None:
-            raise ValueError('Must provide a valid word_vectors_path')
-        self.__load_word_vectors__(word_vectors_path)
+        self._word_vector_model = None
+        if word_vectors_path is not None:
+            self.__load_word_vectors__(word_vectors_path)
 
     def __load_data__(self, dataset_path, labels_path, indices_path, cl_iterations=enumerate(CL_ITERATIONS)):
         print('Loading dataset from file %s' % dataset_path, file=sys.stderr, flush=True)
@@ -280,14 +280,20 @@ class WordVectorsDataset(Dataset):
         self.test_labels = integer_labels[indices['test_indices']]
         self.validation_labels = integer_labels[indices['validation_indices']]
 
+    def add_word_vector_model(self, model):
+        """Add the gensim wordvecto model."""
+        self._word_vector_model = model
+        self._input_size = self._word_vector_model.vector_size * len(
+            self.train_dataset[0])
+        self._vector_size = self._word_vector_model.vector_size
+
     def __load_word_vectors__(self, word_vectors_path):
         print('Loading word vectors', file=sys.stderr)
         if self.debug:
-            self._word_vector_model = gensim.models.Word2Vec()
+            model = gensim.models.Word2Vec()
         else:
-            self._word_vector_model = gensim.models.Word2Vec.load_word2vec_format(word_vectors_path, binary=True)
-        self._input_size = self._word_vector_model.vector_size * len(self.train_dataset[0])
-        self._vector_size = self._word_vector_model.vector_size
+            model = gensim.models.Word2Vec.load_word2vec_format(word_vectors_path, binary=True)
+        self.add_word_vector_model(model)
 
     def _one_hot_encoding(self, slice_, cl_iteration):
         return np.eye(self.output_size(cl_iteration), dtype=self.dtype)[slice_.astype(np.int32)]
@@ -309,6 +315,8 @@ class WordVectorsDataset(Dataset):
         return np.vstack([self._word_window_to_vector(ww) for ww in data_slice])
 
     def next_batch(self, batch_size, cl_iteration):
+        if self._word_vector_model is None:
+            raise ValueError('No wordvector model loaded.')
         start = self._index_in_epoch
         self._index_in_epoch += batch_size
 

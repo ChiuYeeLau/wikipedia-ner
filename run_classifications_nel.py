@@ -19,7 +19,7 @@ from wikipedianer.classification import heuristic_classifier
 from wikipedianer.classification import logistic_regression
 from wikipedianer.classification import random_classifier
 from wikipedianer.classification import nn_classifier
-from wikipedianer.dataset import HandcraftedFeaturesDataset
+from wikipedianer.dataset import HandcraftedFeaturesDataset, WordVectorsDataset
 
 
 
@@ -60,7 +60,9 @@ def read_arguments():
                         help='Number of epochs to train the mlp classifier')
     parser.add_argument('--evaluate-only', action='store_true',
                         help='Do not train the classifiers.')
-
+    parser.add_argument('--dataset_type', type=str, default='handcrafted',
+                        help='Type of dataset to use. Possible values are '
+                             'handcrafter or wordvectors.')
 
     return parser.parse_args()
 
@@ -103,8 +105,16 @@ def save_evaluation_results(classifier, dirname, classifier_factory,
 def main():
     """Main function of script."""
     args = read_arguments()
+    if args.dataset_type == 'handcrafted':
+        dataset_class = HandcraftedFeaturesDataset
+    elif args.dataset_type == 'wordvectors':
+        dataset_class = WordVectorsDataset
+    else:
+        logging.error('Incorrect dataset type')
+        return
     classifier = double_step_classifier.DoubleStepClassifier(
-        dataset_class=HandcraftedFeaturesDataset, use_trained=args.use_trained)
+        dataset_class=dataset_class, use_trained=args.use_trained)
+
 
     classifier.load_from_files(
         dataset_filepath=args.input_matrix_file,

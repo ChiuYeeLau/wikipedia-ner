@@ -19,9 +19,7 @@ try:
 except ImportError:
     from mock import patch
 from scipy.sparse import csr_matrix
-from wikipedianer.dataset import HandcraftedFeaturesDataset
-from wikipedianer.dataset.preprocess import StratifiedSplitter
-from wikipedianer.pipeline import util
+from wikipedianer.dataset import HandcraftedFeaturesDataset, WordVectorsDataset
 from wikipedianer.classification.base import BaseClassifier
 from wikipedianer.classification.double_step_classifier import (
         DoubleStepClassifier, MLPFactory, ClassifierFactory)
@@ -227,7 +225,7 @@ class ClassifierFactoryTest(unittest.TestCase):
         self._compare_values(values1=values2, values2=new_values2)
 
 
-class DoubleStepClassifierTest(unittest.TestCase):
+class DoubleStepClassifierHFTest(unittest.TestCase):
 
     OUTPUT_DIR = os.path.join('wikipedianer', 'classification', 'test_files')
 
@@ -435,6 +433,24 @@ class DoubleStepClassifierTest(unittest.TestCase):
                                           new_test_dataset.data))
         self.assertTrue(numpy.array_equal(test_dataset.labels,
                                           new_test_dataset.labels))
+
+
+class DoubleStepClassifierWVTest(unittest.TestCase):
+
+    OUTPUT_DIR = os.path.join('wikipedianer', 'classification', 'test_files')
+
+    def setUp(self):
+        self.classifier = DoubleStepClassifier(
+            dataset_class=WordVectorsDataset)
+
+    def test_basic_train(self):
+        """Test the training of with a simple matrix."""
+        classifier_factory = MLPFactory('', 10, [10])
+        self.classifier.train(classifier_factory)
+
+        # One of the datasets is too small
+        self.assertEqual(1, len(self.classifier.test_results))
+
 
 if __name__ == '__main__':
     unittest.main()

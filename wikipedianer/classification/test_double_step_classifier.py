@@ -354,7 +354,6 @@ class DoubleStepClassifierTest(unittest.TestCase):
                          new_predictions.tolist())
         safe_rmdir(self.OUTPUT_DIR)
 
-
     def test_create_dataset(self):
         result_dataset = self.classifier.create_train_dataset(0)
         self.assertIsNotNone(result_dataset)
@@ -395,7 +394,7 @@ class DoubleStepClassifierTest(unittest.TestCase):
         self.assertNotEqual(self.classifier.classes[1][predictions[2]], '11')
 
     def test_evaluate_with_files_lr(self):
-        """Test the evaluation saving the models to a file."""
+        """Test the logistic regression classifier saving model to file."""
         safe_rmdir(self.OUTPUT_DIR)
         safe_mkdir(self.OUTPUT_DIR)
         classifier_factory = LRClassifierFactory(
@@ -417,7 +416,7 @@ class DoubleStepClassifierTest(unittest.TestCase):
     def test_predict_w_given_labels_lr(self):
         """Test the evaluation of with a simple matrix."""
         classifier_factory = LRClassifierFactory()
-        self.classifier.train(classifier_factory)
+        self.classifier.train(classifier_factory, save_models=True)
         test_dataset = self.classifier.low_level_models[
             '0'][0].dataset.datasets['test']
         predictions = self.classifier.predict(

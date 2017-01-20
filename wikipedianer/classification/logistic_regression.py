@@ -23,7 +23,7 @@ class LRClassifierFactory(ClassifierFactory):
         self.save_models = save_models
         self.results_save_path = results_save_path
 
-    def get_classifier(self, dataset, experiment_name):
+    def get_classifier(self, dataset, experiment_name, ignore_batch_size=False):
         return LRCLassifier(dataset, save_model=self.save_models,
                             results_save_path=self.results_save_path,
                             experiment_name=experiment_name)

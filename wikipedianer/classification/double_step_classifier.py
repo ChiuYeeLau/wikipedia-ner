@@ -321,12 +321,10 @@ class DoubleStepClassifier(object):
                 self.low_level_trained_classes[hl_label] = None
         return dataset
 
-    def _predict_for_label(self, hl_label_index, classifier_factory,
-                           predicted_high_level_labels, dataset_name,
-                           predictions):
-        """Completes the predictions array with the classifier results
-        for hl_label_index
-        """
+    def _predict_with_hl_labels(self, hl_label_index, classifier_factory,
+                                predicted_high_level_labels,
+                                dataset_name, predictions):
+        """Fills the predictions param with the predictions"""
         load_model = False
         session = None
         hl_label = self.classes[0][hl_label_index]
@@ -351,29 +349,27 @@ class DoubleStepClassifier(object):
         else:
             model, session = self.low_level_models[hl_label]
 
-        if predicted_high_level_labels is None:
-            results = model.evaluate(dataset_name, return_extras=True,
-                                     restore=load_model, session=session)
-            test_indices = model.dataset.indices[dataset_name]
-        else:
-            assert (predicted_high_level_labels.shape[0] ==
-                    self.dataset.num_examples(dataset_name))
-            # Replace the dataset_name with a new one filtered from
-            # the instances with hl_label_index in predicted_high_level_labels
-            original_test_dataset = model.dataset.datasets[dataset_name]
-            test_x, test_y, test_indices = self._dataset_from_predictions(
-                dataset_name, hl_label_index, predicted_high_level_labels,
-                model.dataset.classes[1])
-            assert test_y.shape[0] == test_x.shape[0]
-            assert test_y.shape[0] == test_indices.shape[0]
-            model.dataset.add_dataset(dataset_name, test_x, test_y)
-            results = model.evaluate(dataset_name, return_extras=True,
-                                     restore=load_model, session=session)
-            # Restore old test dataset
-            model.dataset.add_dataset(
-                dataset_name, original_test_dataset.data,
-                original_test_dataset.labels)
+        # Replace the dataset_name with a new one filtered from
+        # the instances with hl_label_index in predicted_high_level_labels
+        original_test_dataset = model.dataset.datasets[dataset_name]
+        test_x, test_y, test_indices = self._dataset_from_predictions(
+            dataset_name, hl_label_index, predicted_high_level_labels,
+            model.dataset.classes[1])
+        assert test_y.shape[0] == test_x.shape[0]
+        assert test_y.shape[0] == test_indices.shape[0]
+        model.dataset.add_dataset(dataset_name, test_x, test_y)
+        results = model.evaluate(dataset_name, return_extras=True,
+                                 restore=load_model, session=session)
+        # Restore old test dataset
+        model.dataset.add_dataset(
+            dataset_name, original_test_dataset.data,
+            original_test_dataset.labels)
         y_true, y_pred = results[-2:]
+        self._replace_labels_in_prediction(model, predictions, test_indices,
+                                           y_pred)
+
+    def _replace_labels_in_prediction(self, model, predictions, test_indices,
+                                      y_pred):
         # Now we need to convert from low level dataset labels to the
         # high level labels.
         y_pred = model.dataset.classes[1][y_pred]
@@ -381,6 +377,42 @@ class DoubleStepClassifier(object):
             low_level_indices = numpy.where(
                 y_pred == low_level_class)[0]
             predictions[test_indices[low_level_indices]] = index
+
+    def _predict_for_label(self, hl_label_index, classifier_factory,
+                           dataset_name, predictions):
+        """Completes the predictions array with the classifier results
+        for hl_label_index
+        """
+        load_model = False
+        session = None
+        hl_label = self.classes[0][hl_label_index]
+        if not hl_label in self.low_level_models:
+            if classifier_factory is None:
+                return
+            # Read the model from file
+            new_dataset = self.create_train_dataset(hl_label_index)
+            if not new_dataset:
+                logging.warning('Evaluation dataset could not be created.')
+                return
+            try:
+                model = classifier_factory.get_classifier(
+                    new_dataset, hl_label, ignore_batch_size=True)
+            except Exception as e:
+                logging.error('Classifier {} not created. Error {}'.format(
+                    hl_label, e))
+                return
+            self.low_level_models[hl_label] = (model, None)
+            load_model = True
+        else:
+            model, session = self.low_level_models[hl_label]
+
+        results = model.evaluate(dataset_name, return_extras=True,
+                                 restore=load_model, session=session)
+        test_indices = model.dataset.indices[dataset_name]
+
+        y_true, y_pred = results[-2:]
+        self._replace_labels_in_prediction(model, predictions, test_indices,
+                                           y_pred)
 
     def predict(self, dataset_name, predicted_high_level_labels=None,
                 classifier_factory=None, default_label='O'):
@@ -392,16 +424,21 @@ class DoubleStepClassifier(object):
                        default_index)
         if not self.dataset:
             raise ValueError('A dataset must be loaded previously')
-        if isinstance(predicted_high_level_labels, list):
+        if (predicted_high_level_labels is not None and
+                isinstance(predicted_high_level_labels, list)):
             predicted_high_level_labels = numpy.array(
                 predicted_high_level_labels)
         for hl_label_index, hl_label in tqdm(enumerate(self.classes[0]),
                                              total=len(self.classes[0])):
             if hl_label == default_label:
                 continue
-            self._predict_for_label(
-                hl_label_index, classifier_factory, predicted_high_level_labels,
-                dataset_name, predictions)
+            if predicted_high_level_labels is None:
+                self._predict_for_label(hl_label_index, classifier_factory,
+                                        dataset_name, predictions)
+            else:
+                self._predict_with_hl_labels(
+                    hl_label_index, classifier_factory,
+                    predicted_high_level_labels, dataset_name, predictions)
         return predictions.astype(numpy.int32)
 
     def evaluate(self, predicted_high_level_labels=None,

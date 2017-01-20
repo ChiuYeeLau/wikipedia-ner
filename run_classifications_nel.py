@@ -7,16 +7,10 @@ python run_classifications_nel.py ../data/legal_sampled/filtered_handcreafter_ma
 from __future__ import absolute_import, print_function, unicode_literals
 
 import argparse
-import os
-
-import jsonlines
 import logging
-import pickle
-
-from collections import defaultdict
-
 import numpy
 import pandas
+import os
 
 logging.basicConfig(level=logging.INFO)
 
@@ -64,6 +58,8 @@ def read_arguments():
                              'Possible values 0 or 1.')
     parser.add_argument('--training-epochs', type=int, default=1000,
                         help='Number of epochs to train the mlp classifier')
+    parser.add_argument('--evaluate-only', action='store_true',
+                        help='Do not train the classifiers.')
 
 
     return parser.parse_args()
@@ -135,6 +131,8 @@ def main():
         factory = nn_classifier.NNeighborsClassifierFactory(
             args.features_filename, args.results_dirname)
 
+    if not args.evaluate_only:
+        classifier.train(factory)
     logging.info('Starting evaluation')
     high_level_predictions = get_high_level_predictions(
         args.high_level_predictions)

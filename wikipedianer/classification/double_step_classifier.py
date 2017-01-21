@@ -154,6 +154,8 @@ class DoubleStepClassifier(object):
         integer_labels = numpy.stack([cls[1] for cls in classes]).T
 
         self.dataset = self.dataset_class()
+        if isinstance(x_matrix, list):
+            x_matrix = numpy.array(x_matrix)
 
         if len(test_indices):
             test_x = x_matrix[test_indices]

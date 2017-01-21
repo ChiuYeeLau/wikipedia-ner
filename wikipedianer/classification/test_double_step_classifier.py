@@ -471,7 +471,7 @@ class DoubleStepClassifierWVTest(DoubleStepClassifierHFTest):
         words_filename = os.path.join(self.TEST_FILES_DIR,
                                       'random_words.pickle')
         with open(words_filename, 'rb') as infile:
-            x_matrix = pickle.load(infile)
+            x_matrix = pickle.load(infile).tolist()
         train_indices = [0, 1, 2, 3, 4]
         test_indices = [5, 6, 7]
         validation_indices = [8, 9, 10, 11]

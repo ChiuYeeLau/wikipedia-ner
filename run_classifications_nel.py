@@ -7,6 +7,7 @@ python run_classifications_nel.py ../data/legal_sampled/filtered_handcreafter_ma
 from __future__ import absolute_import, print_function, unicode_literals
 
 import argparse
+import gensim
 import logging
 import numpy
 import pandas
@@ -27,8 +28,10 @@ def read_arguments():
     """Parses the arguments from the stdin and returns an object."""
     parser = argparse.ArgumentParser()
     parser.add_argument('input_matrix_file', type=str,
-                        help='Path of file with the numpy matrix used for'
-                             'training')
+                        help='Path of file with the matrix used for'
+                             'training. For handcrafted features dataset, it'
+                             'must be a scipy.sparse.csr_matrix. For a '
+                             'wordvector must be a pickled file.')
     parser.add_argument('--labels_filepath', '-l,', type=str,
                         help='Path of file with the pickled labels to use')
     parser.add_argument('--high_level_model', type=str, default=None,
@@ -63,6 +66,10 @@ def read_arguments():
     parser.add_argument('--dataset_type', type=str, default='handcrafted',
                         help='Type of dataset to use. Possible values are '
                              'handcrafter or wordvectors.')
+    parser.add_argument('--word_vector_model_file', type=str, default=None,
+                        help='Path to stored gensim.model.Word2vec trained '
+                             'model. Used only when dataset_type is '
+                             'wordvectors')
 
     return parser.parse_args()
 
@@ -108,7 +115,14 @@ def main():
     if args.dataset_type == 'handcrafted':
         dataset_class = HandcraftedFeaturesDataset
     elif args.dataset_type == 'wordvectors':
+        if args.word_vector_model_file is None:
+            logging.error('With wordvectors dataset you must provide '
+                          'word_vector_model_file')
+            return
+        word_vector_model = gensim.models.Word2Vec.load(
+            args.word_vector_model_file)
         dataset_class = WordVectorsDataset
+        dataset_class.WORD_VECTOR_MODEL = word_vector_model
     else:
         logging.error('Incorrect dataset type')
         return

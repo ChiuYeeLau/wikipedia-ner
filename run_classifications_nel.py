@@ -71,14 +71,14 @@ def get_high_level_predictions(high_level_predictions_filename):
     if high_level_predictions_filename is None:
         return None
     predictions = pandas.read_csv(high_level_predictions_filename)
-    return predictions.prediction
+    return predictions
 
 
 def save_evaluation_results(classifier, dirname, classifier_factory,
                             predicted_high_level_labels):
     accuracy, precision, recall, fscore, y_true, y_pred = classifier.evaluate(
         classifier_factory=classifier_factory,
-        predicted_high_level_labels=predicted_high_level_labels
+        hl_predictions=predicted_high_level_labels
     )
     evaluation_results = pandas.DataFrame(
         columns=['accuracy', 'class', 'precision', 'recall', 'fscore'])

@@ -34,9 +34,6 @@ def read_arguments():
                              'wordvector must be a pickled file.')
     parser.add_argument('--labels_filepath', '-l,', type=str,
                         help='Path of file with the pickled labels to use')
-    parser.add_argument('--high_level_model', type=str, default=None,
-                        help='Path of file with the tensorflow model trained'
-                             'with high level labels')
     parser.add_argument('--results_dirname', '-r', type=str,
                         help='Path of directory to save results')
     parser.add_argument('--high_level_predictions', type=str,
@@ -114,6 +111,7 @@ def main():
     args = read_arguments()
     if args.dataset_type == 'handcrafted':
         dataset_class = HandcraftedFeaturesDataset
+        dtype = numpy.int32
     elif args.dataset_type == 'wordvectors':
         if args.word_vector_model_file is None:
             logging.error('With wordvectors dataset you must provide '
@@ -123,11 +121,12 @@ def main():
             args.word_vector_model_file)
         dataset_class = WordVectorsDataset
         dataset_class.WORD_VECTOR_MODEL = word_vector_model
+        dtype = numpy.float32
     else:
         logging.error('Incorrect dataset type')
         return
     classifier = double_step_classifier.DoubleStepClassifier(
-        dataset_class=dataset_class, use_trained=args.use_trained)
+        dataset_class=dataset_class, use_trained=args.use_trained, dtype=dtype)
 
 
     classifier.load_from_files(

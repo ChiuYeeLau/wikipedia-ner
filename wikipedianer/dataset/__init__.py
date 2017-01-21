@@ -237,6 +237,11 @@ class HandcraftedFeaturesDataset(Dataset):
 
 
 class WordVectorsDataset(Dataset):
+
+    # This class attribute is used for the double step pipeline, where several
+    # datasets will be created sharing the same Word2vec model.
+    WORD_VECTOR_MODEL = None
+
     def __init__(self, dataset_path='', labels_path='', indices_path='',
                  word_vectors_path=None, dtype=np.float32, debug=False):
         super(WordVectorsDataset, self).__init__(dataset_path, labels_path, indices_path, dtype)
@@ -270,9 +275,11 @@ class WordVectorsDataset(Dataset):
         print('Filtering and splitting dataset', file=sys.stderr, flush=True)
         dataset = [dataset[i] for i in indices['filtered_indices']]
 
-        self.train_dataset = [dataset[i] for i in indices['train_indices']]
-        self.test_dataset = [dataset[i] for i in indices['test_indices']]
-        self.validation_dataset = [dataset[i] for i in indices['validation_indices']]
+        if isinstance(dataset, list):
+            dataset = np.array(dataset)
+        self.train_dataset = dataset[indices['train_indices']]
+        self.test_dataset = dataset[indices['test_indices']]
+        self.validation_dataset = dataset[indices['validation_indices']]
 
         integer_labels = np.stack([cls[1] for cls in classes]).T
 
@@ -280,11 +287,22 @@ class WordVectorsDataset(Dataset):
         self.test_labels = integer_labels[indices['test_indices']]
         self.validation_labels = integer_labels[indices['validation_indices']]
 
+        # This function may be called on __init__.
+        if self.WORD_VECTOR_MODEL is not None:
+            self.add_word_vector_model(self.WORD_VECTOR_MODEL)
+
+    def load_from_arrays(self, *args, **kwargs):
+        super(WordVectorsDataset, self).load_from_arrays(*args, **kwargs)
+        if self.WORD_VECTOR_MODEL is not None:
+            self.add_word_vector_model(self.WORD_VECTOR_MODEL)
+
     def add_word_vector_model(self, model):
-        """Add the gensim wordvecto model."""
+        """Add the gensim wordvecto model.
+
+        Must be called when the datasets are loaded."""
         self._word_vector_model = model
-        self._input_size = self._word_vector_model.vector_size * len(
-            self.train_dataset[0])
+        self._input_size = self._word_vector_model.vector_size * \
+                           self.train_dataset.shape[1]
         self._vector_size = self._word_vector_model.vector_size
 
     def __load_word_vectors__(self, word_vectors_path):
@@ -326,7 +344,7 @@ class WordVectorsDataset(Dataset):
             # Shuffle the data
             perm = np.arange(self.num_examples())
             np.random.shuffle(perm)
-            self.train_dataset = [self.train_dataset[i] for i in perm]
+            self.train_dataset = self.train_dataset[perm]
             self.train_labels = self.train_labels[perm]
             # Start next epoch
             start = 0

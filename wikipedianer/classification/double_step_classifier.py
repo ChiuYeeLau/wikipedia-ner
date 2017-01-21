@@ -371,7 +371,7 @@ class DoubleStepClassifier(object):
                                       y_pred):
         # Now we need to convert from low level dataset labels to the
         # high level labels.
-        y_pred = model.dataset.classes[1][y_pred]
+        y_pred = model.dataset.classes[1][y_pred.astype(numpy.int32)]
         for index, low_level_class in enumerate(self.classes[1]):
             low_level_indices = numpy.where(
                 y_pred == low_level_class)[0]

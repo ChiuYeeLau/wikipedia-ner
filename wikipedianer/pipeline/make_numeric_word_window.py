@@ -32,9 +32,9 @@ def make_numeric_word_window(windows, model):
         for index2, word in enumerate(instance):
             word_index = 0
             if word[0] in model:
-                word_index = model.vocab[word[0]].index
+                word_index = model.wv.vocab[word[0]].index
             elif word[1] in model:
-                word_index = model.vocab[word[1]].index
+                word_index = model.wv.vocab[word[1]].index
             new_windows[index1, index2] = word_index
     return new_windows
 

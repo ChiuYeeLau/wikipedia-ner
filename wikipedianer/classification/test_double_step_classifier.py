@@ -298,8 +298,7 @@ class DoubleStepClassifierHFTest(unittest.TestCase):
         test_dataset = self.classifier.low_level_models[
             '0'][0].dataset.datasets['test']
         predictions = self.classifier.predict(
-            'test', predicted_high_level_labels=[1, 1, 0],
-            default_label=4).tolist()
+            'test', hl_predictions=[1, 1, 0], default_label=4).tolist()
         self.assertEqual(len(predictions), 3)
 
         self.assertEqual(predictions[0], 0)
@@ -421,7 +420,7 @@ class DoubleStepClassifierHFTest(unittest.TestCase):
         test_dataset = self.classifier.low_level_models[
             '0'][0].dataset.datasets['test']
         predictions = self.classifier.predict(
-            'test', predicted_high_level_labels=[1, 1, 0],
+            'test', hl_predictions=[1, 1, 0],
             default_label=4).tolist()
         self.assertEqual(len(predictions), 3)
 

@@ -63,7 +63,6 @@ class MLPFactory(ClassifierFactory):
         return classifier
 
 
-
 class DoubleStepClassifier(object):
     """Double step classifier.
     The classification process has two stages:
@@ -288,9 +287,9 @@ class DoubleStepClassifier(object):
             self.total_test_size += new_dataset.num_examples('test')
 
     def _dataset_from_predictions(self, dataset_name, target_label_index,
-                                  predicted_high_level_labels, new_labels):
+                                  hl_predictions, new_labels):
         test_indices = numpy.where(
-            predicted_high_level_labels == target_label_index)
+            hl_predictions == target_label_index)
         dataset_to_filter = self.dataset.datasets[dataset_name]
         test_x = dataset_to_filter.data[test_indices]
         test_y = dataset_to_filter.labels[test_indices]
@@ -308,6 +307,15 @@ class DoubleStepClassifier(object):
                 new_test_y[mask, 1] = new_index
         return test_x, test_y, test_indices[0]
 
+    def sanitize_hl_predictions(self, dataset_name, hl_predictions):
+        if hl_predictions is None:
+            return hl_predictions
+        if isinstance(hl_predictions, list):
+            hl_predictions = numpy.array(hl_predictions)
+        assert self.dataset.num_examples(
+            dataset_name) == hl_predictions.shape[0]
+        return hl_predictions
+
     def _get_dataset_for_factory(self, hl_label, hl_label_index):
         """Return the minimal possible dataset to build a classifier."""
         if hl_label in self.low_level_trained_classes:
@@ -324,7 +332,7 @@ class DoubleStepClassifier(object):
         return dataset
 
     def _predict_with_hl_labels(self, hl_label_index, classifier_factory,
-                                predicted_high_level_labels,
+                                hl_predictions,
                                 dataset_name, predictions):
         """Fills the predictions param with the predictions"""
         load_model = False
@@ -339,6 +347,7 @@ class DoubleStepClassifier(object):
             if not new_dataset:
                 logging.warning('Evaluation dataset could not be created.')
                 return
+            
             try:
                 model = classifier_factory.get_classifier(
                     new_dataset, hl_label, ignore_batch_size=True)
@@ -351,11 +360,18 @@ class DoubleStepClassifier(object):
         else:
             model, session = self.low_level_models[hl_label]
         # Replace the dataset_name with a new one filtered from
-        # the instances with hl_label_index in predicted_high_level_labels
+        # the instances with hl_label_index in hl_predictions
         original_test_dataset = model.dataset.datasets[dataset_name]
         test_x, test_y, test_indices = self._dataset_from_predictions(
-            dataset_name, hl_label_index, predicted_high_level_labels,
+            dataset_name, hl_label_index, hl_predictions,
             model.dataset.classes[1])
+        if self.dataset.datasets[dataset_name].labels.shape[0] > 0:
+            matching_labels = numpy.where(
+                self.dataset.datasets[dataset_name].labels[test_indices, 0] ==
+                hl_label_index)[0].shape
+            if matching_labels == 0:
+                logging.warning('Matching predicted_labels {}'.format(
+                    matching_labels))
         assert test_y.shape[0] == test_x.shape[0]
         assert test_y.shape[0] == test_indices.shape[0]
         model.dataset.add_dataset(dataset_name, test_x, test_y)
@@ -414,7 +430,7 @@ class DoubleStepClassifier(object):
         self._replace_labels_in_prediction(model, predictions, test_indices,
                                            y_pred)
 
-    def predict(self, dataset_name, predicted_high_level_labels=None,
+    def predict(self, dataset_name, hl_predictions=None,
                 classifier_factory=None, default_label='O'):
         if default_label in self.classes[1]:
             default_index = numpy.where(self.classes[1] == default_label)[0][0]
@@ -424,32 +440,30 @@ class DoubleStepClassifier(object):
                        default_index)
         if not self.dataset:
             raise ValueError('A dataset must be loaded previously')
-        if (predicted_high_level_labels is not None and
-                isinstance(predicted_high_level_labels, list)):
-            predicted_high_level_labels = numpy.array(
-                predicted_high_level_labels)
+        hl_predictions = self.sanitize_hl_predictions(
+            dataset_name, hl_predictions)
         for hl_label_index, hl_label in tqdm(enumerate(self.classes[0]),
                                              total=len(self.classes[0])):
             if hl_label == default_label:
                 continue
-            if predicted_high_level_labels is None:
+            if hl_predictions is None:
                 self._predict_for_label(hl_label_index, classifier_factory,
                                         dataset_name, predictions)
             else:
                 self._predict_with_hl_labels(
                     hl_label_index, classifier_factory,
-                    predicted_high_level_labels, dataset_name, predictions)
+                    hl_predictions, dataset_name, predictions)
         return predictions.astype(numpy.int32)
 
-    def evaluate(self, predicted_high_level_labels=None,
+    def evaluate(self, hl_predictions=None,
                  classifier_factory=None, default_label='O'):
         """Evalutes the classifier in a real pipeline over the test dataset.
 
-        Uses the predicted_high_level_labels to select a low level classifier
+        Uses the hl_predictions to select a low level classifier
         to apply to the instance.
         """
         y_true = self.dataset.datasets['test'].labels[:,1]
-        y_pred = self.predict('test', predicted_high_level_labels,
+        y_pred = self.predict('test', hl_predictions,
                               classifier_factory, default_label)
         accuracy = accuracy_score(y_true, y_pred.astype(y_true.dtype))
 

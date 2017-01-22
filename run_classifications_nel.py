@@ -71,7 +71,7 @@ def get_high_level_predictions(high_level_predictions_filename):
     if high_level_predictions_filename is None:
         return None
     predictions = pandas.read_csv(high_level_predictions_filename)
-    return predictions
+    return predictions.prediction
 
 
 def save_evaluation_results(classifier, dirname, classifier_factory,

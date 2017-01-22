@@ -63,7 +63,6 @@ class MLPFactory(ClassifierFactory):
         return classifier
 
 
-
 class DoubleStepClassifier(object):
     """Double step classifier.
     The classification process has two stages:
@@ -307,27 +306,13 @@ class DoubleStepClassifier(object):
         return test_x, test_y, test_indices[0]
 
     def sanitize_hl_predictions(self, dataset_name, hl_predictions):
-        """In case the hl_predictions are using a different ordering of the 
-        labels, infer it from the true predictions"""
-        if isinstance(hl_predictions, list):
-            return numpy.array(hl_predictions)
-        if not isinstance(hl_predictions, pandas.DataFrame):
+        if hl_predictions is None:
             return hl_predictions
+        if isinstance(hl_predictions, list):
+            hl_predictions = numpy.array(hl_predictions)
         assert self.dataset.num_examples(
             dataset_name) == hl_predictions.shape[0]
-        logging.info('Sanitizing labels')
-        original_labels = self.dataset.datasets[dataset_name].labels[:,0]
-        new_hl_predictions = numpy.zeros(hl_predictions.shape[0])
-        for hl_label_index in range(self.classes[0].shape[0]):
-            true_indices = numpy.where(original_labels == hl_label_index)[0]
-            predicted_label_index = hl_predictions.true[true_indices[0]]
-            predicted_indices = numpy.where(hl_predictions.true ==
-                                            predicted_label_index)[0]
-            assert numpy.array_equal(true_indices, predicted_indices)
-            new_hl_predictions[
-                numpy.where(hl_predictions.prediction ==
-                            predicted_label_index)[0]] = hl_label_index
-        return new_hl_predictions
+        return hl_predictions
 
     def _get_dataset_for_factory(self, hl_label, hl_label_index):
         """Return the minimal possible dataset to build a classifier."""

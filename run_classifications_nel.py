@@ -20,7 +20,7 @@ from wikipedianer.classification import heuristic_classifier
 from wikipedianer.classification import logistic_regression
 from wikipedianer.classification import random_classifier
 from wikipedianer.classification import nn_classifier
-from wikipedianer.dataset import HandcraftedFeaturesDataset, WordVectorsDataset
+from wikipedianer.dataset import HandcraftedFeaturesDataset, WordVectorsNumericDataset
 
 
 
@@ -119,7 +119,7 @@ def main():
             return
         word_vector_model = gensim.models.Word2Vec.load(
             args.word_vector_model_file)
-        dataset_class = WordVectorsDataset
+        dataset_class = WordVectorsNumericDataset
         dataset_class.WORD_VECTOR_MODEL = word_vector_model
         dtype = numpy.float32
     else:

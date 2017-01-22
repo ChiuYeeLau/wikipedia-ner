@@ -14,12 +14,15 @@ import shutil
 import tensorflow as tf
 import unittest
 
+from wikipedianer.pipeline.make_numeric_word_window import \
+    make_numeric_word_window
+
 try:
     from unittest.mock import patch
 except ImportError:
     from mock import patch
 from scipy.sparse import csr_matrix
-from wikipedianer.dataset import HandcraftedFeaturesDataset, WordVectorsDataset
+from wikipedianer.dataset import HandcraftedFeaturesDataset, WordVectorsNumericDataset
 from wikipedianer.classification.base import BaseClassifier
 from wikipedianer.classification.double_step_classifier import (
         DoubleStepClassifier, MLPFactory, ClassifierFactory)
@@ -461,7 +464,7 @@ class DoubleStepClassifierWVTest(DoubleStepClassifierHFTest):
             cls.WORD_VECTOR_MODEL = model
 
     def setUp(self):
-        dataset_class = WordVectorsDataset
+        dataset_class = WordVectorsNumericDataset
         dataset_class.WORD_VECTOR_MODEL = self.WORD_VECTOR_MODEL
         self.classifier = DoubleStepClassifier(
             dataset_class=dataset_class)
@@ -472,6 +475,7 @@ class DoubleStepClassifierWVTest(DoubleStepClassifierHFTest):
                                       'random_words.pickle')
         with open(words_filename, 'rb') as infile:
             x_matrix = pickle.load(infile).tolist()
+        x_matrix = make_numeric_word_window(x_matrix, self.WORD_VECTOR_MODEL)
         train_indices = [0, 1, 2, 3, 4]
         test_indices = [5, 6, 7]
         validation_indices = [8, 9, 10, 11]
@@ -489,6 +493,7 @@ class DoubleStepClassifierWVTest(DoubleStepClassifierHFTest):
         self.classifier.load_from_arrays(
             x_matrix, hl_labels, ll_labels, train_indices,
             test_indices, validation_indices)
+
 
 if __name__ == '__main__':
     unittest.main()

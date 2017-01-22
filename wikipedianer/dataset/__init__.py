@@ -238,10 +238,6 @@ class HandcraftedFeaturesDataset(Dataset):
 
 class WordVectorsDataset(Dataset):
 
-    # This class attribute is used for the double step pipeline, where several
-    # datasets will be created sharing the same Word2vec model.
-    WORD_VECTOR_MODEL = None
-
     def __init__(self, dataset_path='', labels_path='', indices_path='',
                  word_vectors_path=None, dtype=np.float32, debug=False):
         super(WordVectorsDataset, self).__init__(dataset_path, labels_path, indices_path, dtype)
@@ -270,16 +266,19 @@ class WordVectorsDataset(Dataset):
             replaced_labels = np.array([label[idx] for label in labels])
             classes.append(np.unique(replaced_labels, return_inverse=True))
 
+        # Realease some memory
+        del labels
         self.classes = tuple([cls[0] for cls in classes])
 
         print('Filtering and splitting dataset', file=sys.stderr, flush=True)
         dataset = [dataset[i] for i in indices['filtered_indices']]
 
-        if isinstance(dataset, list):
-            dataset = np.array(dataset)
-        self.train_dataset = dataset[indices['train_indices']]
-        self.test_dataset = dataset[indices['test_indices']]
-        self.validation_dataset = dataset[indices['validation_indices']]
+        self.train_dataset = self._filter_dataset(dataset,
+                                                  indices['train_indices'])
+        self.test_dataset = self._filter_dataset(dataset,
+                                                 indices['test_indices'])
+        self.validation_dataset = self._filter_dataset(
+            dataset, indices['validation_indices'])
 
         integer_labels = np.stack([cls[1] for cls in classes]).T
 
@@ -287,23 +286,19 @@ class WordVectorsDataset(Dataset):
         self.test_labels = integer_labels[indices['test_indices']]
         self.validation_labels = integer_labels[indices['validation_indices']]
 
-        # This function may be called on __init__.
-        if self.WORD_VECTOR_MODEL is not None:
-            self.add_word_vector_model(self.WORD_VECTOR_MODEL)
-
-    def load_from_arrays(self, *args, **kwargs):
-        super(WordVectorsDataset, self).load_from_arrays(*args, **kwargs)
-        if self.WORD_VECTOR_MODEL is not None:
-            self.add_word_vector_model(self.WORD_VECTOR_MODEL)
-
     def add_word_vector_model(self, model):
         """Add the gensim wordvecto model.
 
         Must be called when the datasets are loaded."""
         self._word_vector_model = model
-        self._input_size = self._word_vector_model.vector_size * \
-                           self.train_dataset.shape[1]
+        self._input_size = self._word_vector_model.vector_size * len(
+                           self.train_dataset[0])
         self._vector_size = self._word_vector_model.vector_size
+
+    @staticmethod
+    def _filter_dataset(dataset, indices):
+        """Returns a copy of the dataset filtered by the given indices"""
+        return [dataset[i] for i in indices]
 
     def __load_word_vectors__(self, word_vectors_path):
         print('Loading word vectors', file=sys.stderr)
@@ -344,7 +339,7 @@ class WordVectorsDataset(Dataset):
             # Shuffle the data
             perm = np.arange(self.num_examples())
             np.random.shuffle(perm)
-            self.train_dataset = self.train_dataset[perm]
+            self.train_dataset = self._filter_dataset(self.train_dataset, perm)
             self.train_labels = self.train_labels[perm]
             # Start next epoch
             start = 0
@@ -369,3 +364,54 @@ class WordVectorsDataset(Dataset):
 
         for step in tqdm(np.arange(len(dataset), step=batch_size)):
             yield step, self._data_slice_to_vectors(dataset[step:min(step+batch_size, len(dataset))])
+
+
+class WordVectorsNumericDataset(WordVectorsDataset):
+    """Class equivalent to WordVectorsDataset.
+
+    The word window is expected to be a numeric array instead of a list of
+    words. This class is supported by the DoubleStepClassifier pipeline.
+    """
+
+    # This class attribute is used for the double step pipeline, where several
+    # datasets will be created sharing the same Word2vec model.
+    WORD_VECTOR_MODEL = None
+
+    def __load_data__(self, *args, **kwargs):
+        super(WordVectorsNumericDataset, self).__load_data__(*args, **kwargs)
+
+        # This function may be called on __init__.
+        if self.WORD_VECTOR_MODEL is not None:
+            self.add_word_vector_model(self.WORD_VECTOR_MODEL)
+
+    @staticmethod
+    def _filter_dataset(dataset, indices):
+        """Returns a copy of the dataset filtered by the given indices"""
+        return dataset[indices]
+
+    def load_from_arrays(self, *args, **kwargs):
+        super(WordVectorsDataset, self).load_from_arrays(*args, **kwargs)
+        if self.WORD_VECTOR_MODEL is not None:
+            self.add_word_vector_model(self.WORD_VECTOR_MODEL)
+
+    def add_word_vector_model(self, model):
+        """Add the gensim wordvecto model.
+
+        Must be called when the datasets are loaded."""
+        self._word_vector_model = model
+        self._input_size = self._word_vector_model.vector_size * \
+                           self.train_dataset.shape[1]
+        self._vector_size = self._word_vector_model.vector_size
+
+
+    def _word_window_to_vector(self, word_window):
+        vector = []
+
+        for word_index in word_window:
+            if word_index is 0:
+                vector.append(np.zeros(self.vector_size, dtype=self.dtype))
+            else:
+                word = self._word_vector_model.index2word[word_index]
+                vector.append(self._word_vector_model[word])
+
+        return np.concatenate(vector)

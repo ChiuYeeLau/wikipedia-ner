@@ -78,3 +78,5 @@ run_*.sh
 
 # generated test files
 test_files/generated
+wikipedianer/classification/test_files/
+wikipedianer/classification/test_files_wv/generated*

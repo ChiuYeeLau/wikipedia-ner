@@ -43,9 +43,9 @@ class LRCLassifier(BaseClassifier):
 
     def train(self, *args, **kwargs):
         # Train
-        self.model.fit(
-            self.dataset.datasets['train'].data,
-            self.dataset.datasets['train'].labels[:, self.cl_iteration])
+        x_matrix, y_vector = self.dataset.next_batch(
+            self.dataset.num_examples('train'), cl_iteration=self.cl_iteration)
+        self.model.fit(x_matrix, y_vector[:,self.cl_iteration])
 
         # Get accuracy on test dataset
         accuracy, precision, recall, fscore, y_true, y_pred = self.evaluate(
@@ -65,7 +65,10 @@ class LRCLassifier(BaseClassifier):
         if restore:
             self.read()
         y_true = self.dataset.datasets[dataset_name].labels[:,self.cl_iteration]
-        y_pred = self.model.predict(self.dataset.datasets[dataset_name].data)
+        # A single iteration is expected
+        x_matrix = next(self.dataset.traverse_dataset(
+            dataset_name, self.dataset.num_examples(dataset_name)))[1]
+        y_pred = self.model.predict(x_matrix)
         accuracy = accuracy_score(y_true, y_pred.astype(y_true.dtype))
         if not return_extras:
             return accuracy

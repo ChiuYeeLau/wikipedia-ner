@@ -153,6 +153,8 @@ class DoubleStepClassifier(object):
         integer_labels = numpy.stack([cls[1] for cls in classes]).T
 
         self.dataset = self.dataset_class()
+        if isinstance(x_matrix, list):
+            x_matrix = numpy.array(x_matrix)
 
         if len(test_indices):
             test_x = x_matrix[test_indices]
@@ -387,7 +389,7 @@ class DoubleStepClassifier(object):
                                       y_pred):
         # Now we need to convert from low level dataset labels to the
         # high level labels.
-        y_pred = model.dataset.classes[1][y_pred]
+        y_pred = model.dataset.classes[1][y_pred.astype(numpy.int32)]
         for index, low_level_class in enumerate(self.classes[1]):
             low_level_indices = numpy.where(
                 y_pred == low_level_class)[0]

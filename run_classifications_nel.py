@@ -67,6 +67,8 @@ def read_arguments():
                         help='Path to stored gensim.model.Word2vec trained '
                              'model. Used only when dataset_type is '
                              'wordvectors')
+    parser.add_argument('--binary_save', action='store_true',
+                        help='Load gensim model with binary flag set to True.')
 
     return parser.parse_args()
 
@@ -117,8 +119,8 @@ def main():
             logging.error('With wordvectors dataset you must provide '
                           'word_vector_model_file')
             return
-        word_vector_model = gensim.models.Word2Vec.load(
-            args.word_vector_model_file)
+        word_vector_model = gensim.models.Word2Vec.load_word2vec_format(
+            args.word_vector_model_file, binary=args.binary_save)
         dataset_class = WordVectorsNumericDataset
         dataset_class.WORD_VECTOR_MODEL = word_vector_model
         dtype = numpy.float32

@@ -271,7 +271,7 @@ class WordVectorsDataset(Dataset):
         self.classes = tuple([cls[0] for cls in classes])
 
         print('Filtering and splitting dataset', file=sys.stderr, flush=True)
-        dataset = [dataset[i] for i in indices['filtered_indices']]
+        dataset = self._filter_dataset(dataset, indices['filtered_indices'])
 
         self.train_dataset = self._filter_dataset(dataset,
                                                   indices['train_indices'])
@@ -411,7 +411,7 @@ class WordVectorsNumericDataset(WordVectorsDataset):
             if word_index is 0:
                 vector.append(np.zeros(self.vector_size, dtype=self.dtype))
             else:
-                word = self._word_vector_model.index2word[word_index]
+                word = self._word_vector_model.wv.index2word[word_index]
                 vector.append(self._word_vector_model[word])
 
         return np.concatenate(vector)

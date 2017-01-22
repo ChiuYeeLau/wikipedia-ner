@@ -163,8 +163,6 @@ class MultilayerPerceptron(BaseClassifier):
             sess = self._restore(model_name)
         y_pred = np.zeros(self.dataset.num_examples(dataset_name),
                           dtype=np.int32)
-        print('Running evaluation for dataset %s' % dataset_name,
-              file=sys.stderr, flush=True)
         for step, dataset_chunk in self.dataset.traverse_dataset(
                 dataset_name, self.batch_size):
             feed_dict = {

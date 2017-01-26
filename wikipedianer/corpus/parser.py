@@ -221,13 +221,16 @@ class WikipediaCorpusColumnParser(object):
                 else:
                     if self.keep_originals:
                         original_line = line
-
-                    try:
-                        _, token, tag, uri_label, yago_labels, lkif_labels, entity_labels = line.split()
-                    except ValueError:
-                        _, token, tag, uri_label, yago_labels, lkif_labels = line.split()
+                    
+                    split = line.split()
+                    if len(split) == 7:
+                        _, token, tag, uri_label, yago_labels, lkif_labels, entity_labels = split
+                    elif len(split) == 6:
+                        _, token, tag, uri_label, yago_labels, lkif_labels = split
                         # TODO: Copy lkif labels until final entity labels are ready to go
                         entity_labels = lkif_labels
+                    else:
+                        raise ValueError('Too many values to unpack in line {}'.format(line))
 
                     widx = len(words)
                     is_doc_start = uri_label.endswith('-DOC')

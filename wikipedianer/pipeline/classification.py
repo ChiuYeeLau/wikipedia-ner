@@ -18,7 +18,8 @@ def get_dataset(dataset_path, labels_path, indices_path, word_vectors_path=None,
     if word_vectors_path or debug_word_vectors:
         dataset = WordVectorsDataset(dataset_path, labels_path, indices_path,
                                      word_vectors_path, dtype=np.float32,
-                                     debug=debug_word_vectors)
+                                     debug=debug_word_vectors,
+                                     classes_path=classes_path)
     else:
         dataset = HandcraftedFeaturesDataset(
             dataset_path, labels_path, indices_path, dtype=np.float32,

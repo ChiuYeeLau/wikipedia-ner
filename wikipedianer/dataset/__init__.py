@@ -276,7 +276,7 @@ class WordVectorsDataset(Dataset):
                  word_vectors_path=None, dtype=np.float32, debug=False,
                  classes_path=None):
         super(WordVectorsDataset, self).__init__(
-            dataset_path, labels_path, indices_path, dtype,
+            dataset_path, labels_path, indices_path, dtype=dtype,
             classes_path=classes_path)
         self.debug = debug
         self._word_vector_model = None
@@ -286,6 +286,7 @@ class WordVectorsDataset(Dataset):
     def __load_data__(self, dataset_path, labels_path, indices_path,
                       classes_path=None,
                       cl_iterations=enumerate(CL_ITERATIONS)):
+        cl_iterations = list(cl_iterations)
         print('Loading dataset from file %s' % dataset_path, file=sys.stderr, flush=True)
         with open(dataset_path, 'rb') as f:
             dataset = pickle.load(f)

@@ -52,7 +52,7 @@ def run_classifier(dataset, results_save_path, pre_trained_weights_save_path,
 
         print('Running experiment: %s' % experiment_name, file=sys.stderr, flush=True)
 
-        if len(experiments_names) > 1:
+        if len(experiments_names) > 1 and not evaluate_only:
             print('Loading previous weights and biases', file=sys.stderr, flush=True)
             pre_weights = np.load(os.path.join(pre_trained_weights_save_path, '%s_weights.npz' % experiments_names[-2]))
             pre_biases = np.load(os.path.join(pre_trained_weights_save_path, '%s_biases.npz' % experiments_names[-2]))

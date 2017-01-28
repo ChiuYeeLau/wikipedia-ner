@@ -81,6 +81,7 @@ def feature_selection(dataset, features_names, matrix_file_path, features_file_p
 
     print('Filtering features', file=sys.stderr, flush=True)
     dataset = csr_matrix(dataset[:, valid_indices])
+    print('Final dataset size {}'.format(dataset.shape), file=sys.stderr, flush=True)
 
     print('Saving dataset to file {}'.format(matrix_file_path), file=sys.stderr, flush=True)
     np.savez_compressed(matrix_file_path, data=dataset.data, indices=dataset.indices,
@@ -136,13 +137,15 @@ def parse_corpus_to_handcrafted_features(path, matrix_file_path, labels_file_pat
                         # Randomize the selection of labels in higher levels
                         label_item = np.random.randint(len(yago_labels))
 
-                        labels.append((
+                        get_label = lambda x: x if x != 'O' else ''
+                        all_labels = (
                             '%s' % uri_label,
-                            '%s-%s' % (ner_tag, yago_labels[label_item]),
-                            '%s-%s' % (ner_tag, lkif_labels[label_item]),
-                            '%s-%s' % (ner_tag, entity_labels[label_item]),
+                            '%s-%s' % (ner_tag, get_label(yago_labels[label_item])),
+                            '%s-%s' % (ner_tag, get_label(lkif_labels[label_item])),
+                            '%s-%s' % (ner_tag, get_label(entity_labels[label_item])),
                             '%s' % ner_label
-                        ))
+                        )
+                        labels.append(all_labels)
                     else:
                         labels.append(('O', 'O', 'O', 'O', 'O'))
 
@@ -160,16 +163,30 @@ def parse_corpus_to_handcrafted_features(path, matrix_file_path, labels_file_pat
             with open(labels_file_path, 'wb') as f:
                 pickle.dump(labels, f)
 
+    # Try to read the features
     vectorizer = DictVectorizer(dtype=np.int32)
-    dataset_matrix = vectorizer.fit_transform(instances)
-    features_names = sorted(vectorizer.vocabulary_, key=vectorizer.vocabulary_.get)
+    try:
+        with open(features_file_path, 'rb') as f:
+            features_names = pickle.load(f)
+        # This shouln't be done, but I'm in a hurry
+        vectorizer.feature_names_ = features_names
+        vectorizer.vocabulary_ = {x: index for index, x in enumerate(features_names)}
+        dataset_matrix = vectorizer.transform(instances)
+        print('Features from file %s used' % features_file_path,
+              file=sys.stderr, flush=True)
+    except:
+        dataset_matrix = vectorizer.fit_transform(instances)
+        features_names = sorted(vectorizer.vocabulary_,
+                                key=vectorizer.vocabulary_.get)
+
+        print('Saving features to file %s' % features_file_path,
+              file=sys.stderr, flush=True)
+        with open(features_file_path, 'wb') as f:
+            pickle.dump(features_names, f)
     del vectorizer
 
-    print('Saving features to file %s' % features_file_path, file=sys.stderr, flush=True)
-    with open(features_file_path, 'wb') as f:
-        pickle.dump(features_names, f)
-
-    print('Saving final matrix to file %s' % matrix_file_path, file=sys.stderr, flush=True)
+    print('Saving final matrix to file {} with shape {}'.format(
+        matrix_file_path, dataset_matrix.shape), file=sys.stderr, flush=True)
     np.savez_compressed(matrix_file_path, data=dataset_matrix.data, indices=dataset_matrix.indices,
                         indptr=dataset_matrix.indptr, shape=dataset_matrix.shape)
 
@@ -308,7 +325,6 @@ def parse_corpus_to_word_vectors(path, matrix_file_path, word_vectors_file, labe
 def split_dataset(labels, indices_save_path, classes_save_path, train_size=0.8,
                   test_size=0.1, validation_size=0.1, min_count=3):
     classes = {}
-
     print('Getting YAGO labels', file=sys.stderr, flush=True)
     yago_labels = [label[1] for label in labels]
 

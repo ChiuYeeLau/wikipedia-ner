@@ -7,7 +7,7 @@ import numpy as np
 import os
 import sys
 
-from wikipedianer.pipeline.classification import run_classifier
+from wikipedianer.pipeline.classification import run_classifier, get_dataset
 from wikipedianer.pipeline.util import CL_ITERATIONS
 
 # To avoid error induced by chance
@@ -77,6 +77,10 @@ if __name__ == '__main__':
                         action='store_true')
     parser.add_argument('--debug_word_vectors',
                         action='store_true')
+    parser.add_argument('--evaluate-only', action='store_true',
+                        help='Do not train the classifiers.')
+    parser.add_argument('--classes_path', type=str, default=None,
+                        help='File with the classes to replace labels')
 
     args = parser.parse_args()
 
@@ -101,10 +105,14 @@ if __name__ == '__main__':
         else args.completed_iterations
     completed_iterations = [CL_ITERATIONS.index(cl_iter) for cl_iter in args.completed_iterations]
 
-    run_classifier(dataset_path=args.dataset_path, labels_path=args.labels_path, indices_path=args.indices_path,
-                   results_save_path=args.results_save_path, pre_trained_weights_save_path=args.weights_save_path,
-                   cl_iterations=cl_iterations, word_vectors_path=args.word_vectors_path, layers=args.layers,
+    dataset = get_dataset(
+        dataset_path=args.dataset_path, labels_path=args.labels_path, indices_path=args.indices_path,
+        word_vectors_path=args.word_vectors_path, debug_word_vectors=args.debug_word_vectors,
+        classes_path=args.classes_path)
+
+    run_classifier(dataset, results_save_path=args.results_save_path, pre_trained_weights_save_path=args.weights_save_path,
+                   cl_iterations=cl_iterations, layers=args.layers,
                    dropout_ratios=args.dropout_ratios, save_models=save_models,
                    completed_iterations=completed_iterations, learning_rate=args.learning_rate, epochs=args.epochs,
                    batch_size=args.batch_size, loss_report=args.loss_report,
-                   batch_normalization=args.batch_normalization, debug_word_vectors=args.debug_word_vectors)
+                   batch_normalization=args.batch_normalization, evaluate_only=args.evaluate_only)

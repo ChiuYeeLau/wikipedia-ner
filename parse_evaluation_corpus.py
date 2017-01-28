@@ -12,13 +12,14 @@ import gensim
 import numpy as np
 import os
 import sys
-from scipy.sparse import coo_matrix
+from scipy.sparse import coo_matrix, vstack
 from tqdm import tqdm
 from wikipedianer.corpus.parser import InstanceExtractor, WordVectorsExtractor
 from wikipedianer.corpus.parser import WikipediaCorpusColumnParser
+from wikipedianer.pipeline.util import traverse_directory
 
 
-def process_sentences(parser, total_sentences, instance_extractor, features):
+def process_sentences(parser, instance_extractor, features):
     """Constructs incrementally the sparse matrix."""
     # Constructs the coo matrix incrementally.
     rows = []
@@ -27,7 +28,7 @@ def process_sentences(parser, total_sentences, instance_extractor, features):
     row_count = 0  # How many rows of the matrix we have seen.
 
     words = []
-    for sentence in tqdm(parser, total=total_sentences):
+    for sentence in tqdm(parser):
         sentence_words = [(word.idx, word.token, word.tag, word.is_doc_start)
                           for word in sentence]
         sent_instances, _, _ = instance_extractor.get_instances_for_sentence(
@@ -51,22 +52,14 @@ def process_sentences(parser, total_sentences, instance_extractor, features):
     return sentence_matrix, words
 
 
-def parse_to_feature_matrix(input_file, output_dir, resources_dir,
-                            total_sentences):
+def parse_to_feature_matrix(input_dirname, output_dir, resources_dir):
     print('Loading resources', file=sys.stderr, flush=True)
 
-    with open(os.path.join(resources_dir, "gazetteer.pickle"),
+    with open(os.path.join(resources_dir, "gazetteer.p"),
               "rb") as gazetteer_file:
-        gazetteer = pickle.load(gazetteer_file)
+        gazetteer, sloppy_gazetteer = pickle.load(gazetteer_file)
 
-    try:
-        with open(os.path.join(resources_dir, "sloppy_gazetteer.pickle"),
-                  "rb") as sloppy_gazetteer_file:
-            sloppy_gazetteer = pickle.load(sloppy_gazetteer_file)
-    except FileNotFoundError:
-        sloppy_gazetteer = set()
-
-    with open(os.path.join(resources_dir, "filtered_features_names.pickle"),
+    with open(os.path.join(resources_dir, "filtered_features_names.p"),
               "rb") as features_file:
         features = {feature: idx
                     for idx, feature in enumerate(pickle.load(features_file))}
@@ -84,12 +77,18 @@ def parse_to_feature_matrix(input_file, output_dir, resources_dir,
         gazetteer=gazetteer,
         sloppy_gazetteer=sloppy_gazetteer
     )
-    print('Getting instances from corpus {}'.format(input_file),
+    print('Getting instances from corpus {}'.format(input_dirname),
           file=sys.stderr, flush=True)
 
-    parser = WikipediaCorpusColumnParser(input_file)
-    dataset_matrix, words = process_sentences(parser, total_sentences,
-                                              instance_extractor, features)
+    dataset_matrix = []
+    words = []
+    for file_path in sorted(traverse_directory(input_dirname)):
+        parser = WikipediaCorpusColumnParser(file_path)
+        file_matrix, file_words = process_sentences(
+            parser, instance_extractor, features)
+        dataset_matrix.append(file_matrix)
+        words.append(file_words)
+    dataset_matrix = vstack(dataset_matrix)
 
     print('Saving matrix and words', file=sys.stderr, flush=True)
     np.savez_compressed(
@@ -102,7 +101,7 @@ def parse_to_feature_matrix(input_file, output_dir, resources_dir,
         pickle.dump(words, output_file)
 
 
-def parse_to_word_vectors(input_file, output_dir, wordvectors, window, total_sentences, debug):
+def parse_to_word_vectors(input_file, output_dir, wordvectors, window, debug):
     print('Loading vectors', file=sys.stderr, flush=True)
     if not debug:
         word2vec_model = gensim.models.Word2Vec.load_word2vec_format(wordvectors, binary=True)
@@ -118,7 +117,7 @@ def parse_to_word_vectors(input_file, output_dir, wordvectors, window, total_sen
 
     parser = WikipediaCorpusColumnParser(input_file)
 
-    for sentence in tqdm(parser, total=total_sentences):
+    for sentence in tqdm(parser):
         sentence_words = [(word.idx, word.token, word.tag, word.is_doc_start)
                           for word in sentence]
         sentence_instances, _, _ = instance_extractor.get_instances_for_sentence(sentence, 0)
@@ -141,8 +140,9 @@ def parse_to_word_vectors(input_file, output_dir, wordvectors, window, total_sen
 def parse_arguments():
     """Returns the stdin arguments"""
     arg_parse = argparse.ArgumentParser()
-    arg_parse.add_argument("input_file", type=str,
-                           help="Path to the text file (in column format).")
+    arg_parse.add_argument("input_dirname", type=str,
+                           help="Path to the directory with the text files "
+                                "(in column format).")
     arg_parse.add_argument("output_dir", type=str,
                            help="Path to store the output files")
     arg_parse.add_argument("--resources", type=str, default=None,
@@ -150,8 +150,6 @@ def parse_arguments():
                                 "features are stored")
     arg_parse.add_argument("--wordvectors", type=str, default=None,
                            help="Path to the word vectors file")
-    arg_parse.add_argument("--total_sentences", type=int, default=0,
-                           help="Number of sentences of the file")
     arg_parse.add_argument("--window", type=int, default=2,
                            help="Size of the window vector")
     arg_parse.add_argument("--debug", action="store_true", help="Debug mode")
@@ -168,14 +166,13 @@ if __name__ == "__main__":
 
     if args.resources is not None:
         print('Parsing to handcrafted features matrix', file=sys.stderr, flush=True)
-        parse_to_feature_matrix(args.input_file, args.output_dir,
-                                args.resources, args.total_sentences)
+        parse_to_feature_matrix(args.input_dirname, args.output_dir,
+                                args.resources)
 
     if args.wordvectors is not None:
         print('Parsing to word vectors', file=sys.stderr, flush=True)
-        parse_to_word_vectors(args.input_file, args.output_dir,
-                              args.wordvectors, args.window,
-                              args.total_sentences, args.debug)
+        parse_to_word_vectors(args.input_dirname, args.output_dir,
+                              args.wordvectors, args.window, args.debug)
 
     print('All operations finished', file=sys.stderr, flush=True)
 

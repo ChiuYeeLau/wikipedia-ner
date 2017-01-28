@@ -22,7 +22,8 @@ DataTuple = namedtuple('DataTuple', ['data', 'labels'])
 
 
 class Dataset(object):
-    def __init__(self, dataset_path='', labels_path='', indices_path='', dtype=np.float32):
+    def __init__(self, dataset_path='', labels_path='', indices_path='',
+                 classes_path='', dtype=np.float32):
         self.classes = ()
 
         self.train_dataset = np.array([])
@@ -39,7 +40,7 @@ class Dataset(object):
         self.datasets = {}
 
         if dataset_path != '' and labels_path != '' and indices_path != '':
-            self.__load_data__(dataset_path, labels_path, indices_path)
+            self.__load_data__(dataset_path, labels_path, indices_path, classes_path)
             self._add_datasets()
 
         self._epochs_completed = 0
@@ -48,7 +49,7 @@ class Dataset(object):
         self.indices = None
 
     def load_from_files(self, dataset_path, labels_path, indices_path,
-                        cl_iterations=None):
+                        classes_paht=None, cl_iterations=None):
         """
         Builds internal matrix from files.
 
@@ -62,7 +63,7 @@ class Dataset(object):
             the labels to use
         """
         self.__load_data__(dataset_path, labels_path, indices_path,
-                           cl_iterations=cl_iterations)
+                           classes_path=classes_path, cl_iterations=cl_iterations)
         self._add_datasets()
 
     def load_for_evaluation(self, dataset, classes):
@@ -119,7 +120,7 @@ class Dataset(object):
         self._add_datasets()
 
     def __load_data__(self, dataset_path, labels_path, indices_path,
-                      cl_iterations=enumerate(CL_ITERATIONS)):
+                      classes_path=None, cl_iterations=enumerate(CL_ITERATIONS)):
         raise NotImplementedError
 
     def _one_hot_encoding(self, slice_, cl_iteration):
@@ -150,9 +151,11 @@ class Dataset(object):
 
 class HandcraftedFeaturesDataset(Dataset):
     def __load_data__(self, dataset_path, labels_path, indices_path,
+                      classes_path=None,
                       cl_iterations=enumerate(CL_ITERATIONS)):
         print('Loading dataset from file %s' % dataset_path, file=sys.stderr,
               flush=True)
+        cl_iterations = list(cl_iterations)
         dataset = np.load(dataset_path)
         dataset = csr_matrix((dataset['data'], dataset['indices'], dataset['indptr']), shape=dataset['shape'])
 
@@ -178,9 +181,26 @@ class HandcraftedFeaturesDataset(Dataset):
         dataset = normalize(dataset.astype(self.dtype), norm='max', axis=0)
 
         self.train_dataset = dataset[indices['train_indices']]
-        self.classes = tuple([cls[0] for cls in classes])
+        # Replace labels if classes file is given
+        if classes_path is not None:
+            with open(classes_path, 'rb') as cfile:
+                new_classes = pickle.load(cfile)
+            integer_labels = np.zeros(labels.shape)
+            for idx, iteration in cl_iterations:
+                default_index = np.where(new_classes[iteration][0] == 'O')[0][0]
+                for label_index, label in enumerate(classes[idx][0]):
+                    new_label_index = np.where(new_classes[iteration][0] == label)[0]
+                    if new_label_index.shape[0] is not 0:
+                        new_label_index = new_label_index[0]
+                    else:
+                        new_label_index = default_index
+                    label_rows = np.where(classes[idx][1] == label_index)[0]
+                    integer_labels[label_rows, idx] = new_label_index
+            self.classes = tuple([new_classes[iteration[1]][0] for iteration in cl_iterations])
+        else:
+            self.classes = tuple([cls[0] for cls in classes])
+            integer_labels = np.stack([cls[1] for cls in classes]).T
 
-        integer_labels = np.stack([cls[1] for cls in classes]).T
         self.train_labels = integer_labels[indices['train_indices']]
 
         if len(indices['test_indices']):
@@ -323,6 +343,9 @@ class WordVectorsDataset(Dataset):
                 vector.append(np.zeros(self.vector_size, dtype=self.dtype))
 
         return np.concatenate(vector)
+
+    def num_examples(self, dataset_name='train'):
+        return len(self.datasets[dataset_name].data)
 
     def _data_slice_to_vectors(self, data_slice):
         return np.vstack([self._word_window_to_vector(ww) for ww in data_slice])

@@ -6,21 +6,30 @@ import numpy as np
 import os
 import sys
 import tensorflow as tf
+import pandas as pd
 
 from wikipedianer.classification.mlp import MultilayerPerceptron
 from wikipedianer.dataset import HandcraftedFeaturesDataset, WordVectorsDataset
 from wikipedianer.pipeline.util import CL_ITERATIONS
 
 
-def run_classifier(dataset_path, labels_path, indices_path, results_save_path, pre_trained_weights_save_path,
-                   cl_iterations, word_vectors_path=None, layers=list(), dropout_ratios=list(), save_models=list(),
-                   completed_iterations=list(), learning_rate=0.01, epochs=10000, batch_size=2100, loss_report=250,
-                   batch_normalization=False, debug_word_vectors=False):
+def get_dataset(dataset_path, labels_path, indices_path, word_vectors_path=None,
+                debug_word_vectors=False, classes_path=None):
     if word_vectors_path or debug_word_vectors:
-        dataset = WordVectorsDataset(dataset_path, labels_path, indices_path, word_vectors_path, dtype=np.float32,
+        dataset = WordVectorsDataset(dataset_path, labels_path, indices_path,
+                                     word_vectors_path, dtype=np.float32,
                                      debug=debug_word_vectors)
     else:
-        dataset = HandcraftedFeaturesDataset(dataset_path, labels_path, indices_path, dtype=np.float32)
+        dataset = HandcraftedFeaturesDataset(
+            dataset_path, labels_path, indices_path, dtype=np.float32,
+            classes_path=classes_path)
+    return dataset
+
+
+def run_classifier(dataset, results_save_path, pre_trained_weights_save_path,
+                   cl_iterations,  layers=list(), dropout_ratios=list(), save_models=list(),
+                   completed_iterations=list(), learning_rate=0.01, epochs=10000, batch_size=2100, loss_report=250,
+                   batch_normalization=False, evaluate_only=False):
 
     experiments_names = []
 
@@ -66,7 +75,19 @@ def run_classifier(dataset_path, labels_path, indices_path, results_save_path, p
                                        dropout_ratios=do_ratios, batch_normalization=batch_normalization)
 
             print('Training the classifier', file=sys.stderr, flush=True)
-            mlp.train()
+            if not evaluate_only:
+                mlp.train()
+            else:
+                accuracy, precision, recall, fscore, y_true, y_pred = mlp.evaluate('test', return_extras=True, restore=True)
+                mlp.add_test_results(accuracy, precision, recall, fscore,
+                              classes=mlp.dataset.classes[iteration],
+                              y_true=y_true)
+
+                mlp.test_predictions_results = pd.DataFrame(
+                    np.vstack([y_true, y_pred]).T,
+                    columns=mlp.test_predictions_results.columns)
+                mlp._save_results(save_layers=False, sess=None,
+                                   save_validation=False)
 
         # Releasing some memory
         del pre_weights

@@ -51,6 +51,8 @@ def read_arguments():
                              'is provided, a HandcraftedFeatureDataset will be'
                              'used.')
     parser.add_argument("--batch_normalization", action='store_true')
+    parser.add_argument("--layers", type=str, default=None,
+                        help='Label file to output paired predictions. Optional')
 
     return parser.parse_args()
 
@@ -127,17 +129,15 @@ def main():
 
     logging.info('Saving resulting corpus to dir {}'.format(
         args.results_save_path))
-    # Save numeric predictions
-    output_filename = os.path.join(
-        args.results_save_path, 'predictions_{}.csv'.format(args.task))
-    pandas.DataFrame(y_pred).to_csv(output_filename, index=None)
 
     # Save predictions for evaluation
     output_filename = os.path.join(
         args.results_save_path, 'readable_predictions_{}.csv'.format(args.task))
+    labels = []
     with open(output_filename, 'wb') as outfile:
         for idx, (word_idx, token, tag, is_doc_start) in tqdm(enumerate(words)):
             word_label = dataset.classes[iteration][int(y_pred[idx])]
+            labels.append(word_label)
 
             if idx > 0 and word_idx == 0:
                 outfile.write('\n'.encode('utf-8'))
@@ -145,7 +145,22 @@ def main():
             row = '{}\t{}\t{}\t{}\n'.format(word_idx, token, tag, word_label)
             outfile.write(row.encode('utf-8'))
 
-    print('All finished', file=sys.stderr, flush=True)
+    # Save numeric predictions
+    predictions_filename = os.path.join(
+        args.results_save_path,
+        'evaluation_predictions_{}.csv'.format(args.task))
+    if args.labels is None:
+        pandas.DataFrame(y_pred).to_csv(predictions_filename, index=None)
+    else:
+        # Save paired predictions with original labels
+        with open(args.labels, 'rb') as label_file:
+            original_labels = [x[iteration] for x in pickle.load(label_file)]
+        assert len(original_labels) == len(labels)
+        predictions = pandas.DataFrame([original_labels, labels],
+                                       columns=['true', 'prediction'])
+        predictions.to_csv(predictions_filename, index=None)
+
+    print('All operations finished', file=sys.stderr, flush=True)
 
 
 if __name__ == "__main__":

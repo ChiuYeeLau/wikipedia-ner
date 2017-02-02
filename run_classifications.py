@@ -77,6 +77,8 @@ if __name__ == '__main__':
                         action='store_true')
     parser.add_argument('--debug_word_vectors',
                         action='store_true')
+    parser.add_argument('--reversed',
+                        action='store_true')
 
     args = parser.parse_args()
 
@@ -107,4 +109,5 @@ if __name__ == '__main__':
                    dropout_ratios=args.dropout_ratios, save_models=save_models,
                    completed_iterations=completed_iterations, learning_rate=args.learning_rate, epochs=args.epochs,
                    batch_size=args.batch_size, loss_report=args.loss_report,
-                   batch_normalization=args.batch_normalization, debug_word_vectors=args.debug_word_vectors)
+                   batch_normalization=args.batch_normalization, debug_word_vectors=args.debug_word_vectors,
+                   reversed_iterations=args.reversed)

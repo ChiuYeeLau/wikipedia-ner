@@ -330,8 +330,11 @@ class WordVectorsDataset(Dataset):
 
         Must be called when the datasets are loaded."""
         self._word_vector_model = model
-        self._input_size = self._word_vector_model.vector_size * len(
-                           self.train_dataset[0])
+        if len(self.train_dataset):
+            window_size = len(self.train_dataset[0])
+        else:
+            window_size = len(self.test_dataset[0])
+        self._input_size = self._word_vector_model.vector_size * window_size
         self._vector_size = self._word_vector_model.vector_size
 
     @staticmethod

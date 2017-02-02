@@ -7,6 +7,7 @@ try:
     import cPickle as pickle
 except ImportError:
     import pickle
+import gensim
 import logging
 import numpy as np
 import pandas
@@ -51,7 +52,7 @@ def read_arguments():
                              'is provided, a HandcraftedFeatureDataset will be'
                              'used.')
     parser.add_argument("--batch_normalization", action='store_true')
-    parser.add_argument("--layers", type=str, default=None,
+    parser.add_argument("--labels", type=str, default=None,
                         help='Label file to output paired predictions. Optional')
 
     return parser.parse_args()
@@ -67,9 +68,9 @@ def create_dataset(args):
 
     logging.info('Loading dataset from file {}'.format(args.dataset))
     if args.word_vectors is not None:
-        dataset = WordVectorsDataset(word_vectors_path=args.word_vectors,
-                                     dtype=np.float32)
-        matrix = pickle.load(args.dataset)
+        dataset = WordVectorsDataset(dtype=np.float32)
+        with open(args.dataset, 'rb') as dataset_file:
+            matrix = pickle.load(dataset_file)
     else:
         matrix = np.load(args.dataset)
         matrix = csr_matrix((matrix['data'], matrix['indices'],
@@ -81,6 +82,10 @@ def create_dataset(args):
 
     dataset.load_for_evaluation(matrix, classes)
 
+    if args.word_vectors is not None:
+        model = gensim.models.Word2Vec.load_word2vec_format(args.word_vectors,
+                                                            binary=True)
+        dataset.add_word_vector_model(model)
     return dataset
 
 
@@ -152,12 +157,19 @@ def main():
     if args.labels is None:
         pandas.DataFrame(y_pred).to_csv(predictions_filename, index=None)
     else:
+        iteration = list(reversed(util.CL_ITERATIONS)).index(args.task)
         # Save paired predictions with original labels
         with open(args.labels, 'rb') as label_file:
-            original_labels = [x[iteration] for x in pickle.load(label_file)]
+            original_labels = [
+                (x[iteration][0] if isinstance(x[iteration], list) else x[iteration])
+                for x in pickle.load(label_file)]
+        original_labels = [('I-' + label if labels != 'O' else 'O')
+                           for label in original_labels]
+                           
         assert len(original_labels) == len(labels)
-        predictions = pandas.DataFrame([original_labels, labels],
-                                       columns=['true', 'prediction'])
+        predictions = pandas.DataFrame(columns=['true', 'prediction'])
+        predictions.true = original_labels
+        predictions.prediction = labels
         predictions.to_csv(predictions_filename, index=None)
 
     print('All operations finished', file=sys.stderr, flush=True)

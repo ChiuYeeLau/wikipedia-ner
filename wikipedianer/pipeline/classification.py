@@ -15,7 +15,9 @@ from wikipedianer.pipeline.util import CL_ITERATIONS
 def run_classifier(dataset_path, labels_path, indices_path, results_save_path, pre_trained_weights_save_path,
                    cl_iterations, word_vectors_path=None, layers=list(), dropout_ratios=list(), save_models=list(),
                    completed_iterations=list(), learning_rate=0.01, epochs=10000, batch_size=2100, loss_report=250,
-                   batch_normalization=False, debug_word_vectors=False, reversed_iterations=False):
+                   batch_normalization=False, debug_word_vectors=False):
+    cl_iterations_names = [CL_ITERATIONS[i] for i in cl_iterations]
+
     if word_vectors_path or debug_word_vectors:
         dataset = WordVectorsDataset(dataset_path, labels_path, indices_path, word_vectors_path, dtype=np.float32,
                                      debug=debug_word_vectors)
@@ -24,19 +26,20 @@ def run_classifier(dataset_path, labels_path, indices_path, results_save_path, p
 
     experiments_names = []
 
-    for iteration in completed_iterations:
-        experiment_name = '%s_%s' % ('_'.join(CL_ITERATIONS[:iteration+1]), '_'.join([str(l) for l in layers]))
+    for iidx, iteration in enumerate(completed_iterations):
+        experiment_name = '%s_%s' % ('_'.join(cl_iterations_names[:iidx+1]), '_'.join([str(l) for l in layers]))
         experiments_names.append(experiment_name)
 
-    for iteration in cl_iterations:
+    for iidx, iteration in enumerate(cl_iterations):
         if iteration in completed_iterations:
             print('Skipping completed iterations %s' % CL_ITERATIONS[iteration], file=sys.stderr, flush=True)
             continue
 
         if len(cl_iterations) > 1:
-            experiment_name = '%s_%s' % ('_'.join(CL_ITERATIONS[:iteration+1]), '_'.join([str(l) for l in layers]))
+            experiment_name = '%s_%s' % ('_'.join(cl_iterations_names[:iidx+1]),
+                                         '_'.join([str(l) for l in layers]))
         else:
-            experiment_name = '%s_%s' % (CL_ITERATIONS[iteration], '_'.join([str(l) for l in layers]))
+            experiment_name = '%s_%s' % (cl_iterations_names[iidx], '_'.join([str(l) for l in layers]))
 
         experiments_names.append(experiment_name)
 
@@ -50,7 +53,7 @@ def run_classifier(dataset_path, labels_path, indices_path, results_save_path, p
             pre_weights = None
             pre_biases = None
 
-        save_model = save_models[iteration]
+        save_model = CL_ITERATIONS[iteration] in save_models
 
         with tf.Graph().as_default() as g:
             tf.set_random_seed(1234)

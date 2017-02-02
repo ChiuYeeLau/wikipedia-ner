@@ -77,8 +77,6 @@ if __name__ == '__main__':
                         action='store_true')
     parser.add_argument('--debug_word_vectors',
                         action='store_true')
-    parser.add_argument('--reversed',
-                        action='store_true')
 
     args = parser.parse_args()
 
@@ -95,7 +93,7 @@ if __name__ == '__main__':
     args.cl_iterations = [args.cl_iterations] if isinstance(args.cl_iterations, str) else args.cl_iterations
     cl_iterations = [CL_ITERATIONS.index(cl_iter) for cl_iter in args.cl_iterations]
 
-    save_models = [cl_iter in set(args.save_models) for cl_iter in CL_ITERATIONS]
+    save_models = set(args.save_models)
 
     args.dropout_ratios = [args.dropout_ratios] if isinstance(args.dropout_ratios, int) else args.dropout_ratios
 
@@ -109,5 +107,4 @@ if __name__ == '__main__':
                    dropout_ratios=args.dropout_ratios, save_models=save_models,
                    completed_iterations=completed_iterations, learning_rate=args.learning_rate, epochs=args.epochs,
                    batch_size=args.batch_size, loss_report=args.loss_report,
-                   batch_normalization=args.batch_normalization, debug_word_vectors=args.debug_word_vectors,
-                   reversed_iterations=args.reversed)
+                   batch_normalization=args.batch_normalization, debug_word_vectors=args.debug_word_vectors)

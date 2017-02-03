@@ -1,5 +1,5 @@
 # location of the training file
-trainFile = ../../../datasets/wikipedia/stanford/split_for_ner/train.conll
+trainFile = ../../data/echr/annotations/second_annotation/processed/stanford_ner/train.conll
 # location where you would like to save (serialize) your
 # classifier; adding .gz at the end automatically gzips the file,
 # making it smaller, and faster to load

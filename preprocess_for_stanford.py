@@ -305,8 +305,11 @@ def main():
                                      DocumentsFilter.OUTPUT_DIRNAME)
     else:
         input_dirname = args.input_dirname
-    with open(args.mapping_file, 'rb') as map_file:
-        mapping = pickle.load(map_file)
+    if args.mapping_file is None:
+        mapping = None
+    else:
+        with open(args.mapping_file, 'rb') as map_file:
+            mapping = pickle.load(map_file)
     processer = StanfordPreprocesser(input_dirname, args.task_name,
                                      args.output_dirname, args.splits,
                                      args.indices, args.reduce_by,

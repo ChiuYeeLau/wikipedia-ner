@@ -163,7 +163,7 @@ def main():
             original_labels = [
                 (x[iteration][0] if isinstance(x[iteration], list) else x[iteration])
                 for x in pickle.load(label_file)]
-        original_labels = [('I-' + label if labels != 'O' else 'O')
+        original_labels = [('I-' + label if label != 'O' else 'O')
                            for label in original_labels]
                            
         assert len(original_labels) == len(labels)

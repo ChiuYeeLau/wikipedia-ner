@@ -9,6 +9,7 @@ import csv
 import argparse
 import logging
 import shlex
+import pandas
 import subprocess
 import os
 import utils
@@ -146,6 +147,14 @@ class StanfordEvaluator(object):
                     self._classes.append(predicted)
                 y_predicted.append(self._target_indices[predicted])
 
+    def save_pandas_predictions(self, output_dirpath, y_true, y_pred):
+        """"""
+        predictions = pandas.DataFrame()
+        predictions['true'] = y_true
+        predictions['prediction'] = y_pred
+        predictions.to_csv(
+            os.path.join(output_dirpath, 'evaluation_results.csv'), index=None)
+
     def get_metric(self, output_dirpath):
         """Compares the ground truth in files to the output prediction."""
         y_true = []
@@ -157,6 +166,7 @@ class StanfordEvaluator(object):
                                            os.path.basename(input_filepath))
             self.read_predictions(output_filepath, y_true, y_predicted)
 
+        self.save_pandas_predictions(output_dirpath, y_true, y_predicted)
         report = metrics.classification_report(
             y_true, y_predicted, target_names=self._classes, digits=3)
         logging.info('\n' + report)

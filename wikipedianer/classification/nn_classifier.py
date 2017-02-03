@@ -34,10 +34,10 @@ class NNeighborsClassifierFactory(ClassifierFactory):
         self.total_features = len(self.valid_features)
         self.results_save_path = results_save_path
 
-    def get_classifier(self, dataset, experiment_name):
+    def get_classifier(self, dataset, experiment_name, cl_iteration=1):
         return NNeighborsClassifier(
             dataset, self.valid_features, self.results_save_path,
-            experiment_name=experiment_name)
+            experiment_name=experiment_name, cl_iteration=cl_iteration)
 
 
 class NNeighborsClassifier(BaseClassifier):
@@ -45,7 +45,7 @@ class NNeighborsClassifier(BaseClassifier):
     DEFAULT_LABEL = 'O'
 
     def __init__(self, dataset, valid_features, results_save_path,
-                 experiment_name='', n_neighbors=3):
+                 experiment_name='', n_neighbors=3, cl_iteration=1):
         """
         :param dataset: A Dataset instance
         :param features: A dictionary from indexes in the feature array to
@@ -58,9 +58,12 @@ class NNeighborsClassifier(BaseClassifier):
                                                          weights='distance')
         self.results_save_path = results_save_path
         self.experiment_name = experiment_name
+        self.cl_iteration = cl_iteration
         self.trained = False
 
-    def predict(self, dataset_name):
+    def predict(self, dataset_name, restore=False):
+        if restore:
+            self.read()
         x_matrix = self.dataset.datasets[dataset_name].data[
                    :, self.valid_features]
         y_pred = numpy.zeros(self.dataset.num_examples(dataset_name),
@@ -79,14 +82,14 @@ class NNeighborsClassifier(BaseClassifier):
             self.read()
         logging.info('Obtaining predictions')
         y_pred = self.predict(dataset_name)
-        y_true = self.dataset.dataset_labels(dataset_name, 1)
+        y_true = self.dataset.dataset_labels(dataset_name, self.cl_iteration)
         assert y_pred.shape[0] == y_true.shape[0]
         return self.get_metrics(y_true, y_pred, return_extras=True)
 
     def train(self, save_layers=False):
         self.classifier.fit(
             self.dataset.datasets['train'].data[:, self.valid_features],
-            self.dataset.dataset_labels('train', 1)
+            self.dataset.dataset_labels('train', self.cl_iteration)
         )
         self.trained = True
         logging.info('Training completed.')
@@ -94,9 +97,20 @@ class NNeighborsClassifier(BaseClassifier):
         accuracy, precision, recall, fscore, y_true, y_pred = self.evaluate()
 
         self.add_test_results(accuracy, precision, recall, fscore,
-                              classes=self.dataset.classes[1], y_true=y_true)
+                              classes=self.dataset.classes[self.cl_iteration],
+                              y_true=y_true)
+        self.save_predictions(y_true, y_pred)
         self.save()
         self.test_results.to_csv(self.get_results_filename(), index=False)
+
+    def save_predictions(self, y_true, y_pred):
+        predictions = pandas.DataFrame()
+        predictions['true'] = y_true
+        predictions['prediction'] = y_pred
+        filename = os.path.join(
+            self.results_save_path,
+            'test_predictions_{}.csv'.format(self.experiment_name))
+        predictions.to_csv(filename, index=None)
 
     def get_save_filename(self):
         return os.path.join(self.results_save_path,

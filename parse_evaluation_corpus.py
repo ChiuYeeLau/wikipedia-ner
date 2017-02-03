@@ -8,7 +8,6 @@ try:
     import cPickle as pickle
 except ImportError:
     import pickle
-import gensim
 import numpy as np
 import os
 import sys
@@ -36,7 +35,6 @@ def process_sentences(parser, instance_extractor, features):
             sentence, 0)
 
         assert len(sentence_words) == len(sent_instances)
-        sentence_matrix = []
         for instance in sent_instances:
             for feature, value in instance.items():
                 if feature in features:

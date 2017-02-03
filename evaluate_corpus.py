@@ -3,6 +3,10 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 import argparse
+
+from wikipedianer.classification.nn_classifier import \
+    NNeighborsClassifierFactory
+
 try:
     import cPickle as pickle
 except ImportError:
@@ -51,6 +55,9 @@ def read_arguments():
                         help='Path to file with the word_vector model. If none'
                              'is provided, a HandcraftedFeatureDataset will be'
                              'used.')
+    parser.add_argument('--features_filepath', type=str, default=None,
+                        help='Path to pickled file with the Handcrafted '
+                             'features. Used only for KNN classifier.')
     parser.add_argument("--batch_normalization", action='store_true')
     parser.add_argument("--labels", type=str, default=None,
                         help='Label file to output paired predictions. Optional')
@@ -124,6 +131,13 @@ def main():
         y_pred = classifier.predict(
             dataset_name='test', classifier_factory=factory,
             predicted_high_level_labels=hl_predictions)
+    elif args.classifier == 'knn':
+        assert args.task != 'URI'
+        factory = NNeighborsClassifierFactory(args.features_filepath,
+                                              args.results_save_path)
+        classifier = factory.get_classifier(dataset, args.task,
+                                            cl_iteration=iteration)
+        y_pred = classifier.predict(dataset_name='test', restore=True)
     if not classifier:
         logging.info('Classifier not created')
         return
@@ -163,7 +177,7 @@ def main():
             original_labels = [
                 (x[iteration][0] if isinstance(x[iteration], list) else x[iteration])
                 for x in pickle.load(label_file)]
-        original_labels = [('I-' + label if label != 'O' else 'O')
+        original_labels = [('I-' + label if (label != 'O' and label != 'I') else label)
                            for label in original_labels]
                            
         assert len(original_labels) == len(labels)

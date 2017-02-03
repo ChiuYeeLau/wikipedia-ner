@@ -222,24 +222,30 @@ class StanfordPreprocesser(object):
 
     def split_corpus(self):
         """Splits dataset into train, test and validation."""
-        logging.info("Splitting labels.")
-        splitter = StratifiedSplitter(self.labels)
-        # This split returns the filtered indexes of self.labels (equivalent to
-        # self.documents) corresponding to each split. These are not absolute
-        # document indices
-        logging.info('Splitting documents')
-        train_index, test_index, validation_index = (
-            splitter.get_splitted_dataset_indices(
-                *self.splits, ignore_warnings=True, reduce_by=self.reduce_by))
-
-        logging.info('Splitting documents')
-        if not len(train_index) or not len(test_index):
-            raise ValueError("ERROR not enough instances to split")
         if isinstance(self.documents, list):
             self.documents = numpy.array(self.documents)
-        self.train_doc_index = self.documents[train_index]
-        self.test_doc_index = self.documents[test_index]
-        self.validation_doc_index = self.documents[validation_index]
+        if self.splits[0] < 1.0:
+            logging.info("Splitting labels.")
+            splitter = StratifiedSplitter(self.labels)
+            # This split returns the filtered indexes of self.labels (equivalent
+            # to self.documents) corresponding to each split. These are not
+            # absolute document indices
+            logging.info('Splitting documents')
+            train_index, test_index, validation_index = (
+                splitter.get_splitted_dataset_indices(
+                    *self.splits, ignore_warnings=True,
+                    reduce_by=self.reduce_by))
+
+            logging.info('Splitting documents')
+            if not len(train_index) or not len(test_index):
+                raise ValueError("ERROR not enough instances to split")
+            self.train_doc_index = self.documents[train_index]
+            self.test_doc_index = self.documents[test_index]
+            self.validation_doc_index = self.documents[validation_index]
+        else:
+            self.train_doc_index = self.documents
+            self.test_doc_index = []
+            self.validation_doc_index = []
 
     def write_document(self, document, output_file):
         """Writes the document into the output file with proper format."""

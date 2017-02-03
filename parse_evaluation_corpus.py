@@ -12,25 +12,27 @@ import gensim
 import numpy as np
 import os
 import sys
-from scipy.sparse import coo_matrix
+from scipy.sparse import coo_matrix, vstack
 from tqdm import tqdm
-from wikipedianer.corpus.parser import InstanceExtractor, WordVectorsExtractor
+from wikipedianer.corpus.parser import InstanceExtractor, WindowWordExtractor
 from wikipedianer.corpus.parser import WikipediaCorpusColumnParser
+from wikipedianer.pipeline.util import traverse_directory
 
 
-def process_sentences(parser, total_sentences, instance_extractor, features):
+def process_sentences(parser, instance_extractor, features):
     """Constructs incrementally the sparse matrix."""
     # Constructs the coo matrix incrementally.
     rows = []
     cols = []
     values = []
+    labels = []
     row_count = 0  # How many rows of the matrix we have seen.
 
     words = []
-    for sentence in tqdm(parser, total=total_sentences):
+    for sentence in tqdm(parser):
         sentence_words = [(word.idx, word.token, word.tag, word.is_doc_start)
                           for word in sentence]
-        sent_instances, _, _ = instance_extractor.get_instances_for_sentence(
+        sent_instances, sent_labels, _ = instance_extractor.get_instances_for_sentence(
             sentence, 0)
 
         assert len(sentence_words) == len(sent_instances)
@@ -43,30 +45,23 @@ def process_sentences(parser, total_sentences, instance_extractor, features):
                     values.append(value)
             row_count += 1
 
+        labels.extend(sent_labels)
         words.extend(sentence_words)
         assert row_count == len(words)
 
     sentence_matrix = coo_matrix((values, (rows, cols)),
                                  shape=(row_count, len(features))).tocsr()
-    return sentence_matrix, words
+    return sentence_matrix, words, labels
 
 
-def parse_to_feature_matrix(input_file, output_dir, resources_dir,
-                            total_sentences):
+def parse_to_feature_matrix(input_dirname, output_dir, resources_dir):
     print('Loading resources', file=sys.stderr, flush=True)
 
-    with open(os.path.join(resources_dir, "gazetteer.pickle"),
+    with open(os.path.join(resources_dir, "gazetteer.p"),
               "rb") as gazetteer_file:
-        gazetteer = pickle.load(gazetteer_file)
+        gazetteer, sloppy_gazetteer = pickle.load(gazetteer_file)
 
-    try:
-        with open(os.path.join(resources_dir, "sloppy_gazetteer.pickle"),
-                  "rb") as sloppy_gazetteer_file:
-            sloppy_gazetteer = pickle.load(sloppy_gazetteer_file)
-    except FileNotFoundError:
-        sloppy_gazetteer = set()
-
-    with open(os.path.join(resources_dir, "filtered_features_names.pickle"),
+    with open(os.path.join(resources_dir, "filtered_features_names.p"),
               "rb") as features_file:
         features = {feature: idx
                     for idx, feature in enumerate(pickle.load(features_file))}
@@ -84,12 +79,20 @@ def parse_to_feature_matrix(input_file, output_dir, resources_dir,
         gazetteer=gazetteer,
         sloppy_gazetteer=sloppy_gazetteer
     )
-    print('Getting instances from corpus {}'.format(input_file),
+    print('Getting instances from corpus {}'.format(input_dirname),
           file=sys.stderr, flush=True)
 
-    parser = WikipediaCorpusColumnParser(input_file)
-    dataset_matrix, words = process_sentences(parser, total_sentences,
-                                              instance_extractor, features)
+    dataset_matrix = []
+    words = []
+    labels = []
+    for file_path in sorted(traverse_directory(input_dirname, file_pattern='*.conll')):
+        parser = WikipediaCorpusColumnParser(file_path)
+        file_matrix, file_words, file_labels = process_sentences(
+            parser, instance_extractor, features)
+        dataset_matrix.append(file_matrix)
+        words.extend(file_words)
+        labels.extend(file_labels)
+    dataset_matrix = vstack(dataset_matrix)
 
     print('Saving matrix and words', file=sys.stderr, flush=True)
     np.savez_compressed(
@@ -101,81 +104,75 @@ def parse_to_feature_matrix(input_file, output_dir, resources_dir,
               'wb') as output_file:
         pickle.dump(words, output_file)
 
+    with open(os.path.join(output_dir, 'labels.pickle'), 'wb') as output_file:
+        pickle.dump(labels, output_file)
 
-def parse_to_word_vectors(input_file, output_dir, wordvectors, window, total_sentences, debug):
-    print('Loading vectors', file=sys.stderr, flush=True)
-    if not debug:
-        word2vec_model = gensim.models.Word2Vec.load_word2vec_format(wordvectors, binary=True)
-    else:
-        word2vec_model = gensim.models.Word2Vec()
 
-    instance_extractor = WordVectorsExtractor(word2vec_model, window)
+def parse_to_word_windows(input_dirname, output_dir, window):
+    instance_extractor = WindowWordExtractor(window) 
 
     instances = []
     words = []
+    labels = []
 
-    print('Getting instances from corpus {}'.format(input_file), file=sys.stderr, flush=True)
+    print('Getting instances from corpus {}'.format(input_dirname), \
+          file=sys.stderr, flush=True)
 
-    parser = WikipediaCorpusColumnParser(input_file)
+    for file_path in sorted(traverse_directory(
+            input_dirname, file_pattern='*.conll')):
+        parser = WikipediaCorpusColumnParser(file_path)
+        for sentence in tqdm(parser):
+            sentence_words = [
+                (word.idx, word.token, word.tag, word.is_doc_start)
+                for word in sentence]
+            sentence_instances, sentence_labels, _ = \
+                instance_extractor.get_instances_for_sentence(sentence, 0)
 
-    for sentence in tqdm(parser, total=total_sentences):
-        sentence_words = [(word.idx, word.token, word.tag, word.is_doc_start)
-                          for word in sentence]
-        sentence_instances, _, _ = instance_extractor.get_instances_for_sentence(sentence, 0)
+            assert len(sentence_words) == len(sentence_instances)
 
-        assert len(sentence_words) == len(sentence_instances)
-
-        instances.extend(sentence_instances)
-        words.extend(sentence_words)
+            labels.extend(sentence_labels)
+            instances.extend(sentence_instances)
+            words.extend(sentence_words)
 
     print('Saving matrix and words', file=sys.stderr, flush=True)
-
-    dataset_matrix = np.vstack(instances)
-
-    np.savez_compressed(os.path.join(output_dir, 'evaluation_dataset_word_vectors.npz'), dataset=dataset_matrix)
+    instances_file = os.path.join(output_dir, 'evaluation_dataset_word_vectors.pickle')
+    with open(instances_file, 'wb') as outfile:
+        pickle.dump(instances, outfile) 
 
     with open(os.path.join(output_dir, 'evaluation_words_word_vectors.pickle'), 'wb') as f:
         pickle.dump(words, f)
+
+    with open(os.path.join(output_dir, 'labels.pickle'), 'wb') as f:
+        pickle.dump(labels, f)
 
 
 def parse_arguments():
     """Returns the stdin arguments"""
     arg_parse = argparse.ArgumentParser()
-    arg_parse.add_argument("input_file", type=str,
-                           help="Path to the text file (in column format).")
+    arg_parse.add_argument("input_dirname", type=str,
+                           help="Path to the directory with the text files "
+                                "(in column format).")
     arg_parse.add_argument("output_dir", type=str,
                            help="Path to store the output files")
     arg_parse.add_argument("--resources", type=str, default=None,
                            help="Path where the resources for handcrafted "
                                 "features are stored")
-    arg_parse.add_argument("--wordvectors", type=str, default=None,
-                           help="Path to the word vectors file")
-    arg_parse.add_argument("--total_sentences", type=int, default=0,
-                           help="Number of sentences of the file")
     arg_parse.add_argument("--window", type=int, default=2,
                            help="Size of the window vector")
-    arg_parse.add_argument("--debug", action="store_true", help="Debug mode")
     return arg_parse.parse_args()
 
 
 if __name__ == "__main__":
     args = parse_arguments()
 
-    if args.resources is None and args.wordvectors is None:
-        print('You have to give a resources path or a wordvectors path',
-              file=sys.stderr, flush=True)
-        sys.exit(1)
-
     if args.resources is not None:
         print('Parsing to handcrafted features matrix', file=sys.stderr, flush=True)
-        parse_to_feature_matrix(args.input_file, args.output_dir,
-                                args.resources, args.total_sentences)
-
-    if args.wordvectors is not None:
+        parse_to_feature_matrix(args.input_dirname, args.output_dir,
+                                args.resources)
+    else:
         print('Parsing to word vectors', file=sys.stderr, flush=True)
-        parse_to_word_vectors(args.input_file, args.output_dir,
-                              args.wordvectors, args.window,
-                              args.total_sentences, args.debug)
+        parse_to_word_windows(args.input_dirname, args.output_dir,
+                              args.window)
 
     print('All operations finished', file=sys.stderr, flush=True)
 

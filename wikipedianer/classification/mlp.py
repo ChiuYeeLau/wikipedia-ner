@@ -205,14 +205,15 @@ class MultilayerPerceptron(BaseClassifier):
         return self.get_metrics(y_true, y_pred, return_extras=return_extras)
 
 
-    def _save_results(self, save_layers, sess):
-        # Train loss
-        np.savetxt(os.path.join(self.results_save_path, 'train_loss_record_%s.txt' % self.experiment_name),
-                   np.array(self.train_loss_record, dtype=np.float32), fmt='%.3f', delimiter=',')
+    def _save_results(self, save_layers, sess, save_validation=True):
+        if save_validation:
+            # Train loss
+            np.savetxt(os.path.join(self.results_save_path, 'train_loss_record_%s.txt' % self.experiment_name),
+                       np.array(self.train_loss_record, dtype=np.float32), fmt='%.3f', delimiter=',')
 
-        # Validation accuracy
-        np.savetxt(os.path.join(self.results_save_path, 'validation_accuracy_record_%s.txt' % self.experiment_name),
-                   np.array(self.validation_accuracy_record, dtype=np.float32), fmt='%.3f', delimiter=',')
+            # Validation accuracy
+            np.savetxt(os.path.join(self.results_save_path, 'validation_accuracy_record_%s.txt' % self.experiment_name),
+                       np.array(self.validation_accuracy_record, dtype=np.float32), fmt='%.3f', delimiter=',')
 
         # Test
         self.test_results.to_csv(os.path.join(self.results_save_path, 'test_results_%s.csv' % self.experiment_name),

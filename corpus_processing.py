@@ -141,10 +141,6 @@ if __name__ == '__main__':
         if args.filtered_features_file_path is None:
             print('You must provide a path for the filtered features file', file=sys.stderr, flush=True)
             sys.exit(os.EX_USAGE)
-        if args.filtered_handcrafted_matrix_path is None:
-            print('You must provide a path for the handcrafted features matrix with feature selection file',
-                  file=sys.stderr, flush=True)
-            sys.exit(os.EX_USAGE)
 
         print('Getting gazetteer', file=sys.stderr, flush=True)
         if os.path.isfile(args.gazetteer_file_path):
@@ -154,7 +150,6 @@ if __name__ == '__main__':
             gazetteer, sloppy_gazetteer, valid_indices = \
                 collect_gazeteers_and_subsample_non_entities(args.corpus_path, args.gazetteer_file_path,
                                                              args.valid_indices_path, args.remove_stopwords)
-
         print('Getting handcrafted features matrix, labels and features names', file=sys.stderr, flush=True)
         if os.path.isfile(args.handcrafted_matrix_path) and os.path.isfile(args.labels_file_path) and \
                 os.path.isfile(args.features_file_path):
@@ -176,9 +171,9 @@ if __name__ == '__main__':
 
         # Free a little memory
         del gazetteer, sloppy_gazetteer
-
-        feature_selection(dataset, feature_names, args.filtered_handcrafted_matrix_path,
-                          args.filtered_features_file_path, args.max_features)
+        if args.filtered_handcrafted_matrix_path is not None:
+            feature_selection(dataset, feature_names, args.filtered_handcrafted_matrix_path,
+                              args.filtered_features_file_path, args.max_features)
 
         # Free a little more memory
         del dataset, feature_names

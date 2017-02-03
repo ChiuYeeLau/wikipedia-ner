@@ -188,9 +188,8 @@ class WordVectorsExtractor(object):
     def get_instances_for_sentence(self, sentence, word_idx):
         instances = []
         labels = []
-
         for word in sentence:
-            if not self.valid_indices or word_idx in self.valid_indices:
+            if not len(self.valid_indices) or word_idx in self.valid_indices:
                 instances.append(self._vectors_for_word(word, sentence))
                 labels.append(word.labels)
             word_idx += 1

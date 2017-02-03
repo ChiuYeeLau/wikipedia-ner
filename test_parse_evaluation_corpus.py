@@ -35,9 +35,8 @@ class TestParseEvaluationCorpus(unittest.TestCase):
             current_tag=True,
         )
         parser = WikipediaCorpusColumnParser(self.TEST_INPUT_FILE)
-        total_sentences = 3
         features, original_instances = self._read_test_file()
-        matrix = process_sentences(parser, total_sentences,
+        matrix = process_sentences(parser,
                                    instance_extractor, features)[0]
         self.assertEqual((len(original_instances), len(features)), matrix.shape)
         self.assertIsInstance(matrix, csr_matrix)
